@@ -62,7 +62,7 @@ namespace labust
 		 * \todo Add full dependency check.
 		 * \todo Add unregister controller option.
 		 * \todo Remove the named maps form helper classes and pass only the controller id number to classes.
-		 * \todo When everythin is working, build dep and pn graphs directly from the petri-net matrices
+		 * \todo When everythin gis working, build dep and pn graphs directly from the petri-net matrices
 		 */
 		class ExecControl
 		{
