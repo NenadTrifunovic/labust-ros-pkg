@@ -37,6 +37,9 @@
 #include <labust/control/ControllerManager.hpp>
 #include <navcon_msgs/ControllerState.h>
 
+#include <navcon_msgs/ControllerState.h>
+#include <std_msgs/String.h>
+
 using namespace labust::control;
 
 ControllerManager::ControllerManager()
@@ -57,101 +60,43 @@ void ControllerManager::onInit()
 
 	//Setup publisher
 	controllerState = nh.advertise<navcon_msgs::ControllerState>("controller_state",1);
+	graphDesc = nh.advertise<std_msgs::String>("graph_desc",1);
 
-	///\todo ADD AVAILABLE DOF RESOURCES TO CONTROLLER GRAPH
+	//Register available DOFs as resources
+	///\todo Make this static const
+	std::vector<std::string> dofs({"X","Y","Z","K","M","N"});
+	std::vector<int> availableRes({0,1,5});
+	for (int i=0; i < availableRes.size(); ++i)
+		cgraph.addResource(dofs[availableRes[i]]);
 }
 
 bool ControllerManager::onControllerSelect(navcon_msgs::ControllerSelect::Request& req,
 				navcon_msgs::ControllerSelect::Response& resp)
 {
+	for (int i=0; i<req.name.size(); ++i)
+	{
+		///\todo Check if controller exists
+		///\todo Check if controller is already active
+		///\todo Check if the controller is in the same mode
+		///\todo Move checking and activation request processing to cgraph
+		switch (req.state[i])
+		{
+		case req.EXTERNAL:
+			//Activate the controller
+		  cgraph.get_firing_pn(req.name[i]);
+			break;
+		default:
+			ROS_INFO("Unprocessed request %d", req.state[i]);
+			break;
+		}
+	}
 	return true;
 }
 
 bool ControllerManager::onRegisterController(navcon_msgs::RegisterController_v3::Request& req,
 		navcon_msgs::RegisterController_v3::Response& resp)
 {
-	///\todo Check that the controller already exists
-	///\todo Check for un-met dependencies
-	///\todo Dismiss controller registration if double or unmet dependencies
-	///\todo Add the accepted controller to the Petri-Net and dependency graphs
-
-	//Check if the controller with same name is already registered.
-	///\todo Move validity checking into graph class
-	if (cgraph.controllers.find(req.name) != cgraph.controllers.end())
-	{
-		ROS_WARN("Controller with name %s already exists.", req.name.c_str());
-		resp.reply = navcon_msgs::RegisterController_v3::Response::ALREADY_REGISTERED;
-		return true;
-	}
-
-	///\todo Move all dependency names into one string vector
-	//Check if dependencies are satisfied
-	for (int i=0; i<req.used_other.size(); ++i)
-	{
-		if (cgraph.placeMap.find(req.used_other[i]) == cgraph.placeMap.end())
-		{
-			ROS_ERROR("The controller %s is missing dependency %s.",
-					req.name.c_str(),
-					req.used_other[i].c_str());
-			resp.reply = navcon_msgs::RegisterController_v3::Response::MISSING_DEPENDENCY;
-			return true;
-		}
-	}
-
-/*
-	if (resp.unmet_cnt.size())
-	{
-		resp.accepted = false;
-		return true;
-	}
-
-	//Add the controller
-	ROS_INFO("Adding controller %s.",req.name.c_str());
-	resp.accepted = true;
-	controllers[req.name].info = req;
-	depGraph.addToGraph(req);
-	//pnGraph.addToGraph(req);
-	//pnCon.addToPNGraph(req);
-
-	ros::Time now = ros::Time::now();
-	pnCon.addToGraph(req);
-	double addgraph_dT = (ros::Time::now() - now).toSec();
-	now = ros::Time::now();
-	pnCon.addToPNGraph(req);
-	double addpngraph_dT = (ros::Time::now() - now).toSec();
-	//pnCon.reachability();
-	double classic_dT = (ros::Time::now() - now).toSec();
-	now = ros::Time::now();
-	//pnCon.addToRGraph2(req.name);
-	pnCon.addToRGraph(req.name);
-	double incremental_dT = (ros::Time::now() - now).toSec();
-
-	//pnCon.addToRGraph();
-	//addToMatrix(req.name);
-	names.push_back(req.name);
-
-	std_msgs::String out;
-	std::fstream dep_file("dep_graph.dot",std::ios::out);
-	std::fstream pn_file("pn_graph.dot",std::ios::out);
-	std::fstream r_file("r_graph.dot",std::ios::out);
-	std::string temp;
-	depGraph.getDotDesc(temp);
-	dep_file<<temp;
-	out.data = temp;
-	depGraphPub.publish(out);
-	pnCon.getDotDesc2(temp);
-	pn_file<<temp;
-	out.data = temp;
-	pnGraphPub.publish(out);
-	pnCon.getDotDesc(temp);
-	r_file<<temp;
-
-	std::ofstream prof_file("profile.csv", std::ios::app);
-	prof_file<<addgraph_dT<<","<<addpngraph_dT<<","<<classic_dT<<","<<incremental_dT<<std::endl;
-
-	return true;
-*/
-	cgraph.controllers[req.name] = req;
+	resp.reply = cgraph.addToGraph(req);
 	return true;
 }
 

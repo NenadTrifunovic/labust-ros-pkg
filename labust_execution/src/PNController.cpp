@@ -548,7 +548,7 @@ void PNController::get_firing_pn(const std::string& name)
 	  				else tpair = tnum - 1;
 	  				if (firing_seq.find(tpair) != firing_seq.end())
 	  				{
-	  					std::cout<<"The sequence request adding a T-invariant. The sequence will be ignored."<<std::endl;
+	  					std::cout<<"The sequence requests adding a T-invariant. The sequence will be ignored."<<std::endl;
 	  					validSeq = false;
 	  					break;
 	  				}

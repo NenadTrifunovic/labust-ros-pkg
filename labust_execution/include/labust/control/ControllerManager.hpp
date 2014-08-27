@@ -101,7 +101,7 @@ namespace labust
 			/**
 			 * The controller state topic publisher.
 			 */
-			ros::Publisher controllerState;
+			ros::Publisher controllerState, graphDesc;
 			/**
 			 * The controller graph.
 			 */

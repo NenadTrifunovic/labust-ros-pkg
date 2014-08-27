@@ -33,6 +33,9 @@
 *********************************************************************/
 #ifndef CONTROLLERGRAPH_HPP_
 #define CONTROLLERGRAPH_HPP_
+#include <labust/graph/BFSTools.hpp>
+#include <labust/graph/PNGraph.hpp>
+
 #include <navcon_msgs/RegisterController_v3.h>
 #include <boost/config.hpp>
 #include <boost/graph/adjacency_list.hpp>
@@ -47,6 +50,29 @@ namespace labust
 {
 	namespace control
 	{
+
+		/**
+		 * The controller graph interface. Different graphs and graph search solutions should implement this interface
+		 * in order to be easily used by the ROS node.
+		 */
+		class ControllerGraphInterface
+		{
+		public:
+			virtual ~ControllerGraphInterface(){};
+
+			/**
+			 *
+			 * @param info
+			 /*
+			  * Adds the new controller to the controller list and creates a vertex in the graph.
+			  * @param info Controller dependency and name information
+			  * @return The service reply value depending on success or reason of failure.
+			  */
+			virtual int addToGraph(const navcon_msgs::RegisterController_v3Request& info) = 0;
+
+			virtual void addResource(const std::string& name) = 0;
+		};
+
 		/**
 		 * The class contains implementation of Petri-Net builder and controller.
 		 * \todo Add multiple desired places setup
@@ -63,19 +89,29 @@ namespace labust
 		 * \todo Add detection of faulty controller registrations or setups.
 		 *       -analyze if they have indirect dependencies to DOFs
 		 * \todo Possible optimizations: Find sequences that can fire simultaneously
+		 * \todo Revisit includes
 		 */
-		class ControllerGraph
+		class ControllerGraph : public virtual ControllerGraphInterface
 		{
-			struct PlaceInfo
+			typedef labust::graph::PNGraph::VertexProperty PNIdx;
+			/**
+			 * Global information holder for controller.
+			 */
+			struct ControllerInfo
 			{
-				PlaceInfo():
-					place_num(-1),
-					enable_t(-1),
-					disable_t(-1){};
+				ControllerInfo(){};
 
-				int	place_num,
-				enable_t,
-				disable_t;
+				///Controller place index
+				PNIdx	place;
+				///Enabling transition index
+				PNIdx enable_t;
+				///Disabling transition index
+				PNIdx disable_t;
+				///Activation indicator index
+				PNIdx indicator;
+
+				///Base resource dependency tracking
+				std::set<std::string> dep_resources;
 			};
 
 		public:
@@ -89,9 +125,12 @@ namespace labust
 			 */
 			void get_firing_pn(const std::string& name);
 			/**
-			 * Calculates the pn graph incrementaly.
+			 * Adds the new controller to the controller list and creates a vertex in the graph.
+			 * @param info
 			 */
-			void addToPNGraph(const navcon_msgs::RegisterController_v3Request& info);
+			int addToGraph(const navcon_msgs::RegisterController_v3::Request& info);
+
+			void addResource(const std::string& name);
 			/**
 			 * Get the reachability graph DOT description.
 			 */
@@ -105,26 +144,7 @@ namespace labust
 			ControllerMap controllers;
 
 		private:
-			/**
-			 * The place and transition number.
-			 */
-			int pnum, tnum;
-			/**
-			 * PN matrices.
-			 */
-			Eigen::MatrixXi Dm,Dp,I;
-			/*
-			 * The current marking.
-			 */
-			Eigen::VectorXi marking;
-			/**
-			 * Helper maps for debugging.
-			 */
-			std::map<int, std::string> placeMap, transitionMap;
-			/**
-			 * Helper name to p/t mapping.
-			 */
-			std::map<std::string, PlaceInfo> nameMap;
+
 			/**
 			 * The last firing sequence.
 			 */
@@ -132,66 +152,17 @@ namespace labust
 			/**
 			 * The current resource position.
 			 */
-			std::vector<int> resourcePosition;
+			std::map<std::string, std::string> resourcePosition;
 
-			struct PNVertexProperty
-			{
-				enum {t =0, p=1};
-				int type;
-				int t_num;
-				int p_num;
-				bool marked;
-				std::string name;
-				std::set<int> dep_resource;
-			};
 
-			typedef boost::adjacency_list<boost::vecS, boost::vecS,
-		  		boost::bidirectionalS, PNVertexProperty,
-		  		boost::property<boost::edge_name_t, int> > PNGraphType;
-
-			/**
-			 * The graphviz writer class for the PN graph.
-			 */
-			struct pn_writer2 {
-				pn_writer2(PNGraphType& graph):graph(graph){}
-				template <class Vertex>
-				void operator()(std::ostream &out, const Vertex& e) const
-				{
-					if (graph[e].type == PNGraphType::vertex_property_type::value_type::p)
-					{
-						out << "[label="<< graph[e].name<<"]";
-					}
-					else
-					{
-						out << "[height=0.05, style=filled, shape=rectangle, color=black, label=\"\"]";
-					}
-				}
-				PNGraphType& graph;
-			};
-
-			template<class PropertyMap, class NameMap>
-			struct edge_writer {
-			  edge_writer(PropertyMap edge_map, NameMap map):
-			  	edge_map(edge_map),
-			  	map(map){};
-			  template <class Edge>
-			  void operator()(std::ostream &out, const Edge& e) const
-			  {
-			    out << "[label=\"" << map.at(edge_map[e]) << "\"]";
-			  }
-			  PropertyMap edge_map;
-			  NameMap map;
-			};
-
-			template<class PropertyMap, class NameMap>
-			edge_writer<PropertyMap, NameMap> make_edge_writer(PropertyMap pmap, NameMap map)
-			{
-				return edge_writer<PropertyMap, NameMap>(pmap,map);
-			}
-
-			PNGraphType pngraph;
-
-			std::map<int, int> placeToVertexMap;
+			///The Petri-Net control graph
+			labust::graph::PNGraph pngraph;
+			///The Petri-Net general graph
+			labust::graph::PNGraph fullgraph;
+			///Basic resources list
+			std::map<std::string, ControllerInfo> baseResources;
+			///Helper name to p/t mapping.
+			std::map<std::string, ControllerInfo> nameMap;
 		};
 	}
 }

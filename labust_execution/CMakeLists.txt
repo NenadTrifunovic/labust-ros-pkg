@@ -92,7 +92,7 @@ catkin_package(
 ###########
 ## Build ##
 ###########
-
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --std=c++0x")
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(include)
@@ -103,9 +103,7 @@ include_directories(
 )
 
 ## Declare a cpp library
-# add_library(labust_execution
-#   src/${PROJECT_NAME}/labust_execution.cpp
-# )
+add_library(pngraph src/pngraph/PNGraph.cpp)
 
 ## Declare a cpp executable
 # add_executable(labust_execution_node src/labust_execution_node.cpp)
@@ -114,7 +112,9 @@ add_executable(exec_control src/ExecControl.cpp
 	src/ExecPNGraph.cpp
 	src/PNController.cpp)  
 add_executable(test_exec src/test/test_exec.cpp)
-add_executable(simple_manager src/simple_manager/ControllerManager.cpp src/simple_manager/ControllerGraph.cpp)
+add_executable(test_exec2 src/test/test_exec2.cpp)
+add_executable(simple_manager src/simple_manager/ControllerManager.cpp 
+    src/simple_manager/ControllerGraph.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
@@ -134,11 +134,16 @@ target_link_libraries(test_exec
   ${catkin_LIBRARIES}
 )
 
+target_link_libraries(test_exec2
+  ${catkin_LIBRARIES}
+)
+
 target_link_libraries(exec_control
   ${catkin_LIBRARIES}
 )
 
 target_link_libraries(simple_manager
+  pngraph
   ${catkin_LIBRARIES}
 )
 
