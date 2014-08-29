@@ -38,6 +38,7 @@
 #include <boost/graph/graphviz.hpp>
 #include <boost/graph/visitors.hpp>
 #include <boost/graph/breadth_first_search.hpp>
+#include <boost/graph/graphviz.hpp>
 
 #include <ros/ros.h>
 
@@ -66,14 +67,15 @@ ControllerGraph::CASequencePtr ControllerGraph::get_firing_pn(const std::string&
 {
 	CASequencePtr activations(new CASequence());
 	//Check if controller exists
+
 	if (nameMap.find(name) == nameMap.end())
 	{
 		std::cout<<"The requested controller does not exist."<<std::endl;
 		return activations;
 	}
+
 	//Desired place to activate
 	PNIdx des_place;
-
 	switch (type)
 	{
 	case ACTIVATE:
@@ -140,6 +142,11 @@ ControllerGraph::CASequencePtr ControllerGraph::get_firing_pn(const std::string&
 
 	firingVector.clear();
 
+	//Save temporary representation of the dependency graph
+	std::fstream dep_file("dep_graph.dot",std::ios::out);
+	std::string desc;
+	dependencyGraph(desc);
+	dep_file<<desc;
 	return activations;
 }
 
@@ -258,11 +265,24 @@ void ControllerGraph::addResource(const std::string& name)
 	//Create base resource
 	ControllerInfo& resource = baseResources[name];
 	resource.place = pngraph.addPlace(name);
+	resource.active = resource.inactive = resource.place;
 	pngraph.pngraph[resource.place.vertexIdx].isControl = true;
 	pngraph.addToken(resource.place, name);
 
-	//\todo Is this required ?
+	//Add to depgraph
+	resource.depgraphIdx = boost::add_vertex(DepVertex(name, resource.place.idx), dgraph);
+	//Keep all in single map
 	nameMap[name] = resource;
+}
+
+void ControllerGraph::dependencyGraph(std::string& desc)
+{
+	using namespace boost;
+	//Construct a label writer.
+	std::ostringstream out;
+	boost::write_graphviz(out, dgraph,
+			DepGraphColored(dgraph, pngraph.marking));
+	desc = out.str();
 }
 
 int ControllerGraph::addToGraph(const navcon_msgs::RegisterController_v3::Request& info)
@@ -314,6 +334,9 @@ int ControllerGraph::addToGraph(const navcon_msgs::RegisterController_v3::Reques
   pngraph.connect(newcon.disable_t, newcon.inactive);
   pngraph.connect(newcon.inactive, newcon.enable_t);
 
+  //Add dependency graph vertex
+  newcon.depgraphIdx = boost::add_vertex(DepVertex(info.name, newcon.active.idx), dgraph);
+
 	//Add connections to required resources
 	for (int i=0; i<info.used_resources.size(); ++i)
 	{
@@ -330,12 +353,28 @@ int ControllerGraph::addToGraph(const navcon_msgs::RegisterController_v3::Reques
 		{
 			newcon.dep_resources.insert(info.used_resources[i]);
 		}
+
+		//Add edge to dependecy graph
+		boost::add_edge(dep.depgraphIdx,
+				newcon.depgraphIdx, 1, dgraph);
 	}
 
 	//Save temporary representation of the graph
 	std::fstream pn_file("pn_graph.dot",std::ios::out);
 	pn_file<<pngraph;
 
+	//Save temporary representation of the dependency graph
+	std::fstream dep_file("dep_graph.dot",std::ios::out);
+	std::string desc;
+	dependencyGraph(desc);
+	dep_file<<desc;
+
 	return navcon_msgs::RegisterController_v3::Response::SUCCESS;
 }
 
+std::ostream& labust::control::operator<<(std::ostream& os, const DependencyGraph& obj)
+{
+	/*boost::write_graphviz(os, obj,
+			boost::make_label_writer(boost::get(boost::vertex_name_t(), obj)));*/
+	return os;
+}

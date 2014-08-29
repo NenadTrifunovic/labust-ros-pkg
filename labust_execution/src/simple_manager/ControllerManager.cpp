@@ -68,6 +68,9 @@ void ControllerManager::onInit()
 	std::vector<int> availableRes({0,1,5});
 	for (int i=0; i < availableRes.size(); ++i)
 		cgraph.addResource(dofs[availableRes[i]]);
+
+	//Register legacy
+	legacy.registerAll(boost::bind(&ControllerManager::onRegisterController,this,_1,_2));
 }
 
 bool ControllerManager::onControllerSelect(navcon_msgs::ControllerSelect::Request& req,
@@ -144,16 +147,21 @@ bool ControllerManager::onControllerSelect(navcon_msgs::ControllerSelect::Reques
 			out->info.push_back(navcon_msgs::ControllerInfo());
 			out->info.rbegin()->state = type;
 
-			if (!legacy.callService(name, type))
+			/*if (!legacy.callService(name, type))
 			{
 				ROS_ERROR("Failed firing sequence.");
 				///\todo Redo error/recover marking, etc.
-			}
+			}*/
 		}
 
 		//Send the updates for this sequence
 		controllerState.publish(out);
 	}
+
+	//Publish the dependency graph
+	std_msgs::String out;
+	cgraph.dependencyGraph(out.data);
+	graphDesc.publish(out);
 
 	return true;
 }

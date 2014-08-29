@@ -45,6 +45,7 @@
 #include <string>
 #include <map>
 #include <set>
+#include <iosfwd>
 
 namespace labust
 {
@@ -72,6 +73,22 @@ namespace labust
 
 			virtual void addResource(const std::string& name) = 0;
 		};
+
+		struct DepVertex
+		{
+			DepVertex(){};
+			DepVertex(const std::string& name, int pnidx):
+				pnidx(pnidx),
+				name(name){};
+
+			int pnidx;
+			std::string name;
+		};
+
+		typedef boost::adjacency_list<boost::vecS, boost::vecS,
+	  		boost::directedS,
+	  		DepVertex,
+	  		boost::property< boost::edge_weight_t, int > > DependencyGraph;
 
 		/**
 		 * The class contains implementation of Petri-Net builder and controller.
@@ -101,7 +118,8 @@ namespace labust
 			 */
 			struct ControllerInfo
 			{
-				ControllerInfo(){};
+				ControllerInfo():
+					depgraphIdx(-1){};
 
 				///Controller place index
 				PNIdx	place;
@@ -113,7 +131,8 @@ namespace labust
 				PNIdx active;
 				///Activation indicator index
 				PNIdx inactive;
-
+				///Dependency graph vertex
+				int depgraphIdx;
 				///Base resource dependency tracking
 				std::set<std::string> dep_resources;
 			};
@@ -142,9 +161,9 @@ namespace labust
 
 			void addResource(const std::string& name);
 			/**
-			 * Get the reachability graph DOT description.
+			 * Get the dependency graph DOT description.
 			 */
-			void getDotDesc2(std::string& desc);
+			void dependencyGraph(std::string& desc);
 
 
 			typedef std::map<std::string, navcon_msgs::RegisterController_v3::Request> ControllerMap;
@@ -176,6 +195,37 @@ namespace labust
 			std::map<std::string, ControllerInfo> baseResources;
 			///Helper name to p/t mapping.
 			std::map<std::string, ControllerInfo> nameMap;
+
+  		///Dependency tracking graph
+			DependencyGraph dgraph;
+		};
+
+		std::ostream& operator<<(std::ostream& os, const DependencyGraph& obj);
+
+		/**
+		 * The graphviz writer class for the PN graph.
+		 */
+		struct DepGraphColored {
+			DepGraphColored(const DependencyGraph& graph,
+					const Eigen::VectorXi& marking):
+				graph(graph),
+				marking(marking){}
+			template <class Vertex>
+			void operator()(std::ostream &out, const Vertex& e) const
+			{
+				//std::cout<<"Graph idx:"<<graph[e].pnidx<<":"<<marking.size()<<std::endl;
+				if (marking(graph[e].pnidx))
+				{
+					out << "[color=red, label="<<graph[e].name<<"]";
+				}
+				else
+				{
+					out << "[color=black, label="<<graph[e].name<<"]";
+				}
+			}
+
+			const DependencyGraph& graph;
+			Eigen::VectorXi marking;
 		};
 	}
 }

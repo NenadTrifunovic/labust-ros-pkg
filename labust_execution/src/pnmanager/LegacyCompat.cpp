@@ -37,6 +37,7 @@
 #include <labust/control/LegacyCompat.hpp>
 #include <navcon_msgs/ConfigureVelocityController.h>
 #include <navcon_msgs/EnableControl.h>
+#include <navcon_msgs/RegisterController_v3.h>
 #include <ros/ros.h>
 
 using namespace labust::control;
@@ -48,12 +49,17 @@ LegacyCompat::LegacyCompat()
 			"ident_M", "ident_N"};
 	std::string names[]={"surge","sway","heave","roll_rate",
 			"pitch_rate", "yaw_rate"};
+	std::string baseResources[] = {"X","Y","Z","K","M","N"};
+
 	int idx[] = {0,1,2,3,4,5};
 
 	for (int i=0; i<6; ++i)
 	{
 		lowLevel.insert(std::make_pair(names[i], idx[i]));
 		ident.insert(std::make_pair(ident_names[i], idx[i]));
+		std::vector<std::string> temp(1,baseResources[i]);
+		dependencies.push_back(DepPair(names[i],temp));
+		dependencies.push_back(DepPair(ident_names[i],temp));
 	}
 
 	//Configure high-level
@@ -61,9 +67,14 @@ LegacyCompat::LegacyCompat()
 	std::string hlnames[]={"fadp","ualf","falf","heading","depth","altitude"};
 	std::string hlservice[]={"FADP_enable","UALF_enable","FALF_enable",
 			"HDG_enable","DEPTH_enable","ALT_enable"};
+	std::vector<std::string> hldeps[]={{"surge", "sway"}, {"yaw_rate", "surge"},
+			{"surge", "sway"},{"yaw_rate"},{"heave"},{"heave"}};
 
 	for (int i=0; i<numHL; ++i)
+	{
 		hlLevel.insert(std::make_pair(hlnames[i],hlservice[i]));
+		dependencies.push_back(DepPair(hlnames[i],hldeps[i]));
+	}
 
 	this->onInit();
 };
@@ -119,4 +130,31 @@ bool LegacyCompat::callService(const std::string& name, int state)
 
 	return success;
 }
+
+void LegacyCompat::registerAll(boost::function<bool(navcon_msgs::RegisterController_v3::Request&,
+		navcon_msgs::RegisterController_v3::Response&)> callback)
+{
+	ros::NodeHandle nh;
+	//Call service
+	ros::ServiceClient client =
+			nh.serviceClient<navcon_msgs::RegisterController_v3>("register_controller", true);
+
+	for(DepMap::const_iterator it=dependencies.begin();
+			it != dependencies.end();
+			++it)
+	{
+		navcon_msgs::RegisterController_v3 reg;
+		reg.request.name = it->first;
+		reg.request.used_resources.assign(it->second.begin(), it->second.end());
+
+		std::cout<<"Registering "<<it->first<<std::endl;
+
+		while (!callback(reg.request, reg.response))
+		{
+			std::cout<<"Unable to register controller."<<std::endl;
+			ros::Duration(1.0).sleep();
+		}
+	}
+}
+
 

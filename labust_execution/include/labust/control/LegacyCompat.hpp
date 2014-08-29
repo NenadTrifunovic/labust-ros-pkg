@@ -33,8 +33,12 @@
 *********************************************************************/
 #ifndef LEGACYCOMPAT_HPP_
 #define LEGACYCOMPAT_HPP_
+#include <navcon_msgs/RegisterController_v3.h>
+#include <boost/function.hpp>
+
 #include <map>
 #include <string>
+#include <vector>
 
 namespace labust
 {
@@ -48,6 +52,8 @@ namespace labust
 		{
 			typedef std::map<std::string, int> LLMap;
 			typedef std::map<std::string, std::string>	HLMap;
+			typedef std::pair<std::string, std::vector<std::string> > DepPair;
+			typedef std::vector< DepPair > DepMap;
 		public:
 			/**
 			 * Main constructor
@@ -64,6 +70,12 @@ namespace labust
 			 */
 			bool callService(const std::string& name, int state);
 
+			/**
+			 * Register legacy controllers with the Petri-Net.
+			 */
+			void registerAll(boost::function<bool(navcon_msgs::RegisterController_v3::Request&,
+					navcon_msgs::RegisterController_v3::Response&)> callback);
+
 		private:
 			///Low-level to index mapping
 			LLMap lowLevel;
@@ -71,6 +83,8 @@ namespace labust
 			LLMap ident;
 			///High-level to service name mapping
 			HLMap hlLevel;
+			//General dependency maps
+			DepMap dependencies;
 		};
 	}
 }
