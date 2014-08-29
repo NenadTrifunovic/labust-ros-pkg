@@ -74,8 +74,15 @@ namespace labust
 			 */
 			struct VertexProperty
 			{
+				VertexProperty():
+					type(na),
+					idx(-1),
+					t_num(-1),
+					p_num(-1),
+					vertexIdx(-1),
+					isControl(false){};
 				///Two vertex types - place or transition
-				enum {transition=0, place=1};
+				enum {transition=0, place, na};
 				///Vertex type
 				int type;
 				///Matrix index of this transition or place
@@ -86,11 +93,19 @@ namespace labust
 				int p_num;
 				///Vertex index in the graph
 				int vertexIdx;
+				///Is control place
+				bool isControl;
 
 				///Current token labels
-				std::vector<std::string> tokens;
+				std::list<std::string> tokens;
 				///Debug name of the place or transition
 				std::string name;
+				///Current sub-activity
+				std::string subname;
+
+				///Transition info for activation
+				bool action;
+				std::string controllerName;
 			};
 
 			///The directional graph of the Petri-Net type
@@ -162,12 +177,13 @@ namespace labust
 			TSequencePtr findTransitions(const VertexProperty& from,
 					const VertexProperty& to, bool allowInvariants = false);
 
-			bool fire(const std::vector<VertexProperty>& transitions);
+			TSequencePtr fire(const TSequencePtr& transitions);
 
 			inline bool fire(const VertexProperty& transition)
 			{
-				std::vector<VertexProperty> transitions(1, transition);
-				return fire(transitions);
+				TSequencePtr transitions(new TSequence(1, transition));
+				transitions = fire(transitions);
+				return transitions->empty();
 			}
 
 			bool isEnabled(const VertexProperty& transition);

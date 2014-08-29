@@ -31,89 +31,49 @@
 *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 *  POSSIBILITY OF SUCH DAMAGE.
 *********************************************************************/
-#ifndef CONTROLLERMANAGER_HPP_
-#define CONTROLLERMANAGER_HPP_
-#include <labust/control/ControllerGraph.hpp>
-#include <labust/control/LegacyCompat.hpp>
-#include <navcon_msgs/ControllerSelect.h>
-#include <navcon_msgs/RegisterController_v3.h>
-
-#include <ros/ros.h>
-
-#include <boost/array.hpp>
-
-#include <string>
+#ifndef LEGACYCOMPAT_HPP_
+#define LEGACYCOMPAT_HPP_
 #include <map>
+#include <string>
 
 namespace labust
 {
 	namespace control
 	{
 		/**
-		 * The class contains the implementation of a controller manager. The manager accepts controller
-		 * registrations and handles their dependencies during activation and deactivation.
+		 * The class contains the configuration for legacy controller infrastructure
+		 * compatibility with Petri-Net execution framework.
 		 */
-		class ControllerManager
+		class LegacyCompat
 		{
+			typedef std::map<std::string, int> LLMap;
+			typedef std::map<std::string, std::string>	HLMap;
 		public:
 			/**
 			 * Main constructor
 			 */
-			ControllerManager();
+			LegacyCompat();
 
 			/**
-			 * The default initialization.
+			 * Configure the Legacy compat service clients.
 			 */
-			void onInit();
-
-		protected:
-			/**
-			 * Handle the activation request.
-			 */
-			bool onControllerSelect(navcon_msgs::ControllerSelect::Request& req,
-					navcon_msgs::ControllerSelect::Response& resp);
-			/**
-			 * Handle the registration request.
-			 */
-			bool onRegisterController(navcon_msgs::RegisterController_v3::Request& req,
-					navcon_msgs::RegisterController_v3::Response& resp);
-			/**
-			 * Handle the unregistration request.
-			 */
-			bool onUnRegisterController(navcon_msgs::RegisterController_v3::Request& req,
-					navcon_msgs::RegisterController_v3::Response& resp);
+			void onInit(){};
 
 			/**
-			 * Activate the controller.
-			 * @param name
+			 * Call a single legacy service based on name and state.
 			 */
-			bool activate(const std::string& name);
-			/**
-			 * Deactivate the controller.
-			 * @param name
-			 */
-			bool deactivate(const std::string& name);
+			bool callService(const std::string& name, int state);
 
-			/**
-			 * Activation service.
-			 */
-			ros::ServiceServer controllerSelect, registerController, unregisterController;
-
-			/**
-			 * The controller state topic publisher.
-			 */
-			ros::Publisher controllerState, graphDesc;
-			/**
-			 * The controller graph.
-			 */
-			ControllerGraph cgraph;
-			/**
-			 * Legacy controller services.
-			 */
-			LegacyCompat legacy;
+		private:
+			///Low-level to index mapping
+			LLMap lowLevel;
+			///Identification to index mapping
+			LLMap ident;
+			///High-level to service name mapping
+			HLMap hlLevel;
 		};
 	}
 }
 
-/* CONTROLLERMANAGER_HPP_ */
+/* LEGACYCOMPAT_HPP_ */
 #endif

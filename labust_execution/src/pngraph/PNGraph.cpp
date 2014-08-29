@@ -142,7 +142,7 @@ bool PNGraph::isEnabled(const VertexProperty& transition)
 	return (all_trans(transition.idx) >= Dm.col(transition.idx).sum());
 }
 
-bool PNGraph::fire(const std::vector<VertexProperty>& transitions)
+PNGraph::TSequencePtr PNGraph::fire(const TSequencePtr& transitions)
 {
 	Eigen::VectorXi fire = Eigen::VectorXi::Zero(Dm.cols());
 	Eigen::VectorXi m(marking);
@@ -150,10 +150,9 @@ bool PNGraph::fire(const std::vector<VertexProperty>& transitions)
 	I = Dp - Dm;
 
 	//Fire transitions sequentially
-	std::vector<int> fired;
-	bool retVal = true;
- 	for(std::vector<VertexProperty>::const_iterator it=transitions.begin();
- 			it != transitions.end();
+	TSequencePtr fired(new TSequence());
+ 	for(TSequence::const_iterator it=transitions->begin();
+ 			it != transitions->end();
  			++it)
  	{
  		if (it->type != VertexProperty::transition)
@@ -165,11 +164,10 @@ bool PNGraph::fire(const std::vector<VertexProperty>& transitions)
  		  fire(it->idx) = 1;
  			m = m + I*fire;
  			fire(it->idx) = 0;
- 			fired.push_back(it->idx);
+ 			fired->push_back(*it);
  		}
  		else
  		{
- 			retVal = false;
  			std::cout<<"Transition "<<it->name<<" is not enabled, skipping."<<std::endl;
  		}
  	}
@@ -177,7 +175,7 @@ bool PNGraph::fire(const std::vector<VertexProperty>& transitions)
  	//Update the net marking if no errors occurred
  	marking = m;
 
- 	return retVal;
+ 	return fired;
 }
 
 void PNGraph::addToken(const VertexProperty& place,	const std::string& label)

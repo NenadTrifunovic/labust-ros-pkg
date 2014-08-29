@@ -94,6 +94,8 @@ namespace labust
 		class ControllerGraph : public virtual ControllerGraphInterface
 		{
 			typedef labust::graph::PNGraph::VertexProperty PNIdx;
+			typedef labust::graph::PNGraph::TSequence TSequence;
+			typedef labust::graph::PNGraph::TSequencePtr TSequencePtr;
 			/**
 			 * Global information holder for controller.
 			 */
@@ -108,13 +110,21 @@ namespace labust
 				///Disabling transition index
 				PNIdx disable_t;
 				///Activation indicator index
-				PNIdx indicator;
+				PNIdx active;
+				///Activation indicator index
+				PNIdx inactive;
 
 				///Base resource dependency tracking
 				std::set<std::string> dep_resources;
 			};
 
 		public:
+			//Type of activation
+			enum {ACTIVATE, DEACTIVATE, FORCE};
+			//Controller activation sequence
+			typedef std::vector< std::pair<std::string, bool> > CASequence;
+			typedef boost::shared_ptr<CASequence> CASequencePtr;
+
 			/**
 			 * Main constructor
 			 */
@@ -123,7 +133,7 @@ namespace labust
 			/**
 			 * Get the firing sequence for the named controller by reverse graph search.
 			 */
-			void get_firing_pn(const std::string& name);
+			CASequencePtr get_firing_pn(const std::string& name, int type);
 			/**
 			 * Adds the new controller to the controller list and creates a vertex in the graph.
 			 * @param info
@@ -145,6 +155,8 @@ namespace labust
 
 		private:
 
+			bool searchFiringVector(PNIdx des_place);
+
 			/**
 			 * The last firing sequence.
 			 */
@@ -154,7 +166,8 @@ namespace labust
 			 */
 			std::map<std::string, std::string> resourcePosition;
 
-
+			///The final firing sequence
+			TSequence firingVector;
 			///The Petri-Net control graph
 			labust::graph::PNGraph pngraph;
 			///The Petri-Net general graph

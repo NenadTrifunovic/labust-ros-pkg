@@ -75,6 +75,7 @@ bool ControllerManager::onControllerSelect(navcon_msgs::ControllerSelect::Reques
 {
 	for (int i=0; i<req.name.size(); ++i)
 	{
+		int type = 0;
 		///\todo Check if controller exists
 		///\todo Check if controller is already active
 		///\todo Check if the controller is in the same mode
@@ -83,13 +84,77 @@ bool ControllerManager::onControllerSelect(navcon_msgs::ControllerSelect::Reques
 		{
 		case req.EXTERNAL:
 			//Activate the controller
-		  cgraph.get_firing_pn(req.name[i]);
+		  type = ControllerGraph::ACTIVATE;
+			break;
+		case req.MANUAL:
+			//Deactivate higher level dependencies
+	  	type = ControllerGraph::FORCE;
+			break;
+		case req.TRACKING:
+		case req.DISABLED:
+	  	type = ControllerGraph::DEACTIVATE;
 			break;
 		default:
 			ROS_INFO("Unprocessed request %d", req.state[i]);
+			continue;
 			break;
 		}
+
+		ControllerGraph::CASequencePtr activation = cgraph.get_firing_pn(req.name[i], type);
+		navcon_msgs::ControllerState::Ptr out(new navcon_msgs::ControllerState());
+
+		///\todo Make this a special case of a more general approach
+		//Doing a single activation at a time
+		//The activation and de-activation of controllers inside the current scheme
+		for(int k=0; k<activation->size(); ++k)
+		{
+			std::string name = activation->at(k).first;
+			bool activate = activation->at(k).second;
+			int state = req.state[i];
+			int type = state;
+
+			if (name == req.name[i])
+			{
+				if (activate &&
+						((state == req.DISABLED) ||
+						(state == req.TRACKING)))
+				{
+					std::runtime_error("Conflict: PN wants to activate controller"
+							" while the user requested deactivation.");
+				}
+
+				if (!activate &&
+						((state == req.MANUAL) ||
+						(state == req.EXTERNAL)))
+				{
+					std::runtime_error("Conflict: PN wants to deactivate controller"
+							" while the user requested activation.");
+				}
+			}
+			else
+			{
+				//No direct request
+				if (activate)
+					type = req.ACTIVATE;
+				else
+					type = req.DEACTIVATE;
+			}
+
+			out->name.push_back(name);
+			out->info.push_back(navcon_msgs::ControllerInfo());
+			out->info.rbegin()->state = type;
+
+			if (!legacy.callService(name, type))
+			{
+				ROS_ERROR("Failed firing sequence.");
+				///\todo Redo error/recover marking, etc.
+			}
+		}
+
+		//Send the updates for this sequence
+		controllerState.publish(out);
 	}
+
 	return true;
 }
 

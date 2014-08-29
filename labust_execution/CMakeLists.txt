@@ -114,7 +114,7 @@ add_executable(exec_control src/ExecControl.cpp
 add_executable(test_exec src/test/test_exec.cpp)
 add_executable(test_exec2 src/test/test_exec2.cpp)
 add_executable(simple_manager src/simple_manager/ControllerManager.cpp 
-    src/simple_manager/ControllerGraph.cpp)
+    src/simple_manager/ControllerGraph.cpp src/pnmanager/LegacyCompat.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
