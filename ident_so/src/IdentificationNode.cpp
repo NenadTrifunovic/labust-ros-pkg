@@ -65,6 +65,7 @@ void IdentificationNode::onInit()
 	aserver->start();
 
 	tauOut = nh.advertise<auv_msgs::BodyForceReq>("tauOut", 1);
+	stateOut = nh.advertise<auv_msgs::NavSts>("identState", 1);
 	meas = nh.subscribe<auv_msgs::NavSts>("meas", 1,
 			&IdentificationNode::onMeasurement,this);
 
@@ -197,6 +198,15 @@ void IdentificationNode::doIdentification(const Goal::ConstPtr& goal)
 			feedback.oscillation_num = ++oscnum/2;
 			aserver->publishFeedback(feedback);
 		}
+
+		auv_msgs::NavSts::Ptr outsts(new auv_msgs::NavSts);
+		outsts->position.north = measurements(x);
+		outsts->position.east = measurements(y);
+		outsts->position.depth = measurements(z);
+		outsts->orientation.roll = measurements(roll);
+		outsts->orientation.pitch = measurements(pitch);
+		outsts->orientation.yaw = measurements(yaw);
+		stateOut.publish(outsts);
 
 		//Set the feedback value
 		rate.sleep();
