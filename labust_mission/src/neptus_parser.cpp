@@ -374,7 +374,7 @@ ROS_ERROR("width: %f, length: %f, hstep: %f, bearing: %f, alternationPercent: %f
 
 
 		//posxy =	labust::tools::deg2meter(LatLon.latitude - startPoint.latitude, LatLon.longitude - startPoint.longitude, startPoint.longitude);
-		posxy =	labust::tools::deg2meter(LatLon.latitude - origin.latitude, LatLon.longitude - origin.longitude, origin.longitude);
+		posxy =	labust::tools::deg2meter(LatLon.latitude - origin.latitude, LatLon.longitude - origin.longitude, origin.latitude);
 
 	    position.north = posxy.first;
 	    position.east = posxy.second;
