@@ -68,7 +68,7 @@ namespace labust {
 
 			ManeuverGenerator();
 
-			void writePrimitives(int primitiveID, std::vector<Eigen::Vector4d> points, double speed, double victoryRadius);
+			void writePrimitives(int primitiveID, std::vector<Eigen::Vector4d> points, double heading, double speed, double victoryRadius);
 
 			std::vector<Eigen::Vector4d> calcRIPatternPoints(double width, double hstep,
 								double alternationPercent, double curvOff, bool squareCurve, double bearingRad);
@@ -98,7 +98,7 @@ namespace labust {
 		ManeuverGenerator::ManeuverGenerator(){}
 
 
-		void ManeuverGenerator::writePrimitives(int primitiveID, std::vector<Eigen::Vector4d> points, double speed, double victoryRadius){
+		void ManeuverGenerator::writePrimitives(int primitiveID, std::vector<Eigen::Vector4d> points, double heading, double speed, double victoryRadius){
 
 			switch(primitiveID){
 
@@ -108,7 +108,7 @@ namespace labust {
 
 							Eigen::Vector4d vTmp = *it;
 
-							writeXML.addGo2point_FA(vTmp[X],vTmp[Y],0,speed,victoryRadius);
+							writeXML.addGo2point_FA(vTmp[X], vTmp[Y], heading, speed, victoryRadius);
 
 					}
 
@@ -121,7 +121,7 @@ namespace labust {
 
 							Eigen::Vector4d vTmp = *it;
 
-							writeXML.addGo2point_UA(vTmp[X],vTmp[Y],speed,victoryRadius);
+							writeXML.addGo2point_UA(vTmp[X],vTmp[Y], speed, victoryRadius);
 
 					}
 
