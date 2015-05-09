@@ -48,6 +48,7 @@
 #include <auv_msgs/BodyVelocityReq.h>
 #include <auv_msgs/BodyForceReq.h>
 #include <geometry_msgs/TransformStamped.h>
+#include <geometry_msgs/Vector3Stamped.h>
 #include <ros/ros.h>
 
 namespace labust
@@ -127,6 +128,10 @@ namespace labust
 
 					con.desired = ref.position.east;
 					con.state = dH.transform.translation.y;
+					geometry_msgs::Vector3Stamped vdh;
+					vdh.vector.y = con.state;
+					vdh.header.stamp = ros::Time::now();
+					dh_pub.publish(vdh);
 					//Calculate desired yaw-rate
 					if (underactuated)
 					{
@@ -183,7 +188,9 @@ namespace labust
   			nh.param("ualf_controller/approach_angle",aAngle,aAngle);
 				nh.param("ualf_controller/sampling",Ts,Ts);
 				ph.param("underactuated",underactuated,underactuated);
-
+				
+				dh_pub = nh.advertise<geometry_msgs::Vector3Stamped>("dh_calc",1);
+				
 				PIDBase_init(&con);
 
 				disable_axis[0] = 0;
@@ -208,6 +215,7 @@ namespace labust
 			bool underactuated;
 			tf2_ros::Buffer buffer;
 			tf2_ros::TransformListener listener;
+			ros::Publisher dh_pub;
 		};
 	}}
 
