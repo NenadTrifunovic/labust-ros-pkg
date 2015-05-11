@@ -69,7 +69,12 @@ public:
 	 ********************************************************************/
 
 	NeptusParser():startPointSet(false),
-					 startRelative(true){
+					 startRelative(true),
+					 latLonAbs(false),
+					 underactuated(true),
+					 speed(0.5),
+					 heading(0.0),
+					 victory_radius(1.0){
 
 		offset.north = offset.east = 0;
 		xmlSavePath = "";
@@ -180,7 +185,10 @@ public:
 		}
 
 		/* Write point to XML file */
-		MG.writeXML.addGo2point_FA(position.north-offset.north, position.east-offset.east,0,0.5,1.0);
+		if(underactuated)
+			MG.writeXML.addGo2point_UA(position.north-offset.north, position.east-offset.east,speed,victory_radius);
+		else
+			MG.writeXML.addGo2point_FA(position.north-offset.north, position.east-offset.east,heading,speed,victory_radius);
 	}
 
 	void parseRows(XMLElement *maneuverType){
@@ -213,7 +221,6 @@ public:
 		double alternationPercent = 100;
 		double curvOff = 15;
 		double crossAngle = 0;
-		double speed = 0.5; /* Speed in m/s */
 		bool squareCurve = true;
 		bool invertY = false;
 
@@ -307,8 +314,11 @@ ROS_ERROR("width: %f, length: %f, hstep: %f, bearing: %f, alternationPercent: %f
 			*it = vTmp;
 		}
 
-		/* Write maneuver points to XML */
-		MG.writePrimitives(go2point_FA, tmpPoints,speed,1.0); /* speed, victoryRadius */
+		/*** Write maneuver points to XML ***/
+		if(underactuated)
+			MG.writePrimitives(go2point_UA, tmpPoints, heading, speed, victory_radius); /* heading, speed, victoryRadius */
+		else
+			MG.writePrimitives(go2point_FA, tmpPoints, heading, speed, victory_radius); /* heading, speed, victoryRadius */
 	}
 
 	void parseStationKeeping(XMLElement *maneuverType){
@@ -334,7 +344,7 @@ ROS_ERROR("width: %f, length: %f, hstep: %f, bearing: %f, alternationPercent: %f
 		setStartPoint(position);
 
 		/* Write point to XML file */
-		MG.writeXML.addDynamic_positioning(position.north-offset.north, position.east-offset.east,0);
+		MG.writeXML.addDynamic_positioning(position.north-offset.north, position.east-offset.east, heading);
 
 
 	}
@@ -412,6 +422,10 @@ ROS_ERROR("width: %f, length: %f, hstep: %f, bearing: %f, alternationPercent: %f
 	bool startRelative;
 	bool latLonAbs;
 	string xmlSavePath;
+
+	/*** Mission parameters ***/
+	bool underactuated;
+	double speed, heading, victory_radius;
 };
 
 void startParseCallback(ros::Publisher &pubStartDispatcher, const misc_msgs::StartNeptusParser::ConstPtr& msg){
@@ -434,6 +448,11 @@ void startParseCallback(ros::Publisher &pubStartDispatcher, const misc_msgs::Sta
 	} else {
 		NP.offset.north = NP.offset.east = 0;
 	}
+
+	NP.underactuated = msg->underactuated;
+	NP.speed = msg->speed;
+	NP.heading = msg->heading;
+	NP.heading= msg->victory_radius;
 
 	/*** If Neptus file is successfully parsed  ***/
 	if(NP.parseNeptus(msg->fileName) == 1){
