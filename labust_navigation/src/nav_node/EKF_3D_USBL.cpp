@@ -87,6 +87,7 @@ Estimator3D::Estimator3D():
 		enableRange(true),
 		enableBearing(true),
 		enableElevation(false),
+		delay_time(0),
 		dvl_model(0),
 		compassVariance(0.3),
 		gyroVariance(0.003),
@@ -129,6 +130,7 @@ void Estimator3D::onInit()
 
 	/*** Enable USBL measurements ***/
 	ph.param("delay", enableDelay, enableDelay);
+	ph.param("delay_time", delay_time, delay_time);
 	ph.param("range", enableRange, enableRange);
 	ph.param("bearing", enableBearing, enableBearing);
 	ph.param("elevation", enableElevation, enableElevation);
@@ -138,10 +140,8 @@ void Estimator3D::onInit()
 	dvl.configure(nh);
 	imu.configure(nh);
 
-   Pstart = nav.getStateCovariance();
-   //Rstart = nav.R;
-   // ROS_ERROR("NAVIGATION");
-
+	/*** Get initial error covariance. ***/
+    Pstart = nav.getStateCovariance();
 }
 
 void Estimator3D::onReset(const std_msgs::Bool::ConstPtr& reset)
@@ -267,7 +267,11 @@ void Estimator3D::onAltitude(const std_msgs::Float32::ConstPtr& data)
 void Estimator3D::onUSBLfix(const underwater_msgs::USBLFix::ConstPtr& data){
 
 	/*** Calculate measurement delay ***/
-	double delay = calculateDelaySteps(data->header.stamp.toSec(), currentTime);
+	double delay(0.0);
+	if(delay_time < 0)
+		delay = delay_time;
+	else
+		delay = calculateDelaySteps(data->header.stamp.toSec(), currentTime);
 
 	/*** Get USBL measurements ***/
 	measurements(KFNav::range) = data->range;

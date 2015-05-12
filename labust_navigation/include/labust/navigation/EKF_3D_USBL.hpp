@@ -220,7 +220,11 @@ namespace labust
 			 */
 			double currentTime;
 			/**
-			 *  Current time in seconds
+			 *  Fixed time delay for USBL navigation
+			 */
+			double delay_time;
+			/**
+			 *  USBL measurements enable flags
 			 */
 			bool enableDelay, enableRange, enableBearing, enableElevation;
 
