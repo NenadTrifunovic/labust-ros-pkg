@@ -58,6 +58,20 @@ void GPSHandler::onGps(const sensor_msgs::NavSatFix::ConstPtr& data)
 		posxy =	labust::tools::deg2meter(data->latitude - transformDeg.transform.translation.y,
 					data->longitude - transformDeg.transform.translation.x,
 					transformDeg.transform.translation.y);
+//<<<<<<< Updated upstream
+//=======
+//		Eigen::Quaternion<double> rot(transformLocal.transform.rotation.w,
+//				transformLocal.transform.rotation.x,
+//				transformLocal.transform.rotation.y,
+//				transformLocal.transform.rotation.z);
+//		Eigen::Vector3d offset(transformGPS.transform.translation.x,
+//				transformGPS.transform.translation.y,
+//				transformGPS.transform.translation.z);
+//		Eigen::Vector3d pos_corr = rot.matrix()*offset;
+//
+// 		posxy.first -= pos_corr(0);
+// 		posxy.second -= pos_corr(1);
+//>>>>>>> Stashed changes
 
 		originLL.first = transformDeg.transform.translation.y;
 		originLL.second = transformDeg.transform.translation.x;
