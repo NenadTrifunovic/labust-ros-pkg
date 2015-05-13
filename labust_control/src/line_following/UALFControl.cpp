@@ -151,6 +151,9 @@ namespace labust
 					{
 						PIFF_step(&con,Ts);
 						double ul = ref.body_velocity.x;
+
+						//if (con.windup) ul = out(0);
+
 						double vl = con.output;
 						ROS_INFO("Command output: ul=%f, vl=%f", ul, vl);
 
@@ -204,6 +207,7 @@ namespace labust
 					disable_axis[1] = 0;
 					PIFF_tune(&con,wh);
 				}
+				//con.b = 1.0;
 
 				ROS_INFO("LF controller initialized.");
 			}
