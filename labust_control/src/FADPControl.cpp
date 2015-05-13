@@ -57,7 +57,7 @@ namespace labust
 		{
 			enum {x=0,y};
 
-			FADPControl():Ts(0.1){};
+			FADPControl():Ts(0.1),use_gvel(false){};
 
 			void init()
 			{
@@ -113,7 +113,14 @@ namespace labust
 				//Calculate tracking values
 				Eigen::Vector2f out, in;
 				Eigen::Matrix2f Rb,Rr;
-				in<<state.body_velocity.x,state.body_velocity.y;
+				if (use_gvel)
+				{
+					in<<state.gbody_velocity.x,state.gbody_velocity.y;
+				}
+				else
+				{
+					in<<state.body_velocity.x,state.body_velocity.y;
+				}
 				double yaw(state.orientation.yaw);
 				Rb<<cos(yaw),-sin(yaw),sin(yaw),cos(yaw);
 				out = Rb*in;
@@ -150,6 +157,7 @@ namespace labust
 				Eigen::Vector3d closedLoopFreq(Eigen::Vector3d::Ones());
 				labust::tools::getMatrixParam(nh,"dp_controller/closed_loop_freq", closedLoopFreq);
 				nh.param("dp_controller/sampling",Ts,Ts);
+				nh.param("velocity_controller/use_ground_vel", use_gvel, use_gvel);
 
 				disable_axis[x] = 0;
 				disable_axis[y] = 0;
@@ -166,6 +174,7 @@ namespace labust
 		private:
 			PIDBase con[2];
 			double Ts;
+			bool use_gvel;
 		};
 	}}
 
