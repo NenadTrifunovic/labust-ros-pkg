@@ -62,6 +62,7 @@ namespace labust
 				aAngle(M_PI/8),
 				wh(0.2),
 				underactuated(false),
+				use_gvel(false),
 				listener(buffer){};
 
 			void init()
@@ -147,12 +148,20 @@ namespace labust
 					{
 						Eigen::Vector2f out, in;
 						Eigen::Matrix2f R;
-						in<<state.body_velocity.x,state.body_velocity.y;
+						if (use_gvel)
+						{
+							in<<state.gbody_velocity.x,state.gbody_velocity.y;
+						}
+						else
+						{
+							in<<state.body_velocity.x,state.body_velocity.y;
+						}
 						R<<cos(gamma),-sin(gamma),sin(gamma),cos(gamma);
 						out = R*in;
 						con.track = out(1);
 						PIFF_ffStep(&con,Ts,0);
 						double ul = ref.body_velocity.x;
+						if (con.windup) ul = out(0);
 						double vl = con.output;
 						ROS_DEBUG("Command output: ul=%f, vl=%f", ul, vl);
 
@@ -187,6 +196,7 @@ namespace labust
 				nh.param("ualf_controller/default_surge",surge,surge);
   			nh.param("ualf_controller/approach_angle",aAngle,aAngle);
 				nh.param("ualf_controller/sampling",Ts,Ts);
+				nh.param("velocity_controller/use_ground_vel", use_gvel, use_gvel);
 				ph.param("underactuated",underactuated,underactuated);
 				
 				dh_pub = nh.advertise<geometry_msgs::Vector3Stamped>("dh_calc",1);
@@ -213,6 +223,7 @@ namespace labust
 			double Ts;
 			double aAngle, wh;
 			bool underactuated;
+			bool use_gvel;
 			tf2_ros::Buffer buffer;
 			tf2_ros::TransformListener listener;
 			ros::Publisher dh_pub;
