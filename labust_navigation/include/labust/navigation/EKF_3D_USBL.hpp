@@ -219,6 +219,7 @@ namespace labust
 			 *  Current time in seconds
 			 */
 			double currentTime;
+			double delayTime;
 			/**
 			 *  Current time in seconds
 			 */
