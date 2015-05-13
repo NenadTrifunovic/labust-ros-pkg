@@ -87,6 +87,7 @@ Estimator3D::Estimator3D():
 		enableRange(true),
 		enableBearing(true),
 		enableElevation(false),
+		delayTime(0.0),
 		dvl_model(0),
 		compassVariance(0.3),
 		gyroVariance(0.003),
@@ -132,6 +133,7 @@ void Estimator3D::onInit()
 	ph.param("range", enableRange, enableRange);
 	ph.param("bearing", enableBearing, enableBearing);
 	ph.param("elevation", enableElevation, enableElevation);
+	ph.param("delayTime", delayTime, delayTime);
 
 	/*** Configure handlers. ***/
 	gps.configure(nh);
@@ -204,7 +206,7 @@ void Estimator3D::configureNav(KFNav& nav, ros::NodeHandle& nh)
 			this->params[M], this->params[N]);
 
 	nav.initModel();
-	labust::navigation::kfModelLoader(nav, nh, "ekfnav");
+	labust::navigation::kfModelLoader(nav, nh, "ekfnav_usbl");
 }
 
 void Estimator3D::onModelUpdate(const navcon_msgs::ModelParamsUpdate::ConstPtr& update)
@@ -267,18 +269,22 @@ void Estimator3D::onAltitude(const std_msgs::Float32::ConstPtr& data)
 void Estimator3D::onUSBLfix(const underwater_msgs::USBLFix::ConstPtr& data){
 
 	/*** Calculate measurement delay ***/
-	double delay = calculateDelaySteps(data->header.stamp.toSec(), currentTime);
+	//double delay = calculateDelaySteps(data->header.stamp.toSec(), currentTime);
+	double delay = calculateDelaySteps(currentTime-delayTime, currentTime);
+
+	double bear = 360 - data->bearing;
+	double elev = 180 - data->elevation;
 
 	/*** Get USBL measurements ***/
 	measurements(KFNav::range) = data->range;
 	newMeas(KFNav::range) = enableRange;
 	measDelay(KFNav::range) = delay;
 
-	measurements(KFNav::bearing) = data->bearing;
+	measurements(KFNav::bearing) = bear*M_PI/180;
 	newMeas(KFNav::bearing) = enableBearing;
 	measDelay(KFNav::bearing) = delay;
 
-	measurements(KFNav::elevation) = data->elevation;
+	measurements(KFNav::elevation) = elev*M_PI/180;
 	newMeas(KFNav::elevation) = enableElevation;
 	measDelay(KFNav::elevation) = delay;
 
@@ -576,6 +582,7 @@ void Estimator3D::start()
 		state.Pcov = nav.getStateCovariance();
 		//state.Rcov = ; // In case of time-varying measurement covariance
 
+		ROS_ERROR_STREAM(state.Pcov);
 		/*** Limit queue size ***/
 		if(pastStates.size()>1000){
 			pastStates.pop_front();
@@ -588,7 +595,7 @@ void Estimator3D::start()
 			/*** Check for maximum delay ***/
 			int delaySteps = measDelay.maxCoeff();
 
-			/*** If delay is bigger then buffer size assume that it is may delay ***/
+			/*** If delay is bigger then buffer size assume that it is max delay ***/
 			if(delaySteps >= pastStates.size())
 				delaySteps = pastStates.size()-1;
 
@@ -657,9 +664,9 @@ void Estimator3D::start()
 				nav.getState()(KFNav::psi),
 				transform.transform.rotation);
 		if(absoluteEKF){
-			transform.child_frame_id = "base_link_abs";
+			transform.child_frame_id = "base_link_usbl_abs";
 		} else{
-			transform.child_frame_id = "base_link";
+			transform.child_frame_id = "base_link_usbl";
 		}
 		transform.header.frame_id = "local";
 		transform.header.stamp = ros::Time::now();
