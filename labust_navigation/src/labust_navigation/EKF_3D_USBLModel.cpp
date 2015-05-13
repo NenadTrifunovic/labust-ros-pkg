@@ -251,6 +251,41 @@ void EKF_3D_USBLModel::derivativeH(){
 		break;
 	}
 
+//	double rng  = sqrt(pow((x(xp)-x(xb)),2)+pow((x(yp)-x(yb)),2)+pow((x(zp)-x(zb)),2));
+//
+//	//if(rng == 0) rng = 0.1;
+//
+//	if(rng<0.0001){
+//		rng = 0.0001;
+//	}
+//
+//	double delta_xbp = x(xb)-x(xp);
+//	//ROS_ERROR("delta: %f",delta_xbp);
+//	if(abs(delta_xbp)<0.000000001){
+//		delta_xbp = (delta_xbp<0)?-0.000000001:0.000000001;
+//	}
+//
+//	//ROS_ERROR("delta after: %f",delta_xbp);
+//
+//	ynl(range) = rng;
+//	ynl(bearing) = atan2((x(yp)-x(yb)),(x(xp)-x(xb)))-0*x(psi);
+//	ynl(elevation) = asin((x(zp)-x(zb))/rng);
+//
+//	Hnl(range, xp)  = (x(xp)-x(xb))/rng;
+//	Hnl(range, yp)  = (x(yp)-x(yb))/rng;
+//	Hnl(range, zp)  = (x(zp)-x(zb))/rng;
+//
+//	Hnl(range, xb)  = -(x(xp)-x(xb))/rng;
+//	Hnl(range, yb)  = -(x(yp)-x(yb))/rng;
+//	Hnl(range, zb)  = -(x(zp)-x(zb))/rng;
+//
+//	Hnl(bearing, xp) = (x(yb)-x(yp))/(pow(delta_xbp,2)*(pow((x(yb)-x(yp))/delta_xbp,2) + 1));
+//	Hnl(bearing, yp) = -1/((delta_xbp)*(pow((x(yb) - x(yp))/delta_xbp,2) + 1));
+//	Hnl(bearing, xb) = -(x(yb) - x(yp))/(pow(delta_xbp,2)*(pow((x(yb) - x(yp))/delta_xbp,2) + 1));
+//	Hnl(bearing, yb) = 1/((delta_xbp)*(pow((x(yb) - x(yp))/delta_xbp,2) + 1));
+//	//Hnl(bearing, psi) = -1;
+
+
 	double rng  = sqrt(pow((x(xp)-x(xb)),2)+pow((x(yp)-x(yb)),2)+pow((x(zp)-x(zb)),2));
 
 	//if(rng == 0) rng = 0.1;
@@ -259,16 +294,19 @@ void EKF_3D_USBLModel::derivativeH(){
 		rng = 0.0001;
 	}
 
-	double delta_xbp = x(xb)-x(xp);
+	double delta_x = (x(xb)-x(xp));
+	double delta_y = (x(yb)-x(yp));
+
 	//ROS_ERROR("delta: %f",delta_xbp);
-	if(abs(delta_xbp)<0.000000001){
-		delta_xbp = (delta_xbp<0)?-0.000000001:0.000000001;
+	if(abs(delta_x)<0.0001){
+		delta_x = (delta_x<0)?-0.0001:0.0001;
 	}
 
 	//ROS_ERROR("delta after: %f",delta_xbp);
 
 	ynl(range) = rng;
-	ynl(bearing) = atan2((x(yp)-x(yb)),(x(xp)-x(xb)))-0*x(psi);
+	//ynl(bearing) = atan2((x(yb)-x(yp)),(x(xb)-x(xp)))-0*x(psi);
+	ynl(bearing) = atan2(delta_y,delta_x)-0*x(psi);
 	ynl(elevation) = asin((x(zp)-x(zb))/rng);
 
 	Hnl(range, xp)  = (x(xp)-x(xb))/rng;
@@ -279,22 +317,22 @@ void EKF_3D_USBLModel::derivativeH(){
 	Hnl(range, yb)  = -(x(yp)-x(yb))/rng;
 	Hnl(range, zb)  = -(x(zp)-x(zb))/rng;
 
-	Hnl(bearing, xp) = (x(yb)-x(yp))/(pow(delta_xbp,2)*(pow((x(yb)-x(yp))/delta_xbp,2) + 1));
-	Hnl(bearing, yp) = -1/((delta_xbp)*(pow((x(yb) - x(yp))/delta_xbp,2) + 1));
-	Hnl(bearing, xb) = -(x(yb) - x(yp))/(pow(delta_xbp,2)*(pow((x(yb) - x(yp))/delta_xbp,2) + 1));
-	Hnl(bearing, yb) = 1/((delta_xbp)*(pow((x(yb) - x(yp))/delta_xbp,2) + 1));
-	//Hnl(bearing, psi) = -1;
+	Hnl(bearing, xp) = delta_y/(delta_x*delta_x+delta_y*delta_y);
+	Hnl(bearing, yp) = -delta_x/(delta_x*delta_x+delta_y*delta_y);
+	Hnl(bearing, xb) = -delta_y/(delta_x*delta_x+delta_y*delta_y);
+	Hnl(bearing, yb) = delta_x/(delta_x*delta_x+delta_y*delta_y);
+
 
 
 	// Nadi gresku u elevationu i sredi singularitete
-	double part1 = (x(zb) - x(zp))/(sqrt(1 - pow((x(zb) - x(zp)),2)/pow(rng,2))*(pow((rng),3)));
-	double part2 = (x(xb)*x(xb) - 2*x(xb)*x(xp) + x(xp)*x(xp) + x(yb)*x(yb) - 2*x(yb)*x(yp) + x(yp)*x(yp))/(sqrt(1 - pow((x(zb) - x(zp)),2)/pow(rng,2))*(pow((rng),3)));
-
-	Hnl(elevation,xp) = -((x(xb) - x(xp))*part1);
-	Hnl(elevation,yp) = -((x(yb) - x(yp))*part1);
-	Hnl(elevation,zp) = part2;
-	Hnl(elevation,xb) = ((x(xb) - x(xp))*part1);
-	Hnl(elevation,yb) = ((x(yb) - x(yp))*part1);
-	Hnl(elevation,zb) = -part2;
+//	double part1 = (x(zb) - x(zp))/(sqrt(1 - pow((x(zb) - x(zp)),2)/pow(rng,2))*(pow((rng),3)));
+//	double part2 = (x(xb)*x(xb) - 2*x(xb)*x(xp) + x(xp)*x(xp) + x(yb)*x(yb) - 2*x(yb)*x(yp) + x(yp)*x(yp))/(sqrt(1 - pow((x(zb) - x(zp)),2)/pow(rng,2))*(pow((rng),3)));
+//
+//	Hnl(elevation,xp) = -((x(xb) - x(xp))*part1);
+//	Hnl(elevation,yp) = -((x(yb) - x(yp))*part1);
+//	Hnl(elevation,zp) = part2;
+//	Hnl(elevation,xb) = ((x(xb) - x(xp))*part1);
+//	Hnl(elevation,yb) = ((x(yb) - x(yp))*part1);
+//	Hnl(elevation,zb) = -part2;
 }
 
