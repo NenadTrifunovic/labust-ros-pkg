@@ -295,15 +295,15 @@ void Estimator3D::onUSBLfix(const underwater_msgs::USBLFix::ConstPtr& data){
 	measDelay(KFNav::elevation) = delay;
 
 	/*** Get beacon position ***/
-	measurements(KFNav::xb) = -1;
+	measurements(KFNav::xb) =-1.25;
 	newMeas(KFNav::xb) = 1;
 	measDelay(KFNav::xb) = delay;
 
-	measurements(KFNav::yb) = -0.85;
+	measurements(KFNav::yb) = 0.5;
 	newMeas(KFNav::yb) = 1;
 	measDelay(KFNav::yb) = delay;
 
-	measurements(KFNav::zb) = 2.65;
+	measurements(KFNav::zb) = 2.6;
 	newMeas(KFNav::zb) = 1;
 	measDelay(KFNav::zb) = delay;
 
