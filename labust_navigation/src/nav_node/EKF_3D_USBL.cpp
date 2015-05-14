@@ -105,6 +105,7 @@ void Estimator3D::onInit()
 	stateMeas = nh.advertise<auv_msgs::NavSts>("meas",1);
 	currentsHat = nh.advertise<geometry_msgs::TwistStamped>("currentsHat",1);
 	buoyancyHat = nh.advertise<std_msgs::Float32>("buoyancy",1);
+	pubRange = nh.advertise<std_msgs::Float32>("range",1);
 
 	/*** Subscribers ***/
 	tauAch = nh.subscribe<auv_msgs::BodyForceReq>("tauAch", 1, &Estimator3D::onTau,this);
@@ -275,10 +276,15 @@ void Estimator3D::onUSBLfix(const underwater_msgs::USBLFix::ConstPtr& data){
 	double bear = 360 - data->bearing;
 	double elev = 180 - data->elevation;
 
+	ROS_ERROR("RANGE: %f, BEARING: %f", data->range, bear);
 	/*** Get USBL measurements ***/
 	measurements(KFNav::range) = data->range;
 	newMeas(KFNav::range) = enableRange;
 	measDelay(KFNav::range) = delay;
+
+	std_msgs::Float32 rng_msg;
+	rng_msg.data = data->range;
+	pubRange.publish(rng_msg);
 
 	measurements(KFNav::bearing) = bear*M_PI/180;
 	newMeas(KFNav::bearing) = enableBearing;
@@ -289,15 +295,15 @@ void Estimator3D::onUSBLfix(const underwater_msgs::USBLFix::ConstPtr& data){
 	measDelay(KFNav::elevation) = delay;
 
 	/*** Get beacon position ***/
-	measurements(KFNav::xb) = 0;
+	measurements(KFNav::xb) = -1;
 	newMeas(KFNav::xb) = 1;
 	measDelay(KFNav::xb) = delay;
 
-	measurements(KFNav::yb) = 0;
+	measurements(KFNav::yb) = -0.85;
 	newMeas(KFNav::yb) = 1;
 	measDelay(KFNav::yb) = delay;
 
-	measurements(KFNav::zb) = 0;
+	measurements(KFNav::zb) = 2.65;
 	newMeas(KFNav::zb) = 1;
 	measDelay(KFNav::zb) = delay;
 
@@ -582,7 +588,7 @@ void Estimator3D::start()
 		state.Pcov = nav.getStateCovariance();
 		//state.Rcov = ; // In case of time-varying measurement covariance
 
-		ROS_ERROR_STREAM(state.Pcov);
+		//ROS_ERROR_STREAM(state.Pcov);
 		/*** Limit queue size ***/
 		if(pastStates.size()>1000){
 			pastStates.pop_front();
