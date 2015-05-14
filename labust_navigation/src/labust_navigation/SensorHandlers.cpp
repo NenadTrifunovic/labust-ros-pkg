@@ -59,17 +59,19 @@ void GPSHandler::onGps(const sensor_msgs::NavSatFix::ConstPtr& data)
 		posxy =	labust::tools::deg2meter(data->latitude - transformDeg.transform.translation.y,
 					data->longitude - transformDeg.transform.translation.x,
 					transformDeg.transform.translation.y);
-		Eigen::Quaternion<double> rot(transformLocal.transform.rotation.w,
+	/*	Eigen::Quaternion<double> rot(transformLocal.transform.rotation.w,
 				transformLocal.transform.rotation.x,
 				transformLocal.transform.rotation.y,
-				transformLocal.transform.rotation.z);
+				transformLocal.transform.rotation.z);*/
 		Eigen::Vector3d offset(transformGPS.transform.translation.x,
 				transformGPS.transform.translation.y,
 				transformGPS.transform.translation.z);
 		Eigen::Vector3d pos_corr = rot.matrix()*offset;
 
- 		//posxy.first -= pos_corr(0);
- 		//posxy.second -= pos_corr(1);
+ 		posxy.first -= pos_corr(0);
+ 		posxy.second -= pos_corr(1);
+		
+		ROS_ERROR("Corrected position: %f %f", pos_corr(0), pos_corr(1));
 
 		originLL.first = transformDeg.transform.translation.y;
 		originLL.second = transformDeg.transform.translation.x;
@@ -104,6 +106,7 @@ void ImuHandler::onImu(const sensor_msgs::Imu::ConstPtr& data)
 				transform.transform.rotation.y,
 				transform.transform.rotation.z);
 		Eigen::Quaternion<double> result = meas*rot;
+		if (gps != 0) gps->setRotation(result);
 		//KDL::Rotation::Quaternion(result.x(),result.y(),result.z(),result.w()).GetEulerZYX
 		//		(rpy[yaw],rpy[pitch],rpy[roll]);
 		labust::tools::eulerZYXFromQuaternion(result, rpy[roll], rpy[pitch], rpy[yaw]);

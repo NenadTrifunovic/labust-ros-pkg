@@ -128,7 +128,7 @@ void PIFF_wffStep(PIDBase* self, float Ts, float error, float perror, float ff)
 	//self->internalState += ff - self->lastFF;
 	self->internalState += ff;
 	if (!self->windup) self->I += (self->lastI = self->Ki*Ts*error);
-	else
+	/*else
 	{
 		//self->I = self->track - self->internalState;
 		float diff = self->track - self->internalState;
@@ -140,7 +140,7 @@ void PIFF_wffStep(PIDBase* self, float Ts, float error, float perror, float ff)
 		{
 			self->I = diff;
 		}
-	}
+	}*/
 	self->internalState += self->I;
 
 	//Set final output

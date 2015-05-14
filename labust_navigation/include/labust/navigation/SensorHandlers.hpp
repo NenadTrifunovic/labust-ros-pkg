@@ -43,6 +43,8 @@
 
 #include <ros/ros.h>
 
+#include <Eigen/Dense>
+
 namespace labust
 {
 	namespace navigation
@@ -82,6 +84,8 @@ namespace labust
 
 			inline const std::pair<double, double>&
 			latlon() const	{return posLL;}
+			
+			void setRotation(const Eigen::Quaternion<double>& quat){this->rot = quat;};
 
 		private:
 			void onGps(const sensor_msgs::NavSatFix::ConstPtr& data);
@@ -89,6 +93,7 @@ namespace labust
 			tf2_ros::Buffer buffer;
 			tf2_ros::TransformListener listener;
 			ros::Subscriber gps;
+			Eigen::Quaternion<double> rot;
 		};
 
 		/**
@@ -101,7 +106,9 @@ namespace labust
 			enum {p=0,q,r};
 			enum {ax,ay,az};
 
-			ImuHandler():listener(buffer){};
+			ImuHandler():listener(buffer),gps(0){};
+			
+			void setGpsHandler(GPSHandler* gps){this->gps = gps;};
 
 			void configure(ros::NodeHandle& nh);
 
@@ -118,6 +125,7 @@ namespace labust
 			labust::math::unwrap unwrap;
 			ros::Subscriber imu;
 			double rpy[3], pqr[3], axyz[3];
+			GPSHandler* gps;
 		};
 
 		class DvlHandler : public NewArrived

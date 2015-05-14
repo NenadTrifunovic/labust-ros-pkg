@@ -105,6 +105,7 @@ void Estimator3D::onInit()
 	gps.configure(nh);
 	dvl.configure(nh);
 	imu.configure(nh);
+	imu.setGpsHandler(&gps);
 
    Pstart = nav.getStateCovariance();
 //Rstart = nav.R;
