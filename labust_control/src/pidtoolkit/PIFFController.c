@@ -114,6 +114,28 @@ void PIFF_wffStep(PIDBase* self, float Ts, float error, float perror, float ff)
 		//If the proportional part is already in windup remove the whole last integral
 		//Otherwise recalculate the integral to be on the edge of windup
 		//self->internalState -= ((diff*self->track <= 0)?self->lastI:(self->lastI - diff));
+
+		//self->I = self->track - self->internalState;
+
+	}
+
+	if (self->windup && self->useBackward)
+	{
+		//Proportional difference
+		float diff = self->track - self->output + self->lastI;
+		ROS_ERROR("Windup diff=%f track=%f output=%f", diff, self->track, self->output);
+		ROS_ERROR("Windup I=%f, lI = %f, lerror=%f, error=%f", self->I, self->lastI, self->lastError, error);
+		if (diff*self->track <= 0)
+		{
+			//Unwind
+			self->I -= self->lastI;
+			ROS_ERROR("Unwinding");
+		}
+		else
+		{
+			ROS_ERROR("Recalculating");
+			self->I -= self->lastI - diff;
+		}
 	}
 
 	//Proportional term
@@ -127,20 +149,8 @@ void PIFF_wffStep(PIDBase* self, float Ts, float error, float perror, float ff)
 	//Feed forward term
 	//self->internalState += ff - self->lastFF;
 	self->internalState += ff;
-	if (!self->windup) self->I += (self->lastI = self->Ki*Ts*error);
-	/*else
-	{
-		//self->I = self->track - self->internalState;
-		float diff = self->track - self->internalState;
-		if (diff*self->track <= 0)
-		{
-			self->I = 0;
-		}
-		else
-		{
-			self->I = diff;
-		}
-	}*/
+	//if (!self->windup) self->I += (self->lastI = self->Ki*Ts*error);
+	self->I += self->lastI = self->Ki*Ts*error;
 	self->internalState += self->I;
 
 	//Set final output

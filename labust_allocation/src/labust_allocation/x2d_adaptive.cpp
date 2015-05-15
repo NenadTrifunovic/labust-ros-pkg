@@ -187,7 +187,7 @@ bool X2dAdaptive::saturate(Eigen::Vector4d& t,
 	double scalef(1.0), scale(0.0);
   for (int i=0;i<t.size(); ++i)
   {
-     if (t(i) > 0)
+     if (t(i) >= 0)
         scale = t(i)/pmax(i);
      else
         scale = t(i)/pmin(i);
@@ -288,7 +288,7 @@ bool X2dAdaptive::secondRun(const Eigen::VectorXd& tau,
 		double scalef(1.0),scale(0.0);
     for (int i=0; i< tTd.size(); ++i)
     {
-        if (tTd(i) > 0)
+        if (tTd(i) >= 0)
             scale = tTd(i)/tdmax[i];
         else
             scale = tTd(i)/tdmin[i];

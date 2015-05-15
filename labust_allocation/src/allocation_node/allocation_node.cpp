@@ -99,7 +99,7 @@ void AllocationNode::onTau(const auv_msgs::BodyForceReq::ConstPtr tau)
 	labust::tools::vectorToRPY(wdp, tau_ach->disable_axis, AllocationInterface::K);
 	//Backward compatibility
 	Eigen::VectorXd tsgn(tauA);
-	for (int i=0; i<tsgn.size(); ++i)	tsgn(i)=((tsgn(i)>0)?wdp[i]:-wdp[i]);
+	for (int i=0; i<tsgn.size(); ++i)	tsgn(i)=((tsgn(i)>=0)?wdp[i]:-wdp[i]);
 	labust::tools::vectorToPoint(tsgn, tau_ach->windup);
 	labust::tools::vectorToRPY(tsgn, tau_ach->windup, AllocationInterface::K);
 	tau_ach->header.stamp = ros::Time::now();
