@@ -281,9 +281,9 @@ using namespace labust::controller;
 			goal.T1.point.y = east1;
 			goal.T2.point.x = north2;
 			goal.T2.point.y = east2;
-			goal.yaw = heading;
+			goal.heading = heading;
 			goal.speed = speed;
-			goal.radius = radius;
+			goal.victory_radius = radius;
 
 
 			ac.sendGoal(goal,
@@ -322,9 +322,9 @@ using namespace labust::controller;
 			goal.T1.point.y = east1;
 			goal.T2.point.x = north2;
 			goal.T2.point.y = east2;
-			goal.yaw = atan2(east2-east1,north2-north1);
+			goal.heading = atan2(east2-east1,north2-north1);
 			goal.speed = speed;
-			goal.radius = radius;
+			goal.victory_radius = radius;
 
 
 			ac.sendGoal(goal,
@@ -370,9 +370,9 @@ using namespace labust::controller;
 			goal.T2.point.x = north2;
 			goal.T2.point.y = east2;
 
-			goal.yaw = tmp; // Underactuated
+			goal.heading = tmp; // Underactuated
 			goal.speed = speed;
-			goal.radius = radius;
+			goal.victory_radius = radius;
 
 			if(ac2.getState() == actionlib::SimpleClientGoalState::ACTIVE){
 
