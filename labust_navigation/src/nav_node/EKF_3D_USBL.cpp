@@ -131,6 +131,7 @@ void Estimator3D::onInit()
 
 	/*** Enable USBL measurements ***/
 	ph.param("delay", enableDelay, enableDelay);
+	ph.param("delay_time", delay_time, delay_time);
 	ph.param("range", enableRange, enableRange);
 	ph.param("bearing", enableBearing, enableBearing);
 	ph.param("elevation", enableElevation, enableElevation);
@@ -141,10 +142,8 @@ void Estimator3D::onInit()
 	dvl.configure(nh);
 	imu.configure(nh);
 
-   Pstart = nav.getStateCovariance();
-   //Rstart = nav.R;
-   // ROS_ERROR("NAVIGATION");
-
+	/*** Get initial error covariance. ***/
+    Pstart = nav.getStateCovariance();
 }
 
 void Estimator3D::onReset(const std_msgs::Bool::ConstPtr& reset)
