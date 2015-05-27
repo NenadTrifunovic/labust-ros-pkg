@@ -60,6 +60,9 @@
 #include <labust_mission/utils.hpp>
 #include <labust_mission/lowLevelConfigure.hpp>
 
+#include <labust/primitive/PrimitiveCall.hpp>
+
+
 #include <navcon_msgs/ConfigureVelocityController.h>
 
 #include <actionlib/client/simple_action_client.h>
@@ -112,6 +115,8 @@ namespace labust
 			/*********************************************************
 			 *** Controller primitives
 			 ********************************************************/
+			/* Go to point primitive */
+			void go2point(bool enable, double north1, double east1, double north2, double east2, double speed, double heading, double radius);
 
 			/* Go to point fully actuated primitive */
 			void go2point_FA_hdg(bool enable, double north1, double east1, double north2, double east2, double speed, double heading, double radius);
@@ -211,12 +216,17 @@ namespace labust
 			ros::Subscriber subStateHatAbs;
 			labust::LowLevelConfigure LLcfg;
 
+			labust::primitive::PrimitiveCallGo2Point Go2Point;
+
 			actionlib::SimpleActionClient<navcon_msgs::GoToPointAction> ac;
 			actionlib::SimpleActionClient<navcon_msgs::GoToPointAction> ac2;
 			actionlib::SimpleActionClient<navcon_msgs::DynamicPositioningAction> ac3;
 			actionlib::SimpleActionClient<navcon_msgs::CourseKeepingAction> ac4;
 			actionlib::SimpleActionClient<navcon_msgs::CourseKeepingAction> ac5;
 			actionlib::SimpleActionClient<navcon_msgs::DOFIdentificationAction> ac6;
+
+			actionlib::SimpleActionClient<navcon_msgs::GoToPointAction> ac_g2p;
+
 
 		};
 
@@ -245,6 +255,8 @@ using namespace labust::controller;
 											ac4("course_keeping_FA", true),
 											ac5("course_keeping_UA", true),
 											ac6("Identification", true),
+
+											ac_g2p("go2point", true),
 											LLcfg(nh)
 	{
 
@@ -254,12 +266,65 @@ using namespace labust::controller;
 		/** Subscribers */
 		subStateHat = nh.subscribe<auv_msgs::NavSts>("stateHat",1, &ControllerManager::stateHatCallback,this);
 		subStateHatAbs = nh.subscribe<auv_msgs::NavSts>("stateHatAbs",1, &ControllerManager::stateHatAbsCallback,this);
+
+
+
+
 	}
 
 
 	/*********************************************************
 	 *** Controller primitives
 	 ********************************************************/
+
+		/*
+		 * go2point primitive
+		 */
+		void ControllerManager::go2point(bool enable, double north1, double east1, double north2, double east2, double speed, double heading, double radius){
+
+				typedef navcon_msgs::GoToPointGoal Goal;
+
+				typedef navcon_msgs::GoToPointAction goal;
+				goal action;
+				action.action_goal.goal;
+
+			if(enable){
+
+
+
+				LLcfg.LL_VELconfigure(true,2,2,0,0,0,2);
+				Goal goal;
+				goal.ref_type = Goal::CONSTANT;
+				goal.subtype = Goal::GO2POINT_FA;
+
+
+				goal.T1.point.x = north1;
+				goal.T1.point.y = east1;
+				goal.T1.point.z = 0;
+				goal.T2.point.x = north2;
+				goal.T2.point.y = east2;
+				goal.T2.point.z = 0;
+				goal.heading = heading;
+				goal.speed = speed;
+				goal.victory_radius = radius;
+
+
+
+				ac.sendGoal(goal,
+								boost::bind(&utils::Go2PointFA_CB::doneCb, G2P_FA, _1, _2),
+								boost::bind(&utils::Go2PointFA_CB::activeCb, G2P_FA),
+								boost::bind(&utils::Go2PointFA_CB::feedbackCb, G2P_FA, _1));
+
+			} else {
+
+				boost::this_thread::sleep(boost::posix_time::milliseconds(200));
+				ac.cancelGoalsAtAndBeforeTime(ros::Time::now());
+
+				enableController("UALF_enable",false);
+				enableController("HDG_enable",false);
+				LLcfg.LL_VELconfigure(false,1,1,0,0,0,1);
+			}
+		}
 
 	/*
 	 * Course keeping fully actuated primitive

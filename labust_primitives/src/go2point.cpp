@@ -39,25 +39,21 @@
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
+#include <Eigen/Dense>
+#include <boost/thread/mutex.hpp>
+#include <boost/array.hpp>
 
 #include <labust/primitive/PrimitiveBase.hpp>
-
-
 #include <labust/math/NumberManipulation.hpp>
 #include <labust/math/Line.hpp>
 #include <labust/tools/conversions.hpp>
 
-#include <Eigen/Dense>
-//#include <navcon_msgs/CourseKeepingAction.h>
+#include <ros/ros.h>
 #include <navcon_msgs/GoToPointAction.h>
 #include <navcon_msgs/EnableControl.h>
 #include <geometry_msgs/Point.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <tf2_ros/static_transform_broadcaster.h>
-#include <ros/ros.h>
-
-#include <boost/thread/mutex.hpp>
-#include <boost/array.hpp>
 
 namespace labust
 {
@@ -78,7 +74,10 @@ namespace labust
 
 			GoToPoint():ExecutorBase("go2point_FA"),
 						 underactuated(true),
-						 processNewGoal(false){};
+						 processNewGoal(false),
+						 lastDistance(0.0),
+						 distVictory(0.0),
+						 Ddistance(0.0){};
 
 			void init()
 			{
