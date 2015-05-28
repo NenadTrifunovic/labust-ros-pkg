@@ -108,21 +108,13 @@ include_directories(
 
 ## Declare a cpp executable
 add_executable(go2point src/go2point.cpp)
+add_executable(course_keeping src/course_keeping.cpp)
+add_executable(dynamic_positioning src/dynamic_positioning.cpp)
 
-#add_executable(course_keeping_FA src/CourseKeepingFA.cpp)
-#add_executable(course_keeping_UA src/CourseKeepingUA.cpp)
-#add_executable(dp_primitive src/DPprimitive.cpp)
-#add_executable(go2point_FA src/go2point_FA.cpp)
-#add_executable(go2point_UA src/go2point_UA.cpp)
-#add_executable(test_course src/test/test_course.cpp)
 if (DEFINED catkin_EXPORTED_TARGETS)
  add_dependencies(go2point ${catkin_EXPORTED_TARGETS})
- #add_dependencies(course_keeping_FA ${catkin_EXPORTED_TARGETS})
- #add_dependencies(course_keeping_UA ${catkin_EXPORTED_TARGETS})
- #add_dependencies(dp_primitive ${catkin_EXPORTED_TARGETS})
- #add_dependencies(go2point_FA ${catkin_EXPORTED_TARGETS})
- #add_dependencies(go2point_UA ${catkin_EXPORTED_TARGETS})
- #add_dependencies(test_course ${catkin_EXPORTED_TARGETS})
+ add_dependencies(course_keeping ${catkin_EXPORTED_TARGETS})
+ add_dependencies(dynamic_positioning ${catkin_EXPORTED_TARGETS})
 endif()
 
 ## Add cmake target dependencies of the executable/library
@@ -133,6 +125,15 @@ endif()
 target_link_libraries(go2point
    ${catkin_LIBRARIES}
 )
+
+target_link_libraries(course_keeping
+   ${catkin_LIBRARIES}
+)
+
+target_link_libraries(dynamic_positioning
+   ${catkin_LIBRARIES}
+)
+
 
 
 

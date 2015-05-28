@@ -117,7 +117,6 @@ namespace labust
 						if(new_goal->ref_type != Goal::CONSTANT)
 							//connectTopics();
 						break;
-
 				}
 
 				//Check if course keeping is possible.
