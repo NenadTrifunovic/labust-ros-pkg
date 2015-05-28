@@ -218,14 +218,10 @@ namespace labust
 
 			labust::primitive::PrimitiveCallGo2Point Go2Point;
 
-			actionlib::SimpleActionClient<navcon_msgs::GoToPointAction> ac;
-			actionlib::SimpleActionClient<navcon_msgs::GoToPointAction> ac2;
 			actionlib::SimpleActionClient<navcon_msgs::DynamicPositioningAction> ac3;
 			actionlib::SimpleActionClient<navcon_msgs::CourseKeepingAction> ac4;
 			actionlib::SimpleActionClient<navcon_msgs::CourseKeepingAction> ac5;
 			actionlib::SimpleActionClient<navcon_msgs::DOFIdentificationAction> ac6;
-
-			actionlib::SimpleActionClient<navcon_msgs::GoToPointAction> ac_g2p;
 
 
 		};
@@ -249,14 +245,10 @@ using namespace labust::controller;
 											Xpos(0.0),
 											Ypos(0.0),
 											YawPos(0.0),
-											ac("go2point_FA", true),
-											ac2("go2point_UA", true),
 											ac3("DPprimitive", true),
 											ac4("course_keeping_FA", true),
 											ac5("course_keeping_UA", true),
 											ac6("Identification", true),
-
-											ac_g2p("go2point", true),
 											LLcfg(nh)
 	{
 
@@ -276,135 +268,65 @@ using namespace labust::controller;
 	/*********************************************************
 	 *** Controller primitives
 	 ********************************************************/
-
-		/*
-		 * go2point primitive
-		 */
-		void ControllerManager::go2point(bool enable, double north1, double east1, double north2, double east2, double speed, double heading, double radius){
-
-				typedef navcon_msgs::GoToPointGoal Goal;
-
-				typedef navcon_msgs::GoToPointAction goal;
-				goal action;
-				action.action_goal.goal;
-
-			if(enable){
-
-
-
-				LLcfg.LL_VELconfigure(true,2,2,0,0,0,2);
-				Goal goal;
-				goal.ref_type = Goal::CONSTANT;
-				goal.subtype = Goal::GO2POINT_FA;
-
-
-				goal.T1.point.x = north1;
-				goal.T1.point.y = east1;
-				goal.T1.point.z = 0;
-				goal.T2.point.x = north2;
-				goal.T2.point.y = east2;
-				goal.T2.point.z = 0;
-				goal.heading = heading;
-				goal.speed = speed;
-				goal.victory_radius = radius;
-
-
-
-				ac.sendGoal(goal,
-								boost::bind(&utils::Go2PointFA_CB::doneCb, G2P_FA, _1, _2),
-								boost::bind(&utils::Go2PointFA_CB::activeCb, G2P_FA),
-								boost::bind(&utils::Go2PointFA_CB::feedbackCb, G2P_FA, _1));
-
-			} else {
-
-				boost::this_thread::sleep(boost::posix_time::milliseconds(200));
-				ac.cancelGoalsAtAndBeforeTime(ros::Time::now());
-
-				enableController("UALF_enable",false);
-				enableController("HDG_enable",false);
-				LLcfg.LL_VELconfigure(false,1,1,0,0,0,1);
-			}
-		}
-
 	/*
 	 * Course keeping fully actuated primitive
 	 */
-	void ControllerManager::go2point_FA_hdg(bool enable, double north1, double east1, double north2, double east2, double speed, double heading, double radius){
+	void ControllerManager::go2point_FA_hdg(bool enable, double north1, double east1, double north2, double east2, double speed, double heading, double radius)
+	{
+		typedef navcon_msgs::GoToPointGoal Goal;
+		if(enable)
+		{
+			Goal goal;
 
-		//static actionlib::SimpleActionClient<navcon_msgs::GoToPointAction> ac("go2point_FA", true);
+			goal.ref_type = Goal::CONSTANT;
+			goal.subtype = Goal::GO2POINT_FA_HDG;
 
-		if(enable){
-
-			ROS_INFO("Waiting for action server to start.");
-			ac.waitForServer(); //will wait for infinite time
-			ROS_INFO("Action server started, sending goal.");
-
-			LLcfg.LL_VELconfigure(true,2,2,0,0,0,2);
-
-			navcon_msgs::GoToPointGoal goal;
 			goal.T1.point.x = north1;
 			goal.T1.point.y = east1;
+			goal.T1.point.z = 0;
 			goal.T2.point.x = north2;
 			goal.T2.point.y = east2;
+			goal.T2.point.z = 0;
 			goal.heading = heading;
 			goal.speed = speed;
 			goal.victory_radius = radius;
 
-
-			ac.sendGoal(goal,
-							boost::bind(&utils::Go2PointFA_CB::doneCb, G2P_FA, _1, _2),
-							boost::bind(&utils::Go2PointFA_CB::activeCb, G2P_FA),
-							boost::bind(&utils::Go2PointFA_CB::feedbackCb, G2P_FA, _1));
-
-		} else {
-
-			boost::this_thread::sleep(boost::posix_time::milliseconds(200));
-			ac.cancelGoalsAtAndBeforeTime(ros::Time::now());
-
-			enableController("UALF_enable",false);
-			enableController("HDG_enable",false);
-			LLcfg.LL_VELconfigure(false,1,1,0,0,0,1);
+			Go2Point.start(goal);
+		}
+		else
+		{
+			Go2Point.stop();
 		}
 	}
 
 	/*
 	 * Course keeping fully actuated primitive
 	 */
-	void ControllerManager::go2point_FA(bool enable, double north1, double east1, double north2, double east2, double speed, double radius){
+	void ControllerManager::go2point_FA(bool enable, double north1, double east1, double north2, double east2, double speed, double radius)
+	{
+		typedef navcon_msgs::GoToPointGoal Goal;
+		if(enable)
+		{
+			Goal goal;
 
-		//static actionlib::SimpleActionClient<navcon_msgs::GoToPointAction> ac("go2point_FA", true);
+			goal.ref_type = Goal::CONSTANT;
+			goal.subtype = Goal::GO2POINT_FA;
 
-		if(enable){
-
-			ROS_INFO("Waiting for action server to start.");
-			ac.waitForServer(); //will wait for infinite time
-			ROS_INFO("Action server started, sending goal.");
-
-			LLcfg.LL_VELconfigure(true,2,2,0,0,0,2);
-
-			navcon_msgs::GoToPointGoal goal;
 			goal.T1.point.x = north1;
 			goal.T1.point.y = east1;
+			goal.T1.point.z = 0;
 			goal.T2.point.x = north2;
 			goal.T2.point.y = east2;
-			goal.heading = atan2(east2-east1,north2-north1);
+			goal.T2.point.z = 0;
+			goal.heading = atan2(east2-east1,north2-north1);;
 			goal.speed = speed;
 			goal.victory_radius = radius;
 
-
-			ac.sendGoal(goal,
-							boost::bind(&utils::Go2PointFA_CB::doneCb, G2P_FA, _1, _2),
-							boost::bind(&utils::Go2PointFA_CB::activeCb, G2P_FA),
-							boost::bind(&utils::Go2PointFA_CB::feedbackCb, G2P_FA, _1));
-
-		} else {
-
-			boost::this_thread::sleep(boost::posix_time::milliseconds(200));
-			ac.cancelGoalsAtAndBeforeTime(ros::Time::now());
-
-			enableController("UALF_enable",false);
-			enableController("HDG_enable",false);
-			LLcfg.LL_VELconfigure(false,1,1,0,0,0,1);
+			Go2Point.start(goal);
+		}
+		else
+		{
+			Go2Point.stop();
 		}
 	}
 
@@ -413,56 +335,31 @@ using namespace labust::controller;
 	/*
 	 * Course keeping underactuated primitive
 	 */
-	void ControllerManager::go2point_UA(bool enable, double north1, double east1, double north2, double east2, double speed, double radius){
+	void ControllerManager::go2point_UA(bool enable, double north1, double east1, double north2, double east2, double speed, double radius)
+	{
+		typedef navcon_msgs::GoToPointGoal Goal;
+		if(enable)
+		{
+			Goal goal;
 
-		//static actionlib::SimpleActionClient<navcon_msgs::GoToPointAction> ac2("go2point_UA", true);
+			goal.ref_type = Goal::CONSTANT;
+			goal.subtype = Goal::GO2POINT_UA;
 
-		if(enable){
-
-			ROS_INFO("Waiting for action server to start.");
-			ac2.waitForServer(); //will wait for infinite time
-			ROS_INFO("Action server started, sending goal.");
-
-			LLcfg.LL_VELconfigure(true,2,2,0,0,0,2);
-
-			double tmp;
-			tmp = atan2(east2-east1, north2-north1);
-
-
-			navcon_msgs::GoToPointGoal goal;
 			goal.T1.point.x = north1;
 			goal.T1.point.y = east1;
+			goal.T1.point.z = 0;
 			goal.T2.point.x = north2;
 			goal.T2.point.y = east2;
-
-			goal.heading = tmp; // Underactuated
+			goal.T2.point.z = 0;
+			goal.heading = atan2(east2-east1,north2-north1);;
 			goal.speed = speed;
 			goal.victory_radius = radius;
 
-			if(ac2.getState() == actionlib::SimpleClientGoalState::ACTIVE){
-
-				ac2.cancelGoal();
-				ac2.sendGoal(goal,
-								boost::bind(&utils::Go2PointUA_CB::doneCb, G2P_UA, _1, _2),
-								boost::bind(&utils::Go2PointUA_CB::activeCb, G2P_UA),
-								boost::bind(&utils::Go2PointUA_CB::feedbackCb, G2P_UA, _1));
-
-
-			} else {
-			ac2.sendGoal(goal,
-							boost::bind(&utils::Go2PointUA_CB::doneCb, G2P_UA, _1, _2),
-							boost::bind(&utils::Go2PointUA_CB::activeCb, G2P_UA),
-							boost::bind(&utils::Go2PointUA_CB::feedbackCb, G2P_UA, _1));
-			}
-
-		} else {
-
-			boost::this_thread::sleep(boost::posix_time::milliseconds(200));
-			ac2.cancelGoalsAtAndBeforeTime(ros::Time::now());
-
-			enableController("UALF_enable_1",false);
-			enableController("HDG_enable",false);
-			LLcfg.LL_VELconfigure(false,1,1,0,0,0,1);
+			Go2Point.start(goal);
+		}
+		else
+		{
+			Go2Point.stop();
 		}
 	}
 

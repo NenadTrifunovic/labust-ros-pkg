@@ -75,8 +75,27 @@ namespace labust
 				ROS_INFO("Action server started, sending goal.");
 			}
 
-			~PrimitiveCallBase(){}
+			virtual ~PrimitiveCallBase(){}
 
+		public:
+			virtual void start(Goal goal)
+			{
+				//LLcfg.LL_VELconfigure(true,2,2,0,0,0,2);
+				this->callPrimitiveAction(goal);
+			}
+
+			virtual void stop()
+			{
+				//boost::this_thread::sleep(boost::posix_time::milliseconds(200));
+				ros::Duration(0.2).sleep();
+				ac.cancelGoalsAtAndBeforeTime(ros::Time::now());
+
+				//enableController("UALF_enable",false);
+				//enableController("HDG_enable",false);
+				//LLcfg.LL_VELconfigure(false,1,1,0,0,0,1);
+			}
+
+		protected:
 			void callPrimitiveAction(Goal goal)
 			{
 				ac.sendGoal(goal,
