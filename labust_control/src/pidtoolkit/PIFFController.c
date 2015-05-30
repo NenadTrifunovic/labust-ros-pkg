@@ -38,14 +38,13 @@
 
 void PIFF_modelTune(PIDBase* self,
 		const PT1Model* const model,
-		float w)
+		float w, float a)
 {
 	self->Kp = 2*w*model->alpha-model->beta;
 	self->Ki = model->alpha*w*w;
 	self->Kd = self->Kt = self->Tf = 0;
 
 	//The empirical parameter for overshoot ~5%
-	float a=1.5;
 	self->b = a*self->Ki/(self->Kp*w);
 	ROS_ERROR("b-value dyn: %f %f",self->b,w);
 	//self->b = 1;
@@ -57,13 +56,12 @@ void PIFF_modelTune(PIDBase* self,
 	self->w = w;
 }
 
-void PIFF_tune(PIDBase* self, float w)
+void PIFF_tune(PIDBase* self, float w, float a)
 {
 	self->Kp = 2*w;
 	self->Ki = w*w;
 	self->Kd = self->Kt = self->Tf = 0;
 	//The empirical parameter for overshoot ~5%
-	float a=1.5;
 	self->b = a*self->Ki/(self->Kp*w);
 	//self->b = 1;
 	ROS_ERROR("b-value kin: %f %f",self->b,w);
@@ -119,24 +117,24 @@ void PIFF_wffStep(PIDBase* self, float Ts, float error, float perror, float ff)
 
 	}
 
-	if (self->windup && self->useBackward)
+	/*if (self->windup && self->useBackward)
 	{
 		//Proportional difference
 		float diff = self->track - self->output + self->lastI;
-		ROS_ERROR("Windup diff=%f track=%f output=%f", diff, self->track, self->output);
-		ROS_ERROR("Windup I=%f, lI = %f, lerror=%f, error=%f", self->I, self->lastI, self->lastError, error);
-		if (diff*self->track <= 0)
+		//ROS_ERROR("Windup diff=%f track=%f output=%f", diff, self->track, self->output);
+		//ROS_ERROR("Windup I=%f, lI = %f, lerror=%f, error=%f", self->I, self->lastI, self->lastError, error);
+		if ((diff*self->track <= 0) || (self->output*self->track <=0))
 		{
 			//Unwind
 			self->I -= self->lastI;
-			ROS_ERROR("Unwinding");
+			//ROS_ERROR("Unwinding");
 		}
 		else
 		{
-			ROS_ERROR("Recalculating");
+			//ROS_ERROR("Recalculating");
 			self->I -= self->lastI - diff;
 		}
-	}
+	}*/
 
 	//Proportional term
 	//self->internalState += self->Kp*(error-self->lastError);
@@ -150,7 +148,31 @@ void PIFF_wffStep(PIDBase* self, float Ts, float error, float perror, float ff)
 	//self->internalState += ff - self->lastFF;
 	self->internalState += ff;
 	//if (!self->windup) self->I += (self->lastI = self->Ki*Ts*error);
+
+	if (self->windup && self->useBackward)
+	{
+		//Proportional difference
+		float diff = self->track - self->internalState - self->I;
+		ROS_ERROR("Windup diff=%f track=%f output=%f", diff, self->track, self->internalState + self->I);
+		ROS_ERROR("Windup I=%f, lI = %f, lerror=%f, error=%f", self->I, self->lastI, self->lastError, error);
+		if ((diff*self->track < 0) || (self->output*self->track <=0))
+		{
+			//Unwind
+			self->I -= self->lastI;
+			ROS_ERROR("Unwinding");
+		}
+		else
+		{
+			ROS_ERROR("Recalculating");
+			self->I -= -diff;
+
+			ROS_ERROR("New output: out=%f", self->internalState + self->I);
+		}
+	}
+
 	self->I += self->lastI = self->Ki*Ts*error;
+	//if (!self->windup) self->I += self->lastI = self->Ki*Ts*error;
+	//else self->lastI=0 ;
 	self->internalState += self->I;
 
 	//Set final output

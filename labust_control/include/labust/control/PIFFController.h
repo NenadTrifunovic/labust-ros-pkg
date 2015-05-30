@@ -42,12 +42,12 @@
  */
 void PIFF_modelTune(PIDBase* self,
 		const PT1Model* const model,
-		float w);
+		float w, float a=1.5);
 /**
  * Autotune the PIFF controller using the plant model 1.
  * Valid for higher level controllers.
  */
-void PIFF_tune(PIDBase* self, float w);
+void PIFF_tune(PIDBase* self, float w, float a=1.5);
 /**
  * Calculate one step of the PIFF controller with externally
  * supplied error and feedforward calculation.

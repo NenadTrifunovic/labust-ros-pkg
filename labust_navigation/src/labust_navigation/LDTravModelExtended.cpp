@@ -156,15 +156,15 @@ const LDTravModel::output_type& LDTravModel::update(vector& measurements, vector
 		if (newMeas(i))
 		{
 			//ROS_INFO("New meas: %d", i);
-			if (i == u)
-			{
-				double trustf=30;
-				ROS_INFO("Trust factor:%f",cosh(trustf*x(r)));
-				R0(u,u) = cosh(trustf*x(r))*r0u;
-				R0(v,v) = cosh(trustf*x(r))*r0u;
-				R0(xc,xc) = cosh(trustf*x(r))*r0xc;
-				R0(yc,yc) = cosh(trustf*x(r))*r0xc;
-			}
+//			if (i == u)
+//			{
+//				double trustf=30;
+//				ROS_INFO("Trust factor:%f",cosh(trustf*x(r)));
+//				R0(u,u) = cosh(trustf*x(r))*r0u;
+//				R0(v,v) = cosh(trustf*x(r))*r0u;
+//				R0(xc,xc) = cosh(trustf*x(r))*r0xc;
+//				R0(yc,yc) = cosh(trustf*x(r))*r0xc;
+//			}
 			arrived.push_back(i);
 			dataVec.push_back(measurements(i));
 			newMeas(i) = 0;
