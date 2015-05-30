@@ -53,6 +53,7 @@ void PIFF_modelTune(PIDBase* self,
 	self->model.alpha = model->alpha;
 	self->model.beta = model->beta;
 	self->model.betaa = model->betaa;
+	//self->b = 0.75;
 
 	self->w = w;
 }

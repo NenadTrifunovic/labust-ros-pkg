@@ -64,13 +64,18 @@ namespace labust{
 
 			enum {x = 0, y};
 
-			ESCControlClassic_UV():Ts(0.1), esc_controller(2,Ts),count(0){};
+			ESCControlClassic_UV():Ts(0.1), esc_controller(2,Ts),count(0),newRange(false), esc_Ts(1.0){};
 
 			void init(){
 
 				ros::NodeHandle nh;
 				initialize_controller();
+				subRange = nh.subscribe<std_msgs::Float32>("range",1,& ESCControlClassic_UV::onRange,this);
 			}
+
+		void onRange(const std_msgs::Float32::ConstPtr& msg){
+			newRange = true;
+		}
 
   		void windup(const auv_msgs::BodyForceReq& tauAch){
 
@@ -87,7 +92,12 @@ namespace labust{
 
 			auv_msgs::BodyVelocityReqPtr step(const std_msgs::Float32& ref, const auv_msgs::NavSts& state){
 
-				if((count++)%20 == 0){
+				//if((count++)%20 == 0){
+				int t_step = esc_Ts/Ts;
+				//if(newRange){
+				if((count++)%t_step == 0){
+
+					newRange = false;
 
 					Eigen::Vector2d out, in;
 					Eigen::Matrix2d R;
@@ -122,36 +132,38 @@ namespace labust{
 				}
 			}
 
-			void initialize_controller(){
+		void initialize_controller(){
 
-				ROS_INFO("Initializing extremum seeking controller...");
+			ROS_INFO("Initializing extremum seeking controller...");
 
-				ros::NodeHandle nh;
+			ros::NodeHandle nh;
 
-				double sin_amp = 0.2;
-				double	sin_freq = 0.09;
-				double	corr_gain =  -5;
-				double	high_pass_pole = 3;
-				double	low_pass_pole = 0;
-				double	comp_zero =  0;
-				double	comp_pole = 0;
-				double sampling_time = 0.1;
+			double sin_amp = 0.2;
+			double	sin_freq = 0.09;
+			double	corr_gain =  -5;
+			double	high_pass_pole = 3;
+			double	low_pass_pole = 0;
+			double	comp_zero =  0;
+			double	comp_pole = 0;
+			double sampling_time = 0.1;
 
-				nh.param("esc/sin_amp", sin_amp, sin_amp);
-				nh.param("esc/sin_freq", sin_freq, sin_freq);
-				nh.param("esc/corr_gain", corr_gain, corr_gain);
-				nh.param("esc/high_pass_pole", high_pass_pole, high_pass_pole);
-				nh.param("esc/low_pass_pole", low_pass_pole, low_pass_pole);
-				nh.param("esc/comp_zero", comp_zero, comp_zero);
-				nh.param("esc/comp_pole", comp_pole, comp_pole);
-				nh.param("esc/sampling_time", sampling_time, sampling_time);
+			nh.param("esc/sin_amp", sin_amp, sin_amp);
+			nh.param("esc/sin_freq", sin_freq, sin_freq);
+			nh.param("esc/corr_gain", corr_gain, corr_gain);
+			nh.param("esc/high_pass_pole", high_pass_pole, high_pass_pole);
+			nh.param("esc/low_pass_pole", low_pass_pole, low_pass_pole);
+			nh.param("esc/comp_zero", comp_zero, comp_zero);
+			nh.param("esc/comp_pole", comp_pole, comp_pole);
+			nh.param("esc/sampling_time", sampling_time, sampling_time);
 
-				esc_controller.initController(sin_amp, sin_freq, corr_gain, high_pass_pole, low_pass_pole, comp_zero, comp_pole, sampling_time);
+			esc_Ts = sampling_time;
 
-				disable_axis[x] = 0;
-				disable_axis[y] = 0;
+			esc_controller.initController(sin_amp, sin_freq, corr_gain, high_pass_pole, low_pass_pole, comp_zero, comp_pole, sampling_time);
 
-				ROS_INFO("Extremum seeking controller initialized.");
+			disable_axis[x] = 0;
+			disable_axis[y] = 0;
+
+			ROS_INFO("Extremum seeking controller initialized.");
 			}
 
 		private:
@@ -160,6 +172,9 @@ namespace labust{
 			esc::EscClassic esc_controller;
 			auv_msgs::BodyVelocityReqPtr nu_past;
 			int count;
+			double esc_Ts;
+			bool newRange;
+			ros::Subscriber subRange;
 
 		};
 	}

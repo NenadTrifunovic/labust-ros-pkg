@@ -129,10 +129,12 @@ namespace labust
 
 					con.desired = ref.position.east;
 					con.state = dH.transform.translation.y;
+
 					geometry_msgs::Vector3Stamped vdh;
 					vdh.vector.y = con.state;
 					vdh.header.stamp = ros::Time::now();
 					dh_pub.publish(vdh);
+
 					//Calculate desired yaw-rate
 					if (underactuated)
 					{
@@ -161,7 +163,13 @@ namespace labust
 						con.track = out(1);
 						PIFF_ffStep(&con,Ts,0);
 						double ul = ref.body_velocity.x;
+<<<<<<< HEAD
 						if (con.windup) ul = out(0);
+=======
+
+						//if (con.windup) ul = out(0);
+
+>>>>>>> 622be9516a356dc8f6e5349de2ced5537b97f4f7
 						double vl = con.output;
 						ROS_DEBUG("Command output: ul=%f, vl=%f", ul, vl);
 
@@ -198,9 +206,14 @@ namespace labust
 				nh.param("ualf_controller/sampling",Ts,Ts);
 				nh.param("velocity_controller/use_ground_vel", use_gvel, use_gvel);
 				ph.param("underactuated",underactuated,underactuated);
+<<<<<<< HEAD
 				
 				dh_pub = nh.advertise<geometry_msgs::Vector3Stamped>("dh_calc",1);
 				
+=======
+				dh_pub = nh.advertise<geometry_msgs::Vector3Stamped>("dh_calc",1);
+
+>>>>>>> 622be9516a356dc8f6e5349de2ced5537b97f4f7
 				PIDBase_init(&con);
 
 				disable_axis[0] = 0;
@@ -214,6 +227,7 @@ namespace labust
 					disable_axis[1] = 0;
 					PIFF_tune(&con,wh);
 				}
+				//con.b = 1.0;
 
 				ROS_INFO("LF controller initialized.");
 			}

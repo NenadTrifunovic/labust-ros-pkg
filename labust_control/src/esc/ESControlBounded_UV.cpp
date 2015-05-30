@@ -64,11 +64,18 @@ namespace labust{
 
 			enum {x = 0, y};
 
-			ESCControlBounded_UV():Ts(0.1), esc_controller(2,Ts), count(0){};
+			ESCControlBounded_UV():Ts(0.1), esc_controller(2,Ts), count(0),newRange(false), esc_Ts(1.0){};
 
 			void init(){
 
+				ros::NodeHandle nh;
 				initialize_controller();
+				subRange = nh.subscribe<std_msgs::Float32>("range",1,& ESCControlBounded_UV::onRange,this);
+
+			}
+
+			void onRange(const std_msgs::Float32::ConstPtr& msg){
+				newRange = true;
 			}
 
   		void windup(const auv_msgs::BodyForceReq& tauAch){
@@ -86,7 +93,12 @@ namespace labust{
 
 		auv_msgs::BodyVelocityReqPtr step(const std_msgs::Float32& ref, const auv_msgs::NavSts& state){
 
-			if((count++)%20 == 0){
+			//if((count++)%20 == 0){
+							int t_step = esc_Ts/Ts;
+							//if(newRange){
+							if((count++)%t_step == 0){
+
+								newRange = false;
 
 				Eigen::Vector2d out, in;
 				Eigen::Matrix2d R;
@@ -138,6 +150,8 @@ namespace labust{
 				nh.param("esc_bounded/omega", omega, omega);
 				nh.param("esc_bounded/sampling_time", sampling_time, sampling_time);
 
+				esc_Ts = sampling_time;
+
 				esc_controller.initController(K, omega, alpha, sampling_time);
 
 				disable_axis[x] = 0;
@@ -152,6 +166,9 @@ namespace labust{
 			esc::EscBounded esc_controller;
 			auv_msgs::BodyVelocityReqPtr nu_past;
 			int count;
+			double esc_Ts;
+						bool newRange;
+						ros::Subscriber subRange;
 		};
 	}
 }
