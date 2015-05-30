@@ -64,13 +64,18 @@ namespace labust{
 
 			enum {x = 0, y};
 
-			ESControlEKF_MODEL_UV():Ts(0.1), esc_controller(2,Ts){};
+			ESControlEKF_MODEL_UV():Ts(0.1), esc_controller(2,Ts),newRange(false), esc_Ts(1.0){};
 
 			void init(){
 
 				ros::NodeHandle nh;
 				initialize_controller();
+				subRange = nh.subscribe<std_msgs::Float32>("range",1,& ESControlEKF_MODEL_UV::onRange,this);
 			}
+
+			void onRange(const std_msgs::Float32::ConstPtr& msg){
+						newRange = true;
+					}
 
 			void windup(const auv_msgs::BodyForceReq& tauAch){
 
@@ -162,6 +167,9 @@ namespace labust{
 
 			double Ts;
 			esc::EscEkfGradModel esc_controller;
+			double esc_Ts;
+						bool newRange;
+						ros::Subscriber subRange;
 
 		};
 	}

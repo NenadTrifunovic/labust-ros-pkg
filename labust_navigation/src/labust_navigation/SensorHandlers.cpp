@@ -71,8 +71,6 @@ void GPSHandler::onGps(const sensor_msgs::NavSatFix::ConstPtr& data)
  		posxy.first -= pos_corr(0);
  		posxy.second -= pos_corr(1);
 		
-		ROS_ERROR("Corrected position: %f %f", pos_corr(0), pos_corr(1));
-
 		originLL.first = transformDeg.transform.translation.y;
 		originLL.second = transformDeg.transform.translation.x;
 

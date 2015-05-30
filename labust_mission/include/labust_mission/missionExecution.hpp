@@ -85,6 +85,8 @@ namespace labust {
 
 		    void dynamic_postitioning_state();
 
+		    void go2point_FA_hdg_state();
+
 		    void go2point_FA_state();
 
 		    void go2point_UA_state();
@@ -266,6 +268,26 @@ namespace labust {
 			//	setRefreshRate(refreshRate, boost::bind(&MissionExecution::dynamic_postitioning_state, this));
 	    }
 
+	    void MissionExecution::go2point_FA_hdg_state(){
+
+
+	    	/** Evaluate primitive data with current values */
+			evaluatePrimitive(receivedPrimitive.primitiveString.data);
+	    	/** Activate primitive timeout */
+			if(!timeoutActive && primitiveMap["timeout"] > 0)
+				setTimeout(primitiveMap["timeout"]);
+			/** Activate primitive */
+			CM.go2point_FA_hdg(true, oldPosition.north, oldPosition.east, primitiveMap["north"], primitiveMap["east"], primitiveMap["speed"], primitiveMap["heading"], primitiveMap["victory_radius"]);
+			ROS_ERROR("go2pointFA: T1: %f, %f, T2: %f, %f, Speed: %f, Heading: %f, VictoryRadius: %f  ", oldPosition.north, oldPosition.east, primitiveMap["north"], primitiveMap["east"], primitiveMap["speed"], primitiveMap["heading"], primitiveMap["victory_radius"]);
+
+			oldPosition.north = primitiveMap["north"];
+			oldPosition.east = primitiveMap["east"];
+			oldPosition.depth = primitiveMap["depth"];
+
+			//if(!refreshActive && refreshRate > 0)
+			//	setRefreshRate(refreshRate, boost::bind(&MissionExecution::go2point_FA_state, this));
+	    }
+
 	    void MissionExecution::go2point_FA_state(){
 
 
@@ -275,7 +297,7 @@ namespace labust {
 			if(!timeoutActive && primitiveMap["timeout"] > 0)
 				setTimeout(primitiveMap["timeout"]);
 			/** Activate primitive */
-			CM.go2point_FA(true, oldPosition.north, oldPosition.east, primitiveMap["north"], primitiveMap["east"], primitiveMap["speed"], primitiveMap["heading"], primitiveMap["victory_radius"]);
+			CM.go2point_FA(true, oldPosition.north, oldPosition.east, primitiveMap["north"], primitiveMap["east"], primitiveMap["speed"], primitiveMap["victory_radius"]);
 			ROS_ERROR("go2pointFA: T1: %f, %f, T2: %f, %f, Speed: %f, Heading: %f, VictoryRadius: %f  ", oldPosition.north, oldPosition.east, primitiveMap["north"], primitiveMap["east"], primitiveMap["speed"], primitiveMap["heading"], primitiveMap["victory_radius"]);
 
 			oldPosition.north = primitiveMap["north"];

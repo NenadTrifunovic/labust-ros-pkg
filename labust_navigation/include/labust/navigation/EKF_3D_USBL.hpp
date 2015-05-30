@@ -173,7 +173,7 @@ namespace labust
 			/**
 			 * Estimated and measured state publisher.
 			 */
-			ros::Publisher stateMeas, stateHat, currentsHat, buoyancyHat;
+			ros::Publisher stateMeas, stateHat, currentsHat, buoyancyHat, pubRange;
 			/**
 			 * Sensors and input subscribers.
 			 */
@@ -219,8 +219,13 @@ namespace labust
 			 *  Current time in seconds
 			 */
 			double currentTime;
+			double delayTime;
 			/**
-			 *  Current time in seconds
+			 *  Fixed time delay for USBL navigation
+			 */
+			double delay_time;
+			/**
+			 *  USBL measurements enable flags
 			 */
 			bool enableDelay, enableRange, enableBearing, enableElevation;
 
