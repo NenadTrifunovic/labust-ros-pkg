@@ -1,9 +1,4 @@
 
-///\todo  Dodati prebacivanje u slucaju gubitka informacija od quadrotora
-///\todo ubaciti deklaraciju primitive struct-ova u klasu controllerManager
-///\todo dodati dva prototipa za pozivanje primitiva (direktno zadavanje i preko kompleksnijih struktura podataka pointStamped)
-///\todo kako bi se dodali razliciti prototipovi potrebno definirati actionClient kao clana klase
-//\todo odluciti da li dodati mjerenja unutar missionExecutiona ili controllerManagera
 /*********************************************************************
  * controllerManager.hpp
  *
@@ -119,7 +114,10 @@ namespace labust
 			 ********************************************************/
 
 			/* Go to point fully actuated primitive */
-			void go2point_FA(bool enable, double north1, double east1, double north2, double east2, double speed, double heading, double radius);
+			void go2point_FA_hdg(bool enable, double north1, double east1, double north2, double east2, double speed, double heading, double radius);
+
+			/* Go to point fully actuated primitive */
+			void go2point_FA(bool enable, double north1, double east1, double north2, double east2, double speed, double radius);
 			//void go2point_FA(bool enable);
 
 			/* Go to point underactuated primitive */
@@ -266,7 +264,7 @@ using namespace labust::controller;
 	/*
 	 * Course keeping fully actuated primitive
 	 */
-	void ControllerManager::go2point_FA(bool enable, double north1, double east1, double north2, double east2, double speed, double heading, double radius){
+	void ControllerManager::go2point_FA_hdg(bool enable, double north1, double east1, double north2, double east2, double speed, double heading, double radius){
 
 		//static actionlib::SimpleActionClient<navcon_msgs::GoToPointAction> ac("go2point_FA", true);
 
@@ -303,6 +301,49 @@ using namespace labust::controller;
 			LLcfg.LL_VELconfigure(false,1,1,0,0,0,1);
 		}
 	}
+
+	/*
+	 * Course keeping fully actuated primitive
+	 */
+	void ControllerManager::go2point_FA(bool enable, double north1, double east1, double north2, double east2, double speed, double radius){
+
+		//static actionlib::SimpleActionClient<navcon_msgs::GoToPointAction> ac("go2point_FA", true);
+
+		if(enable){
+
+			ROS_INFO("Waiting for action server to start.");
+			ac.waitForServer(); //will wait for infinite time
+			ROS_INFO("Action server started, sending goal.");
+
+			LLcfg.LL_VELconfigure(true,2,2,0,0,0,2);
+
+			navcon_msgs::GoToPointGoal goal;
+			goal.T1.point.x = north1;
+			goal.T1.point.y = east1;
+			goal.T2.point.x = north2;
+			goal.T2.point.y = east2;
+			goal.yaw = atan2(east2-east1,north2-north1);
+			goal.speed = speed;
+			goal.radius = radius;
+
+
+			ac.sendGoal(goal,
+							boost::bind(&utils::Go2PointFA_CB::doneCb, G2P_FA, _1, _2),
+							boost::bind(&utils::Go2PointFA_CB::activeCb, G2P_FA),
+							boost::bind(&utils::Go2PointFA_CB::feedbackCb, G2P_FA, _1));
+
+		} else {
+
+			boost::this_thread::sleep(boost::posix_time::milliseconds(200));
+			ac.cancelGoalsAtAndBeforeTime(ros::Time::now());
+
+			enableController("UALF_enable",false);
+			enableController("HDG_enable",false);
+			LLcfg.LL_VELconfigure(false,1,1,0,0,0,1);
+		}
+	}
+
+
 
 	/*
 	 * Course keeping underactuated primitive

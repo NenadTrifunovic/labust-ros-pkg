@@ -72,12 +72,13 @@ void GPSHandler::onGps(const sensor_msgs::NavSatFix::ConstPtr& data)
  		posxy.second -= pos_corr(1);
 		
 		ROS_ERROR("Corrected position: %f %f", pos_corr(0), pos_corr(1));
-
+		
 		originLL.first = transformDeg.transform.translation.y;
 		originLL.second = transformDeg.transform.translation.x;
 
-		posLL.first = data->latitude;
-		posLL.second = data->longitude;
+		std::pair<double, double> posxy_corr = labust::tools::meter2deg(posxy.first, posxy.second, transformDeg.transform.translation.y);
+		posLL.first = originLL.first + posxy_corr.first;
+		posLL.second = originLL.second + posxy_corr.second;
 
 		isNew = true;
 	}

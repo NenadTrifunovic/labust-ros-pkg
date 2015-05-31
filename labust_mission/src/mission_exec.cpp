@@ -151,7 +151,7 @@ MainEventQueue(){ mainEventQueue = new RosEventQueue(); }
 
 				FSM_ON_STATE_EXIT_BGN{
 
-					ME->CM.go2point_FA(false,0,0,0,0,0,0,0);
+					ME->CM.go2point_FA(false,0,0,0,0,0,0);
 
 				}FSM_ON_STATE_EXIT_END
 

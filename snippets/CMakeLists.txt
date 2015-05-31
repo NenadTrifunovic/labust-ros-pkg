@@ -7,7 +7,8 @@ project(snippets)
 find_package(catkin REQUIRED 
     cmake_modules 
     roscpp 
-    rospy 
+    rospy
+    rosbag 
     geometry_msgs)
 
 ## System dependencies are found with CMake's conventions

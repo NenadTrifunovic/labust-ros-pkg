@@ -163,7 +163,6 @@ namespace labust
 						con.track = out(1);
 						PIFF_ffStep(&con,Ts,0);
 						double ul = ref.body_velocity.x;
-						//if (con.windup) ul = out(0);
 						double vl = con.output;
 						ROS_DEBUG("Command output: ul=%f, vl=%f", ul, vl);
 
@@ -200,9 +199,14 @@ namespace labust
 				nh.param("ualf_controller/sampling",Ts,Ts);
 				nh.param("velocity_controller/use_ground_vel", use_gvel, use_gvel);
 				ph.param("underactuated",underactuated,underactuated);
+<<<<<<< HEAD
 				
 				dh_pub = nh.advertise<geometry_msgs::Vector3Stamped>("dh_calc",1);
 				
+=======
+
+				dh_pub = nh.advertise<geometry_msgs::Vector3Stamped>("dh_calc",1);
+>>>>>>> 570fedd8ede7fab15415cf03807d284d9c363eff
 				PIDBase_init(&con);
 
 				disable_axis[0] = 0;
