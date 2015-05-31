@@ -53,6 +53,10 @@ namespace labust {
           bag.close();
         }
         
+        void setBag(std::string bag_filename) {
+          bag_name = bag_filename;
+        }
+
         void addTopic(std::string topic_name) {
           topics.push_back(topic_name);
         }
