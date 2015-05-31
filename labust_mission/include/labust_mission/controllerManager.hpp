@@ -85,10 +85,6 @@ utils::Go2PointFA_CB G2P_FA;
 utils::Go2PointUA_CB G2P_UA;
 utils::ISO_CB ISO;
 
-
-//typedef actionlib::SimpleActionClient<navcon_msgs::CourseKeepingAction> Client;
-//actionlib::SimpleActionClient<navcon_msgs::GoToPointAction> *ac_ptr;
-
 /*********************************************************************
  *** ControllerManager class definition
  *********************************************************************/
@@ -115,8 +111,6 @@ namespace labust
 			/*********************************************************
 			 *** Controller primitives
 			 ********************************************************/
-			/* Go to point primitive */
-			void go2point(bool enable, double north1, double east1, double north2, double east2, double speed, double heading, double radius);
 
 			/* Go to point fully actuated primitive */
 			void go2point_FA_hdg(bool enable, double north1, double east1, double north2, double east2, double speed, double heading, double radius);
@@ -217,17 +211,12 @@ namespace labust
 			labust::LowLevelConfigure LLcfg;
 
 			labust::primitive::PrimitiveCallGo2Point Go2Point;
-
-			actionlib::SimpleActionClient<navcon_msgs::DynamicPositioningAction> ac3;
-			actionlib::SimpleActionClient<navcon_msgs::CourseKeepingAction> ac4;
-			actionlib::SimpleActionClient<navcon_msgs::CourseKeepingAction> ac5;
-			actionlib::SimpleActionClient<navcon_msgs::DOFIdentificationAction> ac6;
-
+			labust::primitive::PrimitiveCallCourseKeeping CourseKeeping;
+			labust::primitive::PrimitiveCallDynamicPositioning DynamicPositioninig;
+			labust::primitive::PrimitiveCallDOFIdentification DOFIdentification;
 
 		};
-
 	}
-
 }
 
 using namespace labust::controller;
@@ -245,10 +234,6 @@ using namespace labust::controller;
 											Xpos(0.0),
 											Ypos(0.0),
 											YawPos(0.0),
-											ac3("DPprimitive", true),
-											ac4("course_keeping_FA", true),
-											ac5("course_keeping_UA", true),
-											ac6("Identification", true),
 											LLcfg(nh)
 	{
 
@@ -266,7 +251,7 @@ using namespace labust::controller;
 
 
 	/*********************************************************
-	 *** Controller primitives
+	 *** Controller primitives masks
 	 ********************************************************/
 	/*
 	 * Course keeping fully actuated primitive
@@ -330,8 +315,6 @@ using namespace labust::controller;
 		}
 	}
 
-
-
 	/*
 	 * Course keeping underactuated primitive
 	 */
@@ -363,138 +346,80 @@ using namespace labust::controller;
 		}
 	}
 
-	void ControllerManager::dynamic_positioning(bool enable, double north, double east, double heading){
+	void ControllerManager::dynamic_positioning(bool enable, double north, double east, double heading)
+	{
+		typedef navcon_msgs::DynamicPositioningGoal Goal;
+		if(enable)
+		{
+			Goal goal;
 
-		//static actionlib::SimpleActionClient<navcon_msgs::DynamicPositioningAction> ac3("DPprimitive", true);
+			//goal.ref_type = Goal::CONSTANT;
+			//goal.subtype = Goal::GO2POINT_UA;
 
-		if(enable){
-
-			ROS_INFO("Waiting for action server to start.");
-			ac3.waitForServer(); //will wait for infinite time
-
-			ROS_INFO("Action server started, sending goal.");
-
-			//DPcontroller(true);
-			//HDGcontroller(true);
-
-			LLcfg.LL_VELconfigure(true,2,2,0,0,0,2);
-
-			navcon_msgs::DynamicPositioningGoal goal;
 			goal.T1.point.x = north;
 			goal.T1.point.y = east;
+			goal.T1.point.z = 0;
 			goal.yaw = heading;
 
-			if(ac3.getState() == actionlib::SimpleClientGoalState::ACTIVE){
-
-							//ac3.cancelGoal();
-
-
-							ac3.cancelGoalsAtAndBeforeTime(ros::Time::now());
-					      //  boost::this_thread::sleep(boost::posix_time::milliseconds(200));
-							ac3.sendGoal(goal,
-										boost::bind(&utils::DPprimitive_CB::doneCb, DP_FA, _1, _2),
-										boost::bind(&utils::DPprimitive_CB::activeCb, DP_FA),
-										boost::bind(&utils::DPprimitive_CB::feedbackCb, DP_FA, _1));
-
-
-						} else {
-
-			ac3.sendGoal(goal,
-						boost::bind(&utils::DPprimitive_CB::doneCb, DP_FA, _1, _2),
-						boost::bind(&utils::DPprimitive_CB::activeCb, DP_FA),
-						boost::bind(&utils::DPprimitive_CB::feedbackCb, DP_FA, _1));
-						}
-		} else {
-
-			boost::this_thread::sleep(boost::posix_time::milliseconds(200));
-			ac3.cancelGoalsAtAndBeforeTime(ros::Time::now());
-			//DPcontroller(false);
-			//HDGcontroller(false);
-
-			enableController("FADP_enable",false);
-			enableController("HDG_enable",false);
-			LLcfg.LL_VELconfigure(false,1,1,0,0,0,1);
+			DynamicPositioninig.start(goal);
+		}
+		else
+		{
+			DynamicPositioninig.stop();
 		}
 	}
-
 
 	/*
 	 * Course keeping fully actuated primitive
 	 */
-	void ControllerManager::course_keeping_FA(bool enable, double course, double speed, double heading){
+	void ControllerManager::course_keeping_FA(bool enable, double course, double speed, double heading)
+	{
+		typedef navcon_msgs::CourseKeepingGoal Goal;
+		if(enable)
+		{
+			Goal goal;
 
-		//static actionlib::SimpleActionClient<navcon_msgs::CourseKeepingAction> ac4("course_keeping_FA", true);
+			goal.ref_type = Goal::CONSTANT;
+			goal.subtype = Goal::COURSE_KEEPING_FA;
 
-		if(enable){
+			goal.course = course;
+			goal.speed = speed;
+			goal.yaw = heading;
 
-			ROS_INFO("Waiting for action server to start.");
-			ac4.waitForServer(); //will wait for infinite time
-
-			ROS_INFO("Action server started, sending goal.");
-
-		    LLcfg.LL_VELconfigure(true,2,2,0,0,0,2);
-
-		    navcon_msgs::CourseKeepingGoal goal;
-		    goal.course = course;
-		    goal.speed = speed;
-		    goal.yaw = heading;
-
-		  	ac4.sendGoal(goal,
-						boost::bind(&utils::CourseKeepingFA_CB::doneCb, CK_FA, _1, _2),
-						boost::bind(&utils::CourseKeepingFA_CB::activeCb, CK_FA),
-						boost::bind(&utils::CourseKeepingFA_CB::feedbackCb, CK_FA, _1));
-		} else {
-
-			boost::this_thread::sleep(boost::posix_time::milliseconds(200));
-			ac4.cancelGoalsAtAndBeforeTime(ros::Time::now());
-
-			enableController("UALF_enable",false);
-			enableController("HDG_enable",false);
-			LLcfg.LL_VELconfigure(false,1,1,0,0,0,1);
-  		}
+			CourseKeeping.start(goal);
+		}
+		else
+		{
+			CourseKeeping.stop();
+		}
 	}
 
 	/*
 	 * Course keeping underactuated primitive
 	 */
-	void ControllerManager::course_keeping_UA(bool enable, double course, double speed){
+	void ControllerManager::course_keeping_UA(bool enable, double course, double speed)
+	{
+		typedef navcon_msgs::CourseKeepingGoal Goal;
+		if(enable)
+		{
+			Goal goal;
 
-		//static actionlib::SimpleActionClient<navcon_msgs::CourseKeepingAction> ac5("course_keeping_UA", true);
+			goal.ref_type = Goal::CONSTANT;
+			goal.subtype = Goal::COURSE_KEEPING_UA;
 
-		if(enable){
+			goal.course = course;
+			goal.speed = speed;
+			goal.yaw = 0;
 
-			ROS_ERROR("Waiting for action server to start.");
-			  // wait for the action server to start
-			ac5.waitForServer(); //will wait for infinite time
-			ROS_ERROR("Action server started, sending goal.");
-
-			LLcfg.LL_VELconfigure(true,2,2,0,0,0,2);
-
-
-			navcon_msgs::CourseKeepingGoal goal;
-		    goal.course = course;
-		    goal.speed = speed;
-		    goal.yaw = course;
-
-		    ac5.sendGoal(goal,
-						boost::bind(&utils::CourseKeepingUA_CB::doneCb, CK_UA, _1, _2),
-						boost::bind(&utils::CourseKeepingUA_CB::activeCb, CK_UA),
-						boost::bind(&utils::CourseKeepingUA_CB::feedbackCb, CK_UA, _1));
-
-		} else {
-
-			boost::this_thread::sleep(boost::posix_time::milliseconds(200));
-			ac5.cancelGoalsAtAndBeforeTime(ros::Time::now());
-
-			enableController("UALF_enable_1",false);
-			enableController("HDG_enable",false);
-			LLcfg.LL_VELconfigure(false,1,1,0,0,0,1);
+			CourseKeeping.start(goal);
+		}
+		else
+		{
+			CourseKeeping.stop();
 		}
 	}
 
 	void ControllerManager::ISOprimitive(bool enable, int dof, double command, double hysteresis, double reference, double sampling_rate){
-
-		//static actionlib::SimpleActionClient<navcon_msgs::GoToPointAction> ac("go2point_FA", true);
 
 		if(enable){
 
@@ -505,10 +430,6 @@ using namespace labust::controller;
 			ph.param<string>("velcon_name",velconName,"velcon");
 
             const char *names[7] = {"Surge", "Sway", "Heave", "Roll", "Pitch", "Yaw", "Altitude"};
-
-			ROS_INFO("Waiting for action server to start.");
-			ac6.waitForServer(); //will wait for infinite time
-			ROS_INFO("Action server started, sending goal.");
 
 			/* configure velocity controller for identification */
 			int velcon[6] = {0,0,0,0,0,0};
@@ -537,33 +458,15 @@ using namespace labust::controller;
 			goal.reference = reference;
 			goal.sampling_rate = sampling_rate;
 
-			ac6.sendGoal(goal,
-							boost::bind(&utils::ISO_CB::doneCb, ISO, _1, _2),
-							boost::bind(&utils::ISO_CB::activeCb, ISO),
-							boost::bind(&utils::ISO_CB::feedbackCb, ISO, _1));
+			DOFIdentification.start(goal);
 
 		} else {
 
-			boost::this_thread::sleep(boost::posix_time::milliseconds(200));
-			ac6.cancelGoalsAtAndBeforeTime(ros::Time::now());
-
-			enableController("UALF_enable",false);
-			enableController("HDG_enable",false);
-			LLcfg.LL_VELconfigure(false,1,1,0,0,0,1);
+			DOFIdentification.stop();
+			//LLcfg.LL_VELconfigure(false,1,1,0,0,0,1);
 		}
 
 	}
-
-//    def onModelUpdate(self, result, use_linear):
-//        update = ModelParamsUpdate()
-//        update.dof = result.dof
-//        update.alpha = result.alpha
-//        update.beta = result.beta
-//        update.betaa = result.betaa
-//        update.delta = result.delta
-//        update.wn = result.wn
-//        update.use_linear = use_linear
-//        self.model_update.publish(update)
 
 	/*********************************************************
 	 * High Level Controllers
@@ -688,20 +591,6 @@ using namespace labust::controller;
 
 	}
 
-	/*
-	 * Low-level velocity controller
-	 */
-	void ControllerManager::LL_VELcontroller(bool enable){
-
-//		if(enable){
-//			utils::callService<navcon_msgs::ConfigureVelocityController>(clientConfigureVelocitiyController,velConConf);
-//		} else {
-//			for( int i = 0; i<=5; i++){
-//				velConConf.request.desired_mode[i] = 0;
-//			}
-//				utils::callService<navcon_msgs::ConfigureVelocityController>(clientConfigureVelocitiyController,velConConf);
-//		}
-	}
 
 	/*****************************************************************
 	 ***  Helper functions

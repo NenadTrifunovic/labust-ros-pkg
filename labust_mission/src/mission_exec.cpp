@@ -102,8 +102,9 @@ MainEventQueue(){ mainEventQueue = new RosEventQueue(); }
 					ros::Rate(ros::Duration(1.0)).sleep();
 
 					/** Get current vehicle position */
-					ME->oldPosition.north = ME->CM.Xpos;
-					ME->oldPosition.east = ME->CM.Ypos;
+					ME->oldPosition.north = ME->state.position.north;
+					ME->oldPosition.east = ME->state.position.east;
+					ME->oldPosition.depth = ME->state.position.depth;
 
 				}FSM_ON_STATE_EXIT_END
 
@@ -211,8 +212,9 @@ MainEventQueue(){ mainEventQueue = new RosEventQueue(); }
 
 					ME->CM.course_keeping_FA(false,0,0,0);
 
-					ME->oldPosition.north = ME->CM.Xpos;
-					ME->oldPosition.east = ME->CM.Ypos;
+					ME->oldPosition.north = ME->state.position.north;
+					ME->oldPosition.east = ME->state.position.east;
+					ME->oldPosition.depth = ME->state.position.depth;
 
 				}FSM_ON_STATE_EXIT_END
 
@@ -234,8 +236,9 @@ MainEventQueue(){ mainEventQueue = new RosEventQueue(); }
 
 					ME->CM.course_keeping_UA(false,0,0);
 
-					ME->oldPosition.north = ME->CM.Xpos;
-					ME->oldPosition.east = ME->CM.Ypos;
+					ME->oldPosition.north = ME->state.position.north;
+					ME->oldPosition.east = ME->state.position.east;
+					ME->oldPosition.depth = ME->state.position.depth;
 
 				}FSM_ON_STATE_EXIT_END
 
@@ -257,8 +260,9 @@ MainEventQueue(){ mainEventQueue = new RosEventQueue(); }
 
 					ME->CM.ISOprimitive(false,0,0,0,0,0);
 
-					ME->oldPosition.north = ME->CM.Xpos;
-					ME->oldPosition.east = ME->CM.Ypos;
+					ME->oldPosition.north = ME->state.position.north;
+					ME->oldPosition.east = ME->state.position.east;
+					ME->oldPosition.depth = ME->state.position.depth;
 
 				}FSM_ON_STATE_EXIT_END
 

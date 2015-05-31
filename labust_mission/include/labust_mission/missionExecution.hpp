@@ -83,6 +83,8 @@ namespace labust {
 			 ***  State machine primitive states
 			 ****************************************************************/
 
+		    void execute_primitive();
+
 		    void dynamic_postitioning_state();
 
 		    void go2point_FA_hdg_state();
@@ -144,10 +146,13 @@ namespace labust {
 			ros::Publisher pubRequestPrimitive;
 
 			/** Subscribers */
-			ros::Subscriber subDataEventsContainer, subEventString, subReceivePrimitive;
+			ros::Subscriber subDataEventsContainer, subEventString, subReceivePrimitive, subStateHat;
 
 			/** Services */
 			ros::ServiceClient srvExprEval;
+
+			/** stateHat container */
+			auv_msgs::NavSts state;
 
 			/** Remember last primitive end point */
 			auv_msgs::NED oldPosition;
@@ -189,6 +194,7 @@ namespace labust {
 			subEventString = nh.subscribe<std_msgs::String>("eventString",1, &MissionExecution::onEventString, this);
 			subReceivePrimitive = nh.subscribe<misc_msgs::SendPrimitive>("sendPrimitive",1, &MissionExecution::onReceivePrimitive, this);
 			subDataEventsContainer = nh.subscribe<misc_msgs::DataEventsContainer>("dataEventsContainer",1, &MissionExecution::onDataEventsContainer, this);
+			subStateHat = nh.subscribe<auv_msgs::NavSts>("stateHat",1, &MissionExecution::onStateHat, this);
 
 			/** Publishers */
 			pubRequestPrimitive = nh.advertise<std_msgs::UInt16>("requestPrimitive",1);
@@ -250,6 +256,11 @@ namespace labust {
 		 ***  State machine primitive states
 		 ****************************************************************/
 
+	    void MissionExecution::execute_primitive()
+	    {
+
+	    }
+
 	    void MissionExecution::dynamic_postitioning_state(){
 
 	    	/** Evaluate primitive data with current values */
@@ -263,9 +274,6 @@ namespace labust {
 			oldPosition.east = primitiveMap["east"];
 			oldPosition.depth = primitiveMap["depth"];
 
-			/** Activate primitive reference refresh */
-			//if(!refreshActive && refreshRate > 0)
-			//	setRefreshRate(refreshRate, boost::bind(&MissionExecution::dynamic_postitioning_state, this));
 	    }
 
 	    void MissionExecution::go2point_FA_hdg_state(){
@@ -283,9 +291,6 @@ namespace labust {
 			oldPosition.north = primitiveMap["north"];
 			oldPosition.east = primitiveMap["east"];
 			oldPosition.depth = primitiveMap["depth"];
-
-			//if(!refreshActive && refreshRate > 0)
-			//	setRefreshRate(refreshRate, boost::bind(&MissionExecution::go2point_FA_state, this));
 	    }
 
 	    void MissionExecution::go2point_FA_state(){
@@ -303,9 +308,6 @@ namespace labust {
 			oldPosition.north = primitiveMap["north"];
 			oldPosition.east = primitiveMap["east"];
 			oldPosition.depth = primitiveMap["depth"];
-
-			//if(!refreshActive && refreshRate > 0)
-			//	setRefreshRate(refreshRate, boost::bind(&MissionExecution::go2point_FA_state, this));
 	    }
 
 	    void MissionExecution::go2point_UA_state(){
@@ -317,9 +319,6 @@ namespace labust {
 			CM.go2point_UA(true, oldPosition.north, oldPosition.east, primitiveMap["north"], primitiveMap["east"], primitiveMap["speed"], primitiveMap["victory_radius"]);
 			oldPosition.north = primitiveMap["north"];
 			oldPosition.east = primitiveMap["east"];
-
-			if(!refreshActive && refreshRate > 0)
-				setRefreshRate(refreshRate, boost::bind(&MissionExecution::go2point_UA_state, this));
 	    }
 
 	    void MissionExecution::course_keeping_FA_state(){
@@ -329,9 +328,6 @@ namespace labust {
 			if(!timeoutActive && primitiveMap["timeout"] > 0)
 				setTimeout(primitiveMap["timeout"]);
 			CM.course_keeping_FA(true, primitiveMap["course"], primitiveMap["speed"], primitiveMap["heading"]);
-
-			if(!refreshActive && refreshRate > 0)
-				setRefreshRate(refreshRate, boost::bind(&MissionExecution::course_keeping_FA_state, this));
 	    }
 
 	    void MissionExecution::course_keeping_UA_state(){
@@ -341,9 +337,6 @@ namespace labust {
 			if(!timeoutActive && primitiveMap["timeout"] > 0)
 				setTimeout(primitiveMap["timeout"]);
 			CM.course_keeping_UA(true, primitiveMap["course"], primitiveMap["speed"]);
-
-			if(!refreshActive && refreshRate > 0)
-				setRefreshRate(refreshRate, boost::bind(&MissionExecution::course_keeping_UA_state, this));
 	    }
 
 	    void MissionExecution::iso_state(){
@@ -366,9 +359,6 @@ namespace labust {
 //			CM.go2point_FA(true, oldPosition.north, oldPosition.east, primitiveMap["north"], primitiveMap["east"], primitiveMap["speed"], primitiveMap["heading"], primitiveMap["victory_radius"]);
 //			oldPosition.north = primitiveMap["north"];
 //			oldPosition.east = primitiveMap["east"];
-//
-//			if(!refreshActive && refreshRate > 0)
-//				setRefreshRate(refreshRate, boost::bind(&MissionExecution::go2point_FA_state, this));
 	    }
 
 	    void MissionExecution::pointer_state(){
@@ -380,9 +370,6 @@ namespace labust {
 //			CM.go2point_FA(true, oldPosition.north, oldPosition.east, primitiveMap["north"], primitiveMap["east"], primitiveMap["speed"], primitiveMap["heading"], primitiveMap["victory_radius"]);
 //			oldPosition.north = primitiveMap["north"];
 //			oldPosition.east = primitiveMap["east"];
-//
-//			if(!refreshActive && refreshRate > 0)
-//				setRefreshRate(refreshRate, boost::bind(&MissionExecution::go2point_FA_state, this));
 	    }
 
 		/*****************************************************************
@@ -440,6 +427,21 @@ namespace labust {
 				mainEventQueue->riseEvent("/STOP");
 			}
 		}
+
+		/*
+		 * Collect state measurements
+		 */
+		void MissionExecution::onStateHat(const auv_msgs::NavSts::ConstPtr& data)
+		{
+			state = *data;
+		}
+
+//		void MissionExecution::stateHatAbsCallback(const auv_msgs::NavSts::ConstPtr& data){
+//
+//			Xpos = data->position.north;
+//			Ypos = data->position.east;
+//			YawPos = data->orientation.yaw;
+//		}
 
 		/*********************************************************************
 		 *** Helper functions
