@@ -195,7 +195,7 @@ void VelocityControl::handleManual(const sensor_msgs::Joy::ConstPtr& joy)
 	tauManual[X] = config.Surge_joy_scale * joy->axes[1];
 	tauManual[Y] = -config.Sway_joy_scale * joy->axes[0];
 	tauManual[Z] = -config.Heave_joy_scale * joy->axes[3];
-
+/*
 	if (joy->buttons.size() >= 4)
 	{
 		double increment = 0.05;
@@ -210,6 +210,9 @@ void VelocityControl::handleManual(const sensor_msgs::Joy::ConstPtr& joy)
 		tauManual[K] = 0;
 		tauManual[M] = 0;
 	}
+*/
+	//PGA ROVSEE
+	tauManual[M] = config.Pitch_joy_scale * joy->axes[4];
 	tauManual[N] = -config.Yaw_joy_scale * joy->axes[2];
 	lastMan = ros::Time::now();
 }

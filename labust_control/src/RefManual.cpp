@@ -167,7 +167,7 @@ namespace labust
 				refOut->orientation.roll =  labust::math::wrapRad(refOut->orientation.roll);
 				refOut->orientation.pitch =  labust::math::wrapRad(refOut->orientation.pitch);
 				refOut->orientation.yaw =  labust::math::wrapRad(refOut->orientation.yaw);
-
+				ROS_ERROR("stateRef pub"); //PGA
 				stateRef.publish(refOut);
 			}
 
