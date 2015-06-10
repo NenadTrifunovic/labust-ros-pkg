@@ -482,6 +482,10 @@ void Estimator3D::start()
 		ROS_INFO("Measurements %d:%s",KFNav::psi, out.str().c_str());
 
 		if (newArrived)	nav.correct(nav.update(measurements, newMeas));
+		KFNav::vector tcstate = nav.getState();
+		if (tcstate(KFNav::buoyancy) < -10) tcstate(KFNav::buoyancy) = -10;
+		if (tcstate(KFNav::buoyancy) > 0) tcstate(KFNav::buoyancy) = 0;
+		nav.setState(tcstate);
 		l.unlock();
 		publishState();
 
