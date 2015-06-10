@@ -47,6 +47,7 @@
 #include <Eigen/Dense>
 #include <auv_msgs/BodyForceReq.h>
 #include <std_msgs/Float32.h>
+#include <std_msgs/Bool.h>
 #include <ros/ros.h>
 
 namespace labust
@@ -55,13 +56,20 @@ namespace labust
 		///The Depthitude/depth controller
 		struct DepthControl : DisableAxis
 		{
-			DepthControl():Ts(0.1){};
+			DepthControl():Ts(0.1),manRefFlag(false){};
 
 			void init()
 			{
 				ros::NodeHandle nh;
+				manRefSub = nh.subscribe<std_msgs::Bool>("manRefDepthPosition",1,&DepthControl::onManRef,this);
 				initialize_controller();
 			}
+
+			void onManRef(const std_msgs::Bool::ConstPtr& state)
+			{
+				manRefFlag = state->data;
+			}
+
 
   		void windup(const auv_msgs::BodyForceReq& tauAch)
 			{
@@ -91,15 +99,27 @@ namespace labust
 				con.desired = ref.position.depth;
 				con.state = state.position.depth;
 				con.track = state.body_velocity.z;
-				//Step
-				PIFF_ffStep(&con, Ts, ref.body_velocity.z);
-				//Publish
+
+				double tmp_output;
 				auv_msgs::BodyVelocityReqPtr nu(new auv_msgs::BodyVelocityReq());
+
+				if(manRefFlag)
+				{
+					//PIFF_wffStep(&con,Ts, werror, wperror, 0*ref.orientation_rate.yaw);
+					PIFF_ffStep(&con, Ts, 0*ref.body_velocity.z);
+					tmp_output = con.output;
+				}
+				else
+				{
+		  			PIFF_idle(&con, Ts);
+					tmp_output = ref.body_velocity.z;
+				}
+
 				nu->header.stamp = ros::Time::now();
 				nu->goal.requester = "depth_controller";
 				labust::tools::vectorToDisableAxis(disable_axis, nu->disable_axis);
 
-				nu->twist.linear.z = con.output;
+				nu->twist.linear.z = tmp_output;
 
 				return nu;
 			}
@@ -124,6 +144,8 @@ namespace labust
 		private:
 			PIDBase con;
 			double Ts;
+			ros::Subscriber manRefSub;
+			bool manRefFlag;
 		};
 	}}
 

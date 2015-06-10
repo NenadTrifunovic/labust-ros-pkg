@@ -47,6 +47,7 @@
 #include <Eigen/Dense>
 #include <auv_msgs/BodyForceReq.h>
 #include <std_msgs/Float32.h>
+#include <std_msgs/Bool.h>
 #include <ros/ros.h>
 
 namespace labust
@@ -55,14 +56,19 @@ namespace labust
 		///The altitude/depth controller
 		struct ALTControl : DisableAxis
 		{
-			ALTControl():Ts(0.1){};
+			ALTControl():Ts(0.1),manRefFlag(false){};
 
 			void init()
 			{
 				ros::NodeHandle nh;
+				manRefSub = nh.subscribe<std_msgs::Bool>("manRefAltitude",1,&ALTControl::onManRef,this);
 				initialize_controller();
 			}
 
+			void onManRef(const std_msgs::Bool::ConstPtr& state)
+			{
+				manRefFlag = state->data;
+			}
   		void windup(const auv_msgs::BodyForceReq& tauAch)
 			{
 				//Copy into controller
@@ -90,15 +96,27 @@ namespace labust
 				con.desired = ref.altitude;
 				con.state = state.altitude;
 				con.track = -state.body_velocity.z;
-				//Step
-				PIFF_ffStep(&con,Ts, -ref.body_velocity.z);
-				//Publish
+
+				double tmp_output;
 				auv_msgs::BodyVelocityReqPtr nu(new auv_msgs::BodyVelocityReq());
+
+				if(manRefFlag)
+				{
+					//PIFF_wffStep(&con,Ts, werror, wperror, 0*ref.orientation_rate.yaw);
+					PIFF_ffStep(&con, Ts, 0*(-1)*ref.body_velocity.z);
+					tmp_output = -con.output;
+				}
+				else
+				{
+					PIFF_idle(&con, Ts);
+					tmp_output = -ref.body_velocity.z;
+				}
+
 				nu->header.stamp = ros::Time::now();
 				nu->goal.requester = "alt_controller";
 				labust::tools::vectorToDisableAxis(disable_axis, nu->disable_axis);
 
-				nu->twist.linear.z = -con.output;
+				nu->twist.linear.z = tmp_output;
 
 				return nu;
 			}
@@ -124,6 +142,8 @@ namespace labust
 			ros::Subscriber alt_sub;
 			PIDBase con;
 			double Ts;
+			ros::Subscriber manRefSub;
+			bool manRefFlag;
 		};
 	}
 }

@@ -159,7 +159,7 @@ namespace labust
 				else
 				{
 					PIFF_ffIdle(&con[x],Ts, float(out(x)));
-					tmp_output_x = ref.body_velocity.x;
+					tmp_output_x = out(x);
 				}
 
 				if(manRefEastFlag){
@@ -169,7 +169,7 @@ namespace labust
 				else
 				{
 					PIFF_ffIdle(&con[y],Ts, float(out(y)));
-					tmp_output_y = ref.body_velocity.y;
+					tmp_output_y = out(y);
 				}
 
 				//Publish commands

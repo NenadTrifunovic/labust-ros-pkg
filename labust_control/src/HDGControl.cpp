@@ -126,7 +126,9 @@ namespace labust
 				}
 				else
 				{
-					PIFF_wffIdle(&con, Ts, werror, wperror, ref.orientation_rate.yaw);
+					con.track = ref.orientation_rate.yaw;
+
+					PIFF_wffIdle(&con, Ts, werror, wperror,  ref.orientation_rate.yaw);
 
 					//Publish output
 					auv_msgs::BodyVelocityReqPtr nu(new auv_msgs::BodyVelocityReq());
@@ -147,11 +149,13 @@ namespace labust
 				double closedLoopFreq(1);
 				nh.param("hdg_controller/closed_loop_freq", closedLoopFreq, closedLoopFreq);
 				nh.param("hdg_controller/sampling",Ts,Ts);
+				double overshoot(1.5);
+				nh.param("hdg_controller/overshoot",overshoot,overshoot);
 
 				disable_axis[N] = 0;
 
 				PIDBase_init(&con);
-				PIFF_tune(&con, float(closedLoopFreq));
+				PIFF_tune(&con, float(closedLoopFreq), overshoot);
 
 				ROS_INFO("Heading controller initialized.");
 			}

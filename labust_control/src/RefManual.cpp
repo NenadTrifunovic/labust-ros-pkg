@@ -77,6 +77,9 @@ namespace labust
 				manRefHeadingPub = nh.advertise<std_msgs::Bool>("manRefHeading", 1);
 				manRefPositionNorthPub = nh.advertise<std_msgs::Bool>("manRefNorthPosition", 1);
 				manRefPositionEastPub = nh.advertise<std_msgs::Bool>("manRefEastPosition", 1);
+				manRefPositionDepthPub = nh.advertise<std_msgs::Bool>("manRefDepthPosition", 1);
+				manRefAltitudePub = nh.advertise<std_msgs::Bool>("manRefAltitude", 1);
+
 
 				//Initialize subscribers
 				stateHat = nh.subscribe<auv_msgs::NavSts>("stateHat", 1,
@@ -153,7 +156,7 @@ namespace labust
 
 				Eigen::Vector2f out, in;
 				Eigen::Matrix2f R;
-				in<<mapped[u]*Ts,mapped[v]*Ts;
+				in<<mapped[u],mapped[v];
 				double yaw(baseRef.orientation.yaw);
 				R<<cos(yaw),-sin(yaw),sin(yaw),cos(yaw);
 				out = R*in;
@@ -177,7 +180,7 @@ namespace labust
 					manRefFlag[r]= false;
 				}
 				/*** u ***/
-				if(std::abs(mapped[u])<joyTreshold)
+				if(std::abs(out[u])<joyTreshold)
 				{
 					data.data = true;
 					manRefPositionNorthPub.publish(data);
@@ -195,7 +198,7 @@ namespace labust
 				}
 
 				/*** v ***/
-				if(std::abs(mapped[v])<joyTreshold)
+				if(std::abs(out[v])<joyTreshold)
 				{
 					data.data = true;
 					manRefPositionEastPub.publish(data);
@@ -212,55 +215,33 @@ namespace labust
 					manRefFlag[v]= false;
 				}
 
-
-				/*** Check if position joystick input is active ***/
-/*				if(std::abs(mapped[u])<joyTreshold || std::abs(mapped[v])<joyTreshold)
-				{
-					if(manRef[u] == false)
-					{
-						manRef[u] = lastState.position.north;
-						manRefFlag[u] = true;
-					}
-					else if(manRef[v] == false)
-					{
-						manRef[v] = lastState.position.east;
-						manRefFlag[v] = true;
-
-					}
-				}
-
-				if(std::abs(mapped[u])<joyTreshold && std::abs(mapped[v])<joyTreshold)
+				/*** w ***/
+				if(std::abs(mapped[w])<joyTreshold)
 				{
 					data.data = true;
-					manRefPositionPub.publish(data);
+					manRefPositionDepthPub.publish(data);
+					manRefAltitudePub.publish(data);
+
+					if(manRefFlag[w] == false)
+					{
+						manRef[w] = lastState.position.depth;
+						manRef[a] = lastState.altitude;
+						manRefFlag[w] = true;
+					}
 				}
-				else if(std::abs(mapped[u])>=joyTreshold)
+				else
 				{
 					data.data = false;
-					manRefPositionPub.publish(data);
-					manRefFlag[u] = false;
+					manRefPositionDepthPub.publish(data);
+					manRefAltitudePub.publish(data);
+					manRefFlag[w]= false;
 				}
-				else if(std::abs(mapped[v])>=joyTreshold)
-				{
-					data.data = false;
-					manRefPositionPub.publish(data);
-					manRefFlag[v] = false;
-				}
-*/
+
 				baseRef.header.stamp = ros::Time::now();
 				baseRef.header.frame_id = "local";
 
-//				baseRef.position.north += out(u);
-//				//baseRef.position.east += out(v);
-//				baseRef.position.east = guide_test(baseRef.position.east, lastState.position.east, out(v), nu_max(v));
-//				baseRef.position.depth += mapped[w]*Ts;
-//				baseRef.orientation.roll += mapped[p]*Ts;
-//				baseRef.orientation.pitch += mapped[q]*Ts;
-//				//baseRef.orientation.yaw += 1*mapped[r]*Ts;
-//				baseRef.orientation.yaw = (std::abs(mapped[r])<joyTreshold)?manRef[r]:lastState.orientation.yaw;
-
-				baseRef.position.north = (std::abs(mapped[u])<joyTreshold)?manRef[u]:lastState.position.north;
-				baseRef.position.east = (std::abs(mapped[v])<joyTreshold)?manRef[v]:lastState.position.east;
+				baseRef.position.north = (std::abs(out[u])<joyTreshold)?manRef[u]:lastState.position.north;
+				baseRef.position.east = (std::abs(out[v])<joyTreshold)?manRef[v]:lastState.position.east;
 				baseRef.position.depth = (std::abs(mapped[w])<joyTreshold)?manRef[w]:lastState.position.depth;
 				baseRef.orientation.roll += mapped[p]*Ts;
 				baseRef.orientation.pitch += mapped[q]*Ts;
@@ -273,7 +254,7 @@ namespace labust
 				  //double T=0.1;
 			      //ffstate = (mapped*Ts + ffstate*T)/(Ts+T);
 				  baseRef.body_velocity.x = mapped[u];
-				  baseRef.body_velocity.y = mapped(v); // + (mapped(v) - ffstate(v))/T;
+				  baseRef.body_velocity.y = mapped[v]; // + (mapped(v) - ffstate(v))/T;
 				  baseRef.body_velocity.z = mapped[w];
 				  baseRef.orientation_rate.roll = mapped[p];
 				  baseRef.orientation_rate.pitch = mapped[q];
@@ -319,7 +300,8 @@ namespace labust
 
 		private:
 			ros::Subscriber stateHat, joyIn, nuRefSub;
-			ros::Publisher stateRef, manRefHeadingPub, manRefPositionNorthPub, manRefPositionEastPub;
+			ros::Publisher stateRef, manRefHeadingPub, manRefPositionNorthPub,
+							manRefPositionEastPub, manRefPositionDepthPub, manRefAltitudePub;
 			Eigen::Vector6d nu_max;
 			Eigen::VectorXd manRef;
 			Eigen::Vector6i manRefFlag;
