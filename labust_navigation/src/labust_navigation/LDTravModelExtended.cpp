@@ -44,7 +44,9 @@ using namespace labust::navigation;
 LDTravModel::LDTravModel():
 		dvlModel(0),
 		xdot(0),
-		ydot(0)
+		ydot(0),
+		trustf(0),
+		kvr(0)
 {
 	this->initModel();
 };
@@ -85,11 +87,12 @@ void LDTravModel::calculateUVInovationVariance(const LDTravModel::matrix& P, dou
 void LDTravModel::step(const input_type& input)
 {
   x(u) += Ts*(-surge.Beta(x(u))/surge.alpha*x(u) + 1/surge.alpha * input(X));
+  double vd = -sway.Beta(x(v))/sway.alpha*x(v) + 1/sway.alpha * input(Y);
   x(v) += Ts*(-sway.Beta(x(v))/sway.alpha*x(v) + 1/sway.alpha * input(Y));
   x(w) += Ts*(-heave.Beta(x(w))/heave.alpha*x(w) + 1/heave.alpha * (input(Z) + x(buoyancy)));
   //x(p) += Ts*(-roll.Beta(x(p))/roll.alpha*x(p) + 1/roll.alpha * (input(Kroll) + x(roll_restore)));
   x(q) += Ts*(-pitch.Beta(x(p))/pitch.alpha*x(q) + 1/pitch.alpha * (input(M) + x(pitch_restore)));
-  x(r) += Ts*(-yaw.Beta(x(r))/yaw.alpha*x(r) + 1/yaw.alpha * input(N) + 0*x(b));
+  x(r) += Ts*(-yaw.Beta(x(r))/yaw.alpha*x(r) + 1/yaw.alpha * input(N) + 0*x(b) + 0*kvr*x(v) - kvr*vd);
 
   xdot = x(u)*cos(x(psi)) - x(v)*sin(x(psi)) + x(xc);
   ydot = x(u)*sin(x(psi)) + x(v)*cos(x(psi)) + x(yc);
@@ -155,16 +158,15 @@ const LDTravModel::output_type& LDTravModel::update(vector& measurements, vector
 	{
 		if (newMeas(i))
 		{
-			//ROS_INFO("New meas: %d", i);
-//			if (i == u)
-//			{
-//				double trustf=30;
-//				ROS_INFO("Trust factor:%f",cosh(trustf*x(r)));
-//				R0(u,u) = cosh(trustf*x(r))*r0u;
-//				R0(v,v) = cosh(trustf*x(r))*r0u;
-//				R0(xc,xc) = cosh(trustf*x(r))*r0xc;
-//				R0(yc,yc) = cosh(trustf*x(r))*r0xc;
-//			}
+			ROS_INFO("New meas: %d", i);
+			if (i == u)
+			{
+				ROS_INFO("Trust factor:%f",cosh(trustf*x(r)));
+				R0(u,u) = cosh(trustf*x(r))*r0u;
+				R0(v,v) = cosh(trustf*x(r))*r0u;
+				R0(xc,xc) = cosh(trustf*x(r))*r0xc;
+				R0(yc,yc) = cosh(trustf*x(r))*r0xc;
+			}
 			arrived.push_back(i);
 			dataVec.push_back(measurements(i));
 			newMeas(i) = 0;

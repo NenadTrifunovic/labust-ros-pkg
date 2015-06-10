@@ -146,6 +146,10 @@ namespace labust
 
       inline void useDvlModel(int flag){this->dvlModel = flag;};
 
+      inline void setDVLRotationTrustFactor(double trustf){this->trustf = trustf;};
+
+      inline void setSwayCorrection(double kvr){this->kvr = kvr;};
+
     protected:
      /**
        * Calculate the Jacobian matrices.
@@ -171,6 +175,10 @@ namespace labust
        * The NED speeds.
        */
       double xdot,ydot;
+      ///DVL rotation trust factor
+      double trustf;
+      ///The sway correction factor
+      double kvr;
       /**
        * The DVL linear/nonlinear flag.
        */

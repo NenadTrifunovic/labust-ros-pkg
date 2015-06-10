@@ -175,6 +175,8 @@ void PIFF_wffStep(PIDBase* self, float Ts, float error, float perror, float ff)
 		}
 	}*/
 
+
+
 	//Proportional term
 	//self->internalState += self->Kp*(error-self->lastError);
 	//self->internalState += self->Kp*(perror - self->lastPError);
@@ -193,7 +195,30 @@ void PIFF_wffStep(PIDBase* self, float Ts, float error, float perror, float ff)
 
 	//if (!self->windup) self->I += (self->lastI = self->Ki*Ts*error);
 
+	/*
 	if (self->windup && self->useBackward && self->lastI != 0)
+	{
+		//Proportional difference
+		float pcontrib = self->internalState;//- self->I;
+		ROS_ERROR("Windup diff=%f track=%f output=%f", pcontrib, self->track, self->internalState + self->I);
+		ROS_ERROR("Windup I=%f, lI = %f, lerror=%f, error=%f", self->I, self->lastI, self->lastError, error);
+		if (fabs(pcontrib) > fabs(self->track))
+		{
+			//Unwind
+			self->I -= self->lastI;
+			ROS_ERROR("Unwinding");
+		}
+		else
+		{
+			ROS_ERROR("Recalculating");
+			self->I -= self->lastI;
+			self->I += self->track - 0.98*pcontrib;
+			ROS_ERROR("New output: out=%f", self->internalState + self->I);
+		}
+	}
+*/
+
+	/*if (self->windup && self->useBackward && self->lastI != 0)
 	{
 		//Proportional difference
 		float diff = self->track - self->internalState - self->I;
@@ -207,22 +232,16 @@ void PIFF_wffStep(PIDBase* self, float Ts, float error, float perror, float ff)
 		}
 	//	else
 		{
-			//ROS_ERROR("Recalculating");
-			//self->I -= -diff+0.98*self->Ki*Ts*error;
-
+			ROS_ERROR("Recalculating");
+			self->I -= -diff + 0*0.98*self->Ki*Ts*error;
 			//ROS_ERROR("New output: out=%f", self->internalState + self->I);
 		}
-
-
 	}
-
-
-	//self->internalState += ff;
+	*/
 
 	//self->I += self->lastI = self->Ki*Ts*error;
 	if (!self->windup) self->I += self->lastI = self->Ki*Ts*error;
 	else self->lastI=0 ;
-
 	self->internalState += self->I;
 
 	//Set final output
