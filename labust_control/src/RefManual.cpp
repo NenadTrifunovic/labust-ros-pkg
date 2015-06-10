@@ -56,14 +56,15 @@ namespace labust
 				nu_max(Eigen::Vector6d::Zero()),
 				manRefFlag(Eigen::Vector6i::Zero()),
 				manRef(Eigen::MatrixXd::Zero(7,1)),
-				Ts(0.01),
+				Ts(0.1),
 				stateReady(false),
 				stateAcquired(false),
 				useFF(false),
 				lastFF(Eigen::Vector6d::Zero()),
 				ffstate(Eigen::Vector6d::Zero()),
 				yawRef(0.0),
-				joyTreshold(0.01),
+				joyTreshold(0.001),
+				fineThreshold(0.15),
 				yawFlag(false),
 				enable(false){this->init();};
 
@@ -103,6 +104,7 @@ namespace labust
 				this->enable = req.enable;
 				if (req.enable)
 				{
+				  manRefFlag = Eigen::Vector6i::Zero();
 				  if (stateAcquired)
 				  {
 					baseRef = lastState;
@@ -163,7 +165,7 @@ namespace labust
 
 				/*** Check if heading joystick input is active ***/
 				std_msgs::Bool data;
-				if(std::abs(mapped[r])<joyTreshold)
+				if(std::abs(mapped[r])<fineThreshold)
 				{
 					data.data = true;
 					manRefHeadingPub.publish(data);
@@ -171,6 +173,11 @@ namespace labust
 					{
 						manRef[r] = lastState.orientation.yaw;
 						manRefFlag[r] = true;
+					}
+
+					if (std::abs(mapped[r]) > joyTreshold)
+					{
+						manRef[r] += mapped[r]*Ts;						
 					}
 				}
 				else
@@ -180,7 +187,7 @@ namespace labust
 					manRefFlag[r]= false;
 				}
 				/*** u ***/
-				if(std::abs(out[u])<joyTreshold)
+				if(std::abs(out[u])<fineThreshold)
 				{
 					data.data = true;
 					manRefPositionNorthPub.publish(data);
@@ -188,6 +195,11 @@ namespace labust
 					{
 						manRef[u] = lastState.position.north;
 						manRefFlag[u] = true;
+					}
+
+					if (std::abs(out(u)) > joyTreshold)
+					{
+						manRef[u] += out(u)*Ts;						
 					}
 				}
 				else
@@ -198,7 +210,7 @@ namespace labust
 				}
 
 				/*** v ***/
-				if(std::abs(out[v])<joyTreshold)
+				if(std::abs(out[v])<fineThreshold)
 				{
 					data.data = true;
 					manRefPositionEastPub.publish(data);
@@ -206,6 +218,11 @@ namespace labust
 					{
 						manRef[v] = lastState.position.east;
 						manRefFlag[v] = true;
+					}
+
+					if (std::abs(out(v)) > joyTreshold)
+					{
+						manRef[v] += out(v)*Ts;						
 					}
 				}
 				else
@@ -216,7 +233,7 @@ namespace labust
 				}
 
 				/*** w ***/
-				if(std::abs(mapped[w])<joyTreshold)
+				if (std::abs(mapped[w]) < fineThreshold)
 				{
 					data.data = true;
 					manRefPositionDepthPub.publish(data);
@@ -227,6 +244,12 @@ namespace labust
 						manRef[w] = lastState.position.depth;
 						manRef[a] = lastState.altitude;
 						manRefFlag[w] = true;
+					}
+
+					if (std::abs(mapped[w]) > joyTreshold)
+					{
+						manRef[w] += mapped[w]*Ts;
+						manRef[a] -= mapped[w]*Ts;						
 					}
 				}
 				else
@@ -240,14 +263,14 @@ namespace labust
 				baseRef.header.stamp = ros::Time::now();
 				baseRef.header.frame_id = "local";
 
-				baseRef.position.north = (std::abs(out[u])<joyTreshold)?manRef[u]:lastState.position.north;
-				baseRef.position.east = (std::abs(out[v])<joyTreshold)?manRef[v]:lastState.position.east;
-				baseRef.position.depth = (std::abs(mapped[w])<joyTreshold)?manRef[w]:lastState.position.depth;
+				baseRef.position.north = (std::abs(out[u])<fineThreshold)?manRef[u]:lastState.position.north;
+				baseRef.position.east = (std::abs(out[v])<fineThreshold)?manRef[v]:lastState.position.east;
+				baseRef.position.depth = (std::abs(mapped[w])<fineThreshold)?manRef[w]:lastState.position.depth;
 				baseRef.orientation.roll += mapped[p]*Ts;
 				baseRef.orientation.pitch += mapped[q]*Ts;
-				baseRef.orientation.yaw = (std::abs(mapped[r])<joyTreshold)?manRef[r]:lastState.orientation.yaw;
+				baseRef.orientation.yaw = (std::abs(mapped[r])<fineThreshold)?manRef[r]:lastState.orientation.yaw;
 
-				baseRef.altitude = (std::abs(mapped[w])<joyTreshold)?manRef[a]:lastState.altitude;
+				baseRef.altitude = (std::abs(mapped[w])<fineThreshold)?manRef[a]:lastState.altitude;
 				
 				if (useFF)
 				{
@@ -294,6 +317,8 @@ namespace labust
 				labust::tools::getMatrixParam(nh,"ref_manual/maximum_speeds", nu_max);
 				nh.param("ref_manual/sampling_time",Ts,Ts);
 				nh.param("ref_manual/feedforward_speeds",useFF,useFF);
+				nh.param("ref_manual/joy_deadzone",joyTreshold,joyTreshold);
+				nh.param("ref_manual/finezone",fineThreshold,fineThreshold);
 
 				ROS_INFO("Manual ref controller initialized.");
 			}
@@ -320,6 +345,7 @@ namespace labust
 			ros::ServiceServer enableControl;
 			double yawRef;
 			double joyTreshold;
+			double fineThreshold;
 		};
 	}}
 

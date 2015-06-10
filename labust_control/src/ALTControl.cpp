@@ -108,8 +108,8 @@ namespace labust
 				}
 				else
 				{
-					PIFF_idle(&con, Ts);
-					tmp_output = -ref.body_velocity.z;
+					PIFF_ffIdle(&con, Ts, -ref.body_velocity.z);
+					tmp_output = ref.body_velocity.z;
 				}
 
 				nu->header.stamp = ros::Time::now();
