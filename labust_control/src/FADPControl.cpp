@@ -57,13 +57,27 @@ namespace labust
 		{
 			enum {x=0,y};
 
-			FADPControl():Ts(0.1),use_gvel(false){};
+			FADPControl():Ts(0.1),use_gvel(false),manRefNorthFlag(true),manRefEastFlag(true){};
 
 			void init()
 			{
 				ros::NodeHandle nh;
+				manRefNorthSub = nh.subscribe<std_msgs::Bool>("manRefNorthPosition",1,&FADPControl::onManNorthRef,this);
+				manRefEastSub = nh.subscribe<std_msgs::Bool>("manRefEastPosition",1,&FADPControl::onManEastRef,this);
+
 				initialize_controller();
 			}
+
+			void onManNorthRef(const std_msgs::Bool::ConstPtr& state)
+			{
+				manRefNorthFlag = state->data;
+			}
+
+			void onManEastRef(const std_msgs::Bool::ConstPtr& state)
+			{
+				manRefEastFlag = state->data;
+			}
+
 
 			void windup(const auv_msgs::BodyForceReq& tauAch)
 			{
@@ -132,15 +146,37 @@ namespace labust
 				Rr<<cos(yaw),-sin(yaw),sin(yaw),cos(yaw);
 				out = Rr*in;
 				//Make step
-				PIFF_ffStep(&con[x], Ts, float(out(x)));
-				PIFF_ffStep(&con[y], Ts, float(out(y)));
 
 				//Publish commands
+				double tmp_output_x, tmp_output_y;
 				auv_msgs::BodyVelocityReqPtr nu(new auv_msgs::BodyVelocityReq());
+
+				if(manRefNorthFlag)
+				{
+					PIFF_ffStep(&con[x], Ts, float(out(x)));
+					tmp_output_x = con[x].output;
+				}
+				else
+				{
+					PIFF_ffIdle(&con[x],Ts, float(out(x)));
+					tmp_output_x = ref.body_velocity.x;
+				}
+
+				if(manRefEastFlag){
+					PIFF_ffStep(&con[y], Ts, float(out(y)));
+					tmp_output_y = con[y].output;
+				}
+				else
+				{
+					PIFF_ffIdle(&con[y],Ts, float(out(y)));
+					tmp_output_y = ref.body_velocity.y;
+				}
+
+				//Publish commands
 				nu->header.stamp = ros::Time::now();
 				nu->goal.requester = "fadp_controller";
 				labust::tools::vectorToDisableAxis(disable_axis, nu->disable_axis);
-				in<<con[x].output,con[y].output;
+				in<<tmp_output_x,tmp_output_y;
 				out = Rb.transpose()*in;
 
 				nu->twist.linear.x = out[0];
@@ -175,6 +211,9 @@ namespace labust
 			PIDBase con[2];
 			double Ts;
 			bool use_gvel;
+			ros::Subscriber manRefNorthSub, manRefEastSub;
+			bool manRefNorthFlag, manRefEastFlag;
+
 		};
 	}}
 

@@ -40,6 +40,8 @@
 #include <labust/tools/MatrixLoader.hpp>
 
 #include <auv_msgs/NavSts.h>
+#include <auv_msgs/BodyVelocityReq.h>
+#include <std_msgs/Bool.h>
 
 #include <boost/thread/mutex.hpp>
 
@@ -49,26 +51,40 @@ namespace labust
 		///The manual reference controller
 		struct RefManual
 		{
-			enum {u=0,v,w,p,q,r};
+			enum {u=0,v,w,p,q,r,a};
 			RefManual():
 				nu_max(Eigen::Vector6d::Zero()),
-				Ts(0.1),
+				manRefFlag(Eigen::Vector6i::Zero()),
+				manRef(Eigen::MatrixXd::Zero(7,1)),
+				Ts(0.01),
 				stateReady(false),
 				stateAcquired(false),
 				useFF(false),
 				lastFF(Eigen::Vector6d::Zero()),
 				ffstate(Eigen::Vector6d::Zero()),
+				yawRef(0.0),
+				joyTreshold(0.01),
+				yawFlag(false),
 				enable(false){this->init();};
 
 			void init()
 			{
 				ros::NodeHandle nh;
+
 				//Initialize publishers
 				stateRef = nh.advertise<auv_msgs::NavSts>("stateRef", 1);
+
+				manRefHeadingPub = nh.advertise<std_msgs::Bool>("manRefHeading", 1);
+				manRefPositionNorthPub = nh.advertise<std_msgs::Bool>("manRefNorthPosition", 1);
+				manRefPositionEastPub = nh.advertise<std_msgs::Bool>("manRefEastPosition", 1);
 
 				//Initialize subscribers
 				stateHat = nh.subscribe<auv_msgs::NavSts>("stateHat", 1,
 						&RefManual::onEstimate,this);
+
+				nuRefSub = nh.subscribe<auv_msgs::BodyVelocityReq>("nuRef", 1,
+						&RefManual::onNuRef,this);
+
 				joyIn = nh.subscribe<sensor_msgs::Joy>("joy", 1,
 						&RefManual::onJoy,this);
 				
@@ -121,6 +137,11 @@ namespace labust
 				//stateReady = Enable::enable;
 			}
 
+			void onNuRef(const auv_msgs::BodyVelocityReq::ConstPtr& state)
+			{
+				//yawRef = state->twist.angular.z;
+			}
+
 			void onJoy(const sensor_msgs::Joy::ConstPtr& joy)
 			{
 				if (!stateReady) return;
@@ -137,29 +158,127 @@ namespace labust
 				R<<cos(yaw),-sin(yaw),sin(yaw),cos(yaw);
 				out = R*in;
 
+				/*** Check if heading joystick input is active ***/
+				std_msgs::Bool data;
+				if(std::abs(mapped[r])<joyTreshold)
+				{
+					data.data = true;
+					manRefHeadingPub.publish(data);
+					if(manRefFlag[r] == false)
+					{
+						manRef[r] = lastState.orientation.yaw;
+						manRefFlag[r] = true;
+					}
+				}
+				else
+				{
+					data.data = false;
+					manRefHeadingPub.publish(data);
+					manRefFlag[r]= false;
+				}
+				/*** u ***/
+				if(std::abs(mapped[u])<joyTreshold)
+				{
+					data.data = true;
+					manRefPositionNorthPub.publish(data);
+					if(manRefFlag[u] == false)
+					{
+						manRef[u] = lastState.position.north;
+						manRefFlag[u] = true;
+					}
+				}
+				else
+				{
+					data.data = false;
+					manRefPositionNorthPub.publish(data);
+					manRefFlag[u]= false;
+				}
+
+				/*** v ***/
+				if(std::abs(mapped[v])<joyTreshold)
+				{
+					data.data = true;
+					manRefPositionEastPub.publish(data);
+					if(manRefFlag[v] == false)
+					{
+						manRef[v] = lastState.position.east;
+						manRefFlag[v] = true;
+					}
+				}
+				else
+				{
+					data.data = false;
+					manRefPositionEastPub.publish(data);
+					manRefFlag[v]= false;
+				}
+
+
+				/*** Check if position joystick input is active ***/
+/*				if(std::abs(mapped[u])<joyTreshold || std::abs(mapped[v])<joyTreshold)
+				{
+					if(manRef[u] == false)
+					{
+						manRef[u] = lastState.position.north;
+						manRefFlag[u] = true;
+					}
+					else if(manRef[v] == false)
+					{
+						manRef[v] = lastState.position.east;
+						manRefFlag[v] = true;
+
+					}
+				}
+
+				if(std::abs(mapped[u])<joyTreshold && std::abs(mapped[v])<joyTreshold)
+				{
+					data.data = true;
+					manRefPositionPub.publish(data);
+				}
+				else if(std::abs(mapped[u])>=joyTreshold)
+				{
+					data.data = false;
+					manRefPositionPub.publish(data);
+					manRefFlag[u] = false;
+				}
+				else if(std::abs(mapped[v])>=joyTreshold)
+				{
+					data.data = false;
+					manRefPositionPub.publish(data);
+					manRefFlag[v] = false;
+				}
+*/
 				baseRef.header.stamp = ros::Time::now();
 				baseRef.header.frame_id = "local";
 
-				baseRef.position.north += out(u);
-				//baseRef.position.east += out(v);
-				baseRef.position.east = guide_test(baseRef.position.east, lastState.position.east, out(v), nu_max(v));
-				baseRef.position.depth += mapped[w]*Ts;
+//				baseRef.position.north += out(u);
+//				//baseRef.position.east += out(v);
+//				baseRef.position.east = guide_test(baseRef.position.east, lastState.position.east, out(v), nu_max(v));
+//				baseRef.position.depth += mapped[w]*Ts;
+//				baseRef.orientation.roll += mapped[p]*Ts;
+//				baseRef.orientation.pitch += mapped[q]*Ts;
+//				//baseRef.orientation.yaw += 1*mapped[r]*Ts;
+//				baseRef.orientation.yaw = (std::abs(mapped[r])<joyTreshold)?manRef[r]:lastState.orientation.yaw;
+
+				baseRef.position.north = (std::abs(mapped[u])<joyTreshold)?manRef[u]:lastState.position.north;
+				baseRef.position.east = (std::abs(mapped[v])<joyTreshold)?manRef[v]:lastState.position.east;
+				baseRef.position.depth = (std::abs(mapped[w])<joyTreshold)?manRef[w]:lastState.position.depth;
 				baseRef.orientation.roll += mapped[p]*Ts;
 				baseRef.orientation.pitch += mapped[q]*Ts;
-				baseRef.orientation.yaw += mapped[r]*Ts;
-				
-				baseRef.altitude -= mapped[w]*Ts;
+				baseRef.orientation.yaw = (std::abs(mapped[r])<joyTreshold)?manRef[r]:lastState.orientation.yaw;
+
+				baseRef.altitude = (std::abs(mapped[w])<joyTreshold)?manRef[a]:lastState.altitude;
 				
 				if (useFF)
 				{
-				  double T=0.1;
-			          ffstate = (mapped*Ts + ffstate*T)/(Ts+T);
+				  //double T=0.1;
+			      //ffstate = (mapped*Ts + ffstate*T)/(Ts+T);
 				  baseRef.body_velocity.x = mapped[u];
 				  baseRef.body_velocity.y = mapped(v); // + (mapped(v) - ffstate(v))/T;
 				  baseRef.body_velocity.z = mapped[w];
 				  baseRef.orientation_rate.roll = mapped[p];
 				  baseRef.orientation_rate.pitch = mapped[q];
 				  baseRef.orientation_rate.yaw = mapped[r];
+
 				}
 				
 				auv_msgs::NavSts::Ptr refOut(new auv_msgs::NavSts());
@@ -199,9 +318,11 @@ namespace labust
 			}
 
 		private:
-			ros::Subscriber stateHat, joyIn;
-			ros::Publisher stateRef;
+			ros::Subscriber stateHat, joyIn, nuRefSub;
+			ros::Publisher stateRef, manRefHeadingPub, manRefPositionNorthPub, manRefPositionEastPub;
 			Eigen::Vector6d nu_max;
+			Eigen::VectorXd manRef;
+			Eigen::Vector6i manRefFlag;
 			double Ts;
 			JoystickMapping mapper;
 			auv_msgs::NavSts baseRef;
@@ -211,9 +332,12 @@ namespace labust
 			bool stateAcquired;
 			bool useFF;
 			bool enable;
+			bool yawFlag;
 			Eigen::Vector6d lastFF;
 			Eigen::Vector6d ffstate;
 			ros::ServiceServer enableControl;
+			double yawRef;
+			double joyTreshold;
 		};
 	}}
 
