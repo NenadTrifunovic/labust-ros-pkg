@@ -64,7 +64,9 @@ namespace labust
 				ffstate(Eigen::Vector6d::Zero()),
 				yawRef(0.0),
 				joyTreshold(0.001),
-				fineThreshold(0.15),
+				fineThresholdYaw(0.5),
+				fineThresholdPos(0.25),
+				fineThresholdAlt(0.5),
 				yawFlag(false),
 				enable(false){this->init();};
 
@@ -165,7 +167,7 @@ namespace labust
 
 				/*** Check if heading joystick input is active ***/
 				std_msgs::Bool data;
-				if(std::abs(mapped[r])<fineThreshold)
+				if(std::abs(mapped[r])<fineThresholdYaw)
 				{
 					data.data = true;
 					manRefHeadingPub.publish(data);
@@ -187,7 +189,7 @@ namespace labust
 					manRefFlag[r]= false;
 				}
 				/*** u ***/
-				if(std::abs(out[u])<fineThreshold)
+				if(std::abs(out[u])<fineThresholdPos)
 				{
 					data.data = true;
 					manRefPositionNorthPub.publish(data);
@@ -210,7 +212,7 @@ namespace labust
 				}
 
 				/*** v ***/
-				if(std::abs(out[v])<fineThreshold)
+				if(std::abs(out[v])<fineThresholdPos)
 				{
 					data.data = true;
 					manRefPositionEastPub.publish(data);
@@ -233,7 +235,7 @@ namespace labust
 				}
 
 				/*** w ***/
-				if (std::abs(mapped[w]) < fineThreshold)
+				if (std::abs(mapped[w]) < fineThresholdAlt)
 				{
 					data.data = true;
 					manRefPositionDepthPub.publish(data);
@@ -263,14 +265,14 @@ namespace labust
 				baseRef.header.stamp = ros::Time::now();
 				baseRef.header.frame_id = "local";
 
-				baseRef.position.north = (std::abs(out[u])<fineThreshold)?manRef[u]:lastState.position.north;
-				baseRef.position.east = (std::abs(out[v])<fineThreshold)?manRef[v]:lastState.position.east;
-				baseRef.position.depth = (std::abs(mapped[w])<fineThreshold)?manRef[w]:lastState.position.depth;
+				baseRef.position.north = (std::abs(out[u])<fineThresholdPos)?manRef[u]:lastState.position.north;
+				baseRef.position.east = (std::abs(out[v])<fineThresholdPos)?manRef[v]:lastState.position.east;
+				baseRef.position.depth = (std::abs(mapped[w])<fineThresholdAlt)?manRef[w]:lastState.position.depth;
 				baseRef.orientation.roll += mapped[p]*Ts;
 				baseRef.orientation.pitch += mapped[q]*Ts;
-				baseRef.orientation.yaw = (std::abs(mapped[r])<fineThreshold)?manRef[r]:lastState.orientation.yaw;
+				baseRef.orientation.yaw = (std::abs(mapped[r])<fineThresholdYaw)?manRef[r]:lastState.orientation.yaw;
 
-				baseRef.altitude = (std::abs(mapped[w])<fineThreshold)?manRef[a]:lastState.altitude;
+				baseRef.altitude = (std::abs(mapped[w])<fineThresholdAlt)?manRef[a]:lastState.altitude;
 				
 				if (useFF)
 				{
@@ -318,7 +320,9 @@ namespace labust
 				nh.param("ref_manual/sampling_time",Ts,Ts);
 				nh.param("ref_manual/feedforward_speeds",useFF,useFF);
 				nh.param("ref_manual/joy_deadzone",joyTreshold,joyTreshold);
-				nh.param("ref_manual/finezone",fineThreshold,fineThreshold);
+				nh.param("ref_manual/finezone_yaw",fineThresholdYaw,fineThresholdYaw);
+				nh.param("ref_manual/finezone_pos",fineThresholdPos,fineThresholdPos);
+				nh.param("ref_manual/finezone_alt",fineThresholdAlt,fineThresholdAlt);
 
 				ROS_INFO("Manual ref controller initialized.");
 			}
@@ -345,7 +349,9 @@ namespace labust
 			ros::ServiceServer enableControl;
 			double yawRef;
 			double joyTreshold;
-			double fineThreshold;
+			double fineThresholdYaw;
+			double fineThresholdPos;
+			double fineThresholdAlt;
 		};
 	}}
 
