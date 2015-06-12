@@ -147,7 +147,7 @@ namespace labust
 			void onBottomLock(const std_msgs::Bool::ConstPtr& data);
 			double uvw[3], r;
 			bool bottom_lock;
-			ros::Subscriber nu_dvl;
+			ros::Subscriber nu_dvl, dvl_bottom;
 			tf2_ros::Buffer buffer;
 			tf2_ros::TransformListener listener;
 		};

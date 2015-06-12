@@ -56,7 +56,7 @@ namespace labust
 		///The Depthitude/depth controller
 		struct DepthControl : DisableAxis
 		{
-			DepthControl():Ts(0.1),manRefFlag(false){};
+			DepthControl():Ts(0.1),manRefFlag(true){};
 
 			void init()
 			{
@@ -105,20 +105,27 @@ namespace labust
 
 				if(manRefFlag)
 				{
-					if (state.position.depth > depth_threshold) underwater_time = ros::Time::now();
+					if (state.position.depth > depth_threshold) 
+					{
+						ROS_ERROR("Underwater");					
+						underwater_time = ros::Time::now();
+					}
 					//If more than depth_timeout on surface stop the controller
 					if (((ros::Time::now() - underwater_time).toSec() > depth_timeout) &&
-								ref.position.depth > depth_threshold)
+								ref.position.depth < depth_threshold)
 					{
-						con.track = 0;
 						PIFF_ffIdle(&con, Ts, 0);
+						ROS_ERROR("Surface");
+						tmp_output = 0;
 					}
 					else
 					{
 						//PIFF_wffStep(&con,Ts, werror, wperror, 0*ref.orientation_rate.yaw);
+						ROS_ERROR("working");
 						PIFF_ffStep(&con, Ts, 0*ref.body_velocity.z);
+						tmp_output = con.output;
 					}
-					tmp_output = con.output;
+					//tmp_output = con.output;
 				}
 				else
 				{

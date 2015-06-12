@@ -56,7 +56,7 @@ namespace labust
 		///The altitude/depth controller
 		struct ALTControl : DisableAxis
 		{
-			ALTControl():Ts(0.1),manRefFlag(false),depth_threshold(0.1),depth_timeout(10){};
+			ALTControl():Ts(0.1),manRefFlag(true),depth_threshold(0.1),depth_timeout(10){};
 
 			void init()
 			{
@@ -104,18 +104,19 @@ namespace labust
 				{
 					if (state.position.depth > depth_threshold) underwater_time = ros::Time::now();
 					//If more than depth_timeout on surface stop the controller
-					if ((ros::Time::now() - underwater_time).toSec() > depth_timeout)
+					if (((ros::Time::now() - underwater_time).toSec() > depth_timeout)) 
 					{
-						con.track = 0;
 						PIFF_ffIdle(&con, Ts, 0);
+						tmp_output = 0;
 					}
 					else
 					{
 						//PIFF_wffStep(&con,Ts, werror, wperror, 0*ref.orientation_rate.yaw);
 						PIFF_ffStep(&con, Ts, 0*(-1)*ref.body_velocity.z);
+						tmp_output = -con.output;
 					}
 
-					tmp_output = -con.output;
+					//tmp_output = -con.output;
 				}
 				else
 				{

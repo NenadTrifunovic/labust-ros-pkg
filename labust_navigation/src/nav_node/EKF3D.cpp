@@ -518,7 +518,7 @@ void Estimator3D::start()
 
 		if (newArrived)	nav.correct(nav.update(measurements, newMeas));
 		KFNav::vector tcstate = nav.getState();
-		if (tcstate(KFNav::buoyancy) < -10) tcstate(KFNav::buoyancy) = -10;
+		if (tcstate(KFNav::buoyancy) < -30) tcstate(KFNav::buoyancy) = -10;
 		if (tcstate(KFNav::buoyancy) > 0) tcstate(KFNav::buoyancy) = 0;
 		nav.setState(tcstate);
 		l.unlock();
