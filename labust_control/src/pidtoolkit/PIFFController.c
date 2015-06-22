@@ -136,6 +136,8 @@ void PIFF_wffStep(PIDBase* self, float Ts, float error, float perror, float ff)
 		}
 	}*/
 
+
+
 	//Proportional term
 	//self->internalState += self->Kp*(error-self->lastError);
 	//self->internalState += self->Kp*(perror - self->lastPError);
@@ -149,13 +151,36 @@ void PIFF_wffStep(PIDBase* self, float Ts, float error, float perror, float ff)
 	self->internalState += ff;
 	//if (!self->windup) self->I += (self->lastI = self->Ki*Ts*error);
 
-	if (self->windup && self->useBackward)
+	/*-
+	if (self->windup && self->useBackward && self->lastI != 0)
+	{
+		//Proportional difference
+		float pcontrib = self->internalState;//- self->I;
+		ROS_ERROR("Windup diff=%f track=%f output=%f", pcontrib, self->track, self->internalState + self->I);
+		ROS_ERROR("Windup I=%f, lI = %f, lerror=%f, error=%f", self->I, self->lastI, self->lastError, error);
+		if (fabs(pcontrib) > fabs(self->track))
+		{
+			//Unwind
+			self->I -= self->lastI;
+			ROS_ERROR("Unwinding");
+		}
+		else
+		{
+			ROS_ERROR("Recalculating");
+			self->I -= self->lastI;
+			self->I += self->track - 0.98*pcontrib;
+			ROS_ERROR("New output: out=%f", self->internalState + self->I);
+		}
+	}
+*/
+
+	/*if (self->windup && self->useBackward && self->lastI != 0)
 	{
 		//Proportional difference
 		float diff = self->track - self->internalState - self->I;
 		ROS_ERROR("Windup diff=%f track=%f output=%f", diff, self->track, self->internalState + self->I);
 		ROS_ERROR("Windup I=%f, lI = %f, lerror=%f, error=%f", self->I, self->lastI, self->lastError, error);
-		if ((diff*self->track < 0) || (self->output*self->track <=0))
+		if ((diff*self->track < 0))
 		{
 			//Unwind
 			self->I -= self->lastI;
@@ -168,11 +193,11 @@ void PIFF_wffStep(PIDBase* self, float Ts, float error, float perror, float ff)
 
 			ROS_ERROR("New output: out=%f", self->internalState + self->I);
 		}
-	}
+	}*/
 
-	self->I += self->lastI = self->Ki*Ts*error;
-	//if (!self->windup) self->I += self->lastI = self->Ki*Ts*error;
-	//else self->lastI=0 ;
+	//self->I += self->lastI = self->Ki*Ts*error;
+	if (!self->windup) self->I += self->lastI = self->Ki*Ts*error;
+	else self->lastI=0 ;
 	self->internalState += self->I;
 
 	//Set final output

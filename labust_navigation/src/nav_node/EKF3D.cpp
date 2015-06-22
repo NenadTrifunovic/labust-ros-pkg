@@ -67,7 +67,8 @@ Estimator3D::Estimator3D():
 		dvl_model(0),
 		compassVariance(0.3),
 		gyroVariance(0.003),
-		absoluteEKF(false){this->onInit();};
+		absoluteEKF(false),
+		max_dvl(1.5){this->onInit();};
 
 void Estimator3D::onInit()
 {
@@ -98,7 +99,11 @@ void Estimator3D::onInit()
 	ph.param("imu_with_yaw_rate",useYawRate,useYawRate);
 	ph.param("compass_variance",compassVariance,compassVariance);
 	ph.param("gyro_variance",gyroVariance,gyroVariance);
-
+	ph.param("max_dvl",max_dvl,max_dvl);
+	double trustf(0);
+	ph.param("dvl_rot_trust_factor", trustf, trustf);
+	double sway_corr(0);
+	ph.param("sway_corr", sway_corr, sway_corr);
 	ph.param("absoluteEKF", absoluteEKF,absoluteEKF);
 
 	//Configure handlers.
@@ -107,7 +112,9 @@ void Estimator3D::onInit()
 	imu.configure(nh);
 	imu.setGpsHandler(&gps);
 
-   Pstart = nav.getStateCovariance();
+  Pstart = nav.getStateCovariance();
+  nav.setDVLRotationTrustFactor(trustf);
+  nav.setSwayCorrection(sway_corr);
 //Rstart = nav.R;
  // ROS_ERROR("NAVIGATION");
 
@@ -344,20 +351,23 @@ void Estimator3D::processMeasurements()
 		default: break;
 		}
 
-		if (fabs((vx - vxe)) > fabs(rvx))
+		if ((fabs((vx - vxe)) > fabs(rvx)) || (fabs((vy - vye)) > fabs(rvy)))
 		{
 			ROS_INFO("Outlier rejected: meas=%f, est=%f, tolerance=%f", vx, nav.getState()(KFNav::u), fabs(rvx));
-			newMeas(KFNav::u) = false;
-		}
-		measurements(KFNav::u) = vx;
-
-
-		if (fabs((vy - vye)) > fabs(rvy))
-		{
 			ROS_INFO("Outlier rejected: meas=%f, est=%f, tolerance=%f", vy, nav.getState()(KFNav::v), fabs(rvy));
+			newMeas(KFNav::u) = false;
 			newMeas(KFNav::v) = false;
 		}
+		measurements(KFNav::u) = vx;
 		measurements(KFNav::v) = vy;
+
+		//Sanity check
+		if ((fabs(vx) > max_dvl) || (fabs(vy) > max_dvl))
+		{
+			ROS_INFO("DVL measurement failed sanity check for maximum speed %f. Got: vx=%f, vy=%f.",max_dvl, vx, vy);
+			newMeas(KFNav::u) = false;
+			newMeas(KFNav::v) = false;
+		}
 
 		//measurements(KFNav::w) = dvl.body_speeds()[DvlHandler::w];
 	}
@@ -482,6 +492,10 @@ void Estimator3D::start()
 		ROS_INFO("Measurements %d:%s",KFNav::psi, out.str().c_str());
 
 		if (newArrived)	nav.correct(nav.update(measurements, newMeas));
+		KFNav::vector tcstate = nav.getState();
+		if (tcstate(KFNav::buoyancy) < -10) tcstate(KFNav::buoyancy) = -10;
+		if (tcstate(KFNav::buoyancy) > 0) tcstate(KFNav::buoyancy) = 0;
+		nav.setState(tcstate);
 		l.unlock();
 		publishState();
 

@@ -160,6 +160,8 @@ namespace labust
 			 * The DVL handler.
 			 */
 			DvlHandler dvl;
+			/// Maximum dvl speed for sanity checks
+			double max_dvl;
 			/**
 			 * The transform broadcaster.
 			 */
