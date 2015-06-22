@@ -84,18 +84,24 @@ namespace labust
 		template <>
 		inline void LatLon2Bits::latlonToBits<18>(double lat, double lon)
 		{
-			this->lat = int((lat - int(lat))*600000)%100000;
-			this->lon = int((lon - int(lon))*600000)%100000;
+			//this->lat = int((lat - int(lat))*600000)%100000;
+			//this->lon = int((lon - int(lon))*600000)%100000;
+			this->lat = int((fabs(lat) - int(fabs(lat)))*1000000)%100000;
+			this->lon = int((fabs(lon) - int(fabs(lon)))*1000000)%100000;
 		}
+
 		template <>
 		inline void LatLon2Bits::latlonToBits<14>(double lat, double lon)
 		{
-			double min = (lon - int(lon))*60;
-			this->lon = int((min - int(min))*10000);
+			//double min = (lon - int(lon))*60;
+			//this->lon = int((min - int(min))*10000);
 
-			min = (lat - int(lat))*60;
-			this->lat = int((min - int(min))*10000);
+			//min = (lat - int(lat))*60;
+			//this->lat = int((min - int(min))*10000);
+			this->lat = int((fabs(lat) - int(fabs(lat)))*1000000)%10000;
+			this->lon = int((fabs(lon) - int(fabs(lon)))*1000000)%10000;
 		}
+
 		template <>
 		inline void LatLon2Bits::latlonToBits<10>(double lat, double lon)
 		{
@@ -164,8 +170,10 @@ namespace labust
 			void bitsToLatlon(double lat, double lon){};
 			void normalize()
 			{
-				initLat = (floor(latitude*6000)) / 6000.0;
-				initLon = (floor(longitude*6000)) / 6000.0;
+				//initLat = (floor(latitude*6000)) / 6000.0;
+				//initLon = (floor(longitude*6000)) / 6000.0;
+				initLat = latitude;
+				initLon = longitude;
 			}
 		};
 
@@ -180,23 +188,27 @@ namespace labust
 		template <>
 		inline void Bits2LatLon::bitsToLatlon<18>(double lat, double lon)
 		{
-			double rem = int(((initLat*60)-int(initLat*60))*10);
-			rem = lat/10000.0 - rem;
-			int sgn = (rem >=0) ? 1: -1;
-			latitude = (((fabs(rem) > 5)? floor(initLat*6+sgn):floor(initLat*6)) + lat/100000.0)/6;
+			/*double rem = int(((initLat*60)-int(initLat*60))*10);
+			//rem = lat/10000.0 - rem;
+			//int sgn = (rem >=0) ? 1: -1;
+			//latitude = (((fabs(rem) > 5)? floor(initLat*6+sgn):floor(initLat*6)) + lat/100000.0)/6;
+			latitude = floor(initLat*6)) + lat/100000.0)/6;
 
 			rem = int(((initLon*60)-int(initLon*60))*10);
 			rem = lon/10000.0 - rem;
 			sgn = (rem >=0) ? 1: -1;
-			longitude = (((fabs(rem) > 5)? floor(initLon*6+sgn):floor(initLon*6)) + lon/100000.0)/6;
+			longitude = (((fabs(rem) > 5)? floor(initLon*6+sgn*rem):floor(initLon*6)) + lon/100000.0)/6;
 
-			initLat = (floor(longitude*6000)) / 6000.0;
-		  initLon = (floor(latitude*6000)) / 6000.0;
+			initLat = (floor(latitude*6000)) / 6000.0;
+		  initLon = (floor(longitude*6000)) / 6000.0;
+		  */
+			latitude = int(initLat*10)/10.0 + (initLat>=0?1:-1)*lat/1000000;
+			longitude = int(initLon*10)/10.0 + (initLon>=0?1:-1)*lon/1000000;
 		}
 		template <>
 		inline void Bits2LatLon::bitsToLatlon<14>(double lat, double lon)
 		{
-			if ((lat/10000.0 - fmod(initLat*60,1)) < -0.5)
+			/*if ((lat/10000.0 - fmod(initLat*60,1)) < -0.5)
 				latitude = (floor(initLat*60 + 1) + lat/10000.0)/60;
 			else if ((lat/10000.0 - fmod(initLat*60,1)) > 0.5)
 				latitude = (floor(initLat*60 - 1) + lat/10000.0)/60;
@@ -211,7 +223,10 @@ namespace labust
 			  longitude = (floor(initLon*60) + lon/10000.0)/60;
 
 			initLat = (floor(latitude*6000)) / 6000.0;
-			initLon = (floor(longitude*6000)) / 6000.0;
+			initLon = (floor(longitude*6000)) / 6000.0;*/
+
+			latitude = int(initLat*100)/100.0 + (initLat>=0?1:-1)*lat/1000000;
+			longitude = int(initLon*100)/100.0 + (initLon>=0?1:-1)*lon/1000000;
 		}
 		template <>
 		inline void Bits2LatLon::bitsToLatlon<10>(double lat, double lon)
