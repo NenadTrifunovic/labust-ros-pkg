@@ -231,7 +231,8 @@ namespace labust
 		template <>
 		inline void Bits2LatLon::bitsToLatlon<10>(double lat, double lon)
 		{
-			throw std::runtime_error("Bits2LatLon: decompression for 10 bits not implemented.");
+			latitude = int(initLat*100)/100.0 + (initLat>=0?1:-1)*lat/100000;
+			longitude = int(initLon*100)/100.0 + (initLon>=0?1:-1)*lon/100000;
 		}
 		template <>
 		inline void Bits2LatLon::bitsToLatlon<7>(double lat, double lon)
@@ -245,7 +246,7 @@ namespace labust
 				{
 					case 0: break;
 					//PP_ADD_CASE2(7);
-					//PP_ADD_CASE2(10);
+					PP_ADD_CASE2(10);
 					PP_ADD_CASE2(14);
 					PP_ADD_CASE2(18);
 					PP_ADD_CASE2(22);
