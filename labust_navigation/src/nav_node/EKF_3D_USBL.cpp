@@ -88,9 +88,11 @@ Estimator3D::Estimator3D():
 		enableBearing(true),
 		enableElevation(false),
 		delayTime(0.0),
+		delay_time(0.0),
 		dvl_model(0),
 		compassVariance(0.3),
 		gyroVariance(0.003),
+		OR(3,0.95),
 		absoluteEKF(false){this->onInit();};
 
 void Estimator3D::onInit()
@@ -106,6 +108,10 @@ void Estimator3D::onInit()
 	currentsHat = nh.advertise<geometry_msgs::TwistStamped>("currentsHat",1);
 	buoyancyHat = nh.advertise<std_msgs::Float32>("buoyancy",1);
 	pubRange = nh.advertise<std_msgs::Float32>("range",1);
+	pubRangeFiltered = nh.advertise<std_msgs::Float32>("range_filtered",1);
+	pubwk = nh.advertise<std_msgs::Float32>("w_limit",1);
+
+
 
 	/*** Subscribers ***/
 	tauAch = nh.subscribe<auv_msgs::BodyForceReq>("tauAch", 1, &Estimator3D::onTau,this);
@@ -135,7 +141,7 @@ void Estimator3D::onInit()
 	ph.param("range", enableRange, enableRange);
 	ph.param("bearing", enableBearing, enableBearing);
 	ph.param("elevation", enableElevation, enableElevation);
-	ph.param("delayTime", delayTime, delayTime);
+	//ph.param("delayTime", delayTime, delayTime);
 
 	/*** Configure handlers. ***/
 	gps.configure(nh);
@@ -270,22 +276,51 @@ void Estimator3D::onUSBLfix(const underwater_msgs::USBLFix::ConstPtr& data){
 
 	/*** Calculate measurement delay ***/
 	//double delay = calculateDelaySteps(data->header.stamp.toSec(), currentTime);
-	double delay = calculateDelaySteps(currentTime-delayTime, currentTime);
+	double delay = double(calculateDelaySteps(currentTime-delay_time, currentTime));
 
 	double bear = 360 - data->bearing;
 	double elev = 180 - data->elevation;
 
-	ROS_ERROR("RANGE: %f, BEARING: %f", data->range, bear);
+	const KFNav::vector& x = nav.getState();
+
+	//labust::math::wrapRad(measurements(KFNav::psi));
+
+	ROS_ERROR("RANGE: %f, BEARING: %f deg %f rad", data->range, labust::math::wrapRad(bear*M_PI/180), labust::math::wrapRad(bear*M_PI/180+x(KFNav::psi)));
 	/*** Get USBL measurements ***/
-	measurements(KFNav::range) = data->range;
+	measurements(KFNav::range) = (data->range > 0.1)?data->range:0.1;
 	newMeas(KFNav::range) = enableRange;
 	measDelay(KFNav::range) = delay;
 
-	std_msgs::Float32 rng_msg;
-	rng_msg.data = data->range;
-	pubRange.publish(rng_msg);
+	/*Eigen::VectorXd input(Eigen::VectorXd::Zero(3));
+	//Eigen::VectorXd output(Eigen::VectorXd::Zero(1));
 
-	measurements(KFNav::bearing) = bear*M_PI/180;
+
+	input << x(KFNav::xp)-x(KFNav::xb), x(KFNav::yp)-x(KFNav::yb), x(KFNav::zp)-x(KFNav::zb);
+	//output << measurements(KFNav::range);
+	double y_filt, sigma, w;
+	OR.step(input, measurements(KFNav::range), &y_filt, &sigma, &w);
+	ROS_INFO("Finished outlier rejection");
+
+	std_msgs::Float32 rng_msg;
+	ROS_ERROR("w: %f",w);
+
+	double w_limit =  0.25*std::sqrt(float(sigma));
+	w_limit = (w_limit>1.0)?1.0:w_limit;
+	if(w>w_limit)
+	{
+		rng_msg.data = data->range;
+		pubRangeFiltered.publish(rng_msg);
+	}
+	//std_msgs::Float32 rng_msg;
+
+	rng_msg.data = w_limit;
+	pubwk.publish(rng_msg);
+
+	rng_msg.data = data->range;
+	pubRange.publish(rng_msg);*/
+
+	//measurements(KFNav::bearing) = labust::math::wrapRad(bear*M_PI/180+x(KFNav::psi));
+	measurements(KFNav::bearing) = labust::math::wrapRad(bear*M_PI/180);
 	newMeas(KFNav::bearing) = enableBearing;
 	measDelay(KFNav::bearing) = delay;
 
@@ -370,6 +405,13 @@ void Estimator3D::KFmodeCallback(const std_msgs::Bool::ConstPtr& msg){
 
 void Estimator3D::processMeasurements()
 {
+
+	//////////////// PRIVREMENO RJESENJE ZA TEST
+
+	measurements(KFNav::zp) = 0.07;
+	newMeas(KFNav::zp) = 1;
+
+
 	if(KFmode == true && absoluteEKF == false)
 		{
 			if ((newMeas(KFNav::xp) = newMeas(KFNav::yp) = quadMeasAvailable)){
@@ -393,6 +435,7 @@ void Estimator3D::processMeasurements()
 	//Imu measurements
 	if ((newMeas(KFNav::phi) = newMeas(KFNav::theta) = newMeas(KFNav::psi) = imu.newArrived()))
 	{
+
 		measurements(KFNav::phi) = imu.orientation()[ImuHandler::roll];
 		measurements(KFNav::theta) = imu.orientation()[ImuHandler::pitch];
 		measurements(KFNav::psi) = imu.orientation()[ImuHandler::yaw];
@@ -595,8 +638,8 @@ void Estimator3D::start()
 		}
 		pastStates.push_back(state);
 
-		if(newDelayed && enableDelay){
-
+		if(newDelayed && enableDelay)
+		{
 			/*** Check for maximum delay ***/
 			int delaySteps = measDelay.maxCoeff();
 
@@ -617,6 +660,61 @@ void Estimator3D::start()
 						if(measDelay(j) == i){
 							tmp_state.newMeas(j) = 1;
 							tmp_state.meas(j) = measurements(j);
+
+							/////////////////////////////////////////
+							/// Outlier test
+							/////////////////////////////////////////
+							if(j == KFNav::range)
+							{
+								const KFNav::vector& x = tmp_state.state; ///// Treba li jos predikciju napravit?
+								double range = measurements(j);
+
+								Eigen::VectorXd input(Eigen::VectorXd::Zero(3));
+									//Eigen::VectorXd output(Eigen::VectorXd::Zero(1));
+
+
+								input << x(KFNav::xp)-x(KFNav::xb), x(KFNav::yp)-x(KFNav::yb), x(KFNav::zp)-x(KFNav::zb);
+								//input << x(KFNav::u), x(KFNav::yp)-x(KFNav::yb), x(KFNav::zp)-x(KFNav::zb);
+
+								//output << measurements(KFNav::range);
+								double y_filt, sigma, w;
+								OR.step(input, measurements(KFNav::range), &y_filt, &sigma, &w);
+								//ROS_INFO("Finished outlier rejection");
+
+								std_msgs::Float32 rng_msg;
+								//ROS_ERROR("w: %f",w);
+
+								double w_limit =  0.3*std::sqrt(float(sigma));
+								w_limit = (w_limit>1.0)?1.0:w_limit;
+								if(w>w_limit)
+								{
+									rng_msg.data = range;
+									pubRangeFiltered.publish(rng_msg);
+									//pubRangeFiltered.publish(rng_msg);
+
+								} else {
+									tmp_state.newMeas(j) = 0;
+								}
+								//std_msgs::Float32 rng_msg;
+
+								rng_msg.data = w_limit;
+								pubwk.publish(rng_msg);
+
+								rng_msg.data = range;
+								pubRange.publish(rng_msg);
+
+							}
+
+							if(j == KFNav::bearing && tmp_state.newMeas(j-1) == 0)
+							{
+								tmp_state.newMeas(j) = 0;
+
+							}
+
+
+
+
+							//////////////////////////////////////////
 
 							//ROS_ERROR("Dodano mjerenje. Delay:%d",i);
 						}
@@ -669,9 +767,9 @@ void Estimator3D::start()
 				nav.getState()(KFNav::psi),
 				transform.transform.rotation);
 		if(absoluteEKF){
-			transform.child_frame_id = "base_link_usbl_abs";
+			transform.child_frame_id = "base_link";
 		} else{
-			transform.child_frame_id = "base_link_usbl";
+			transform.child_frame_id = "base_link";
 		}
 		transform.header.frame_id = "local";
 		transform.header.stamp = ros::Time::now();

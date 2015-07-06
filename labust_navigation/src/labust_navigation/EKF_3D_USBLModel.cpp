@@ -287,40 +287,36 @@ void EKF_3D_USBLModel::derivativeH(){
 
 
 	double rng  = sqrt(pow((x(xp)-x(xb)),2)+pow((x(yp)-x(yb)),2)+pow((x(zp)-x(zb)),2));
-
-	//if(rng == 0) rng = 0.1;
-
-	if(rng<0.0001){
-		rng = 0.0001;
-	}
-
 	double delta_x = (x(xb)-x(xp));
 	double delta_y = (x(yb)-x(yp));
 
-	//ROS_ERROR("delta: %f",delta_xbp);
-	if(abs(delta_x)<0.0001){
-		delta_x = (delta_x<0)?-0.0001:0.0001;
-	}
+	if(rng<0.00001)
+		rng = 0.00001;
 
-	//ROS_ERROR("delta after: %f",delta_xbp);
+	if(abs(delta_x)<0.00001)
+		delta_x = (delta_x<0)?-0.00001:0.00001;
+
+	if(abs(delta_y)<0.00001)
+		delta_y = (delta_y<0)?-0.00001:0.00001;
 
 	ynl(range) = rng;
-	//ynl(bearing) = atan2((x(yb)-x(yp)),(x(xb)-x(xp)))-0*x(psi);
-	ynl(bearing) = atan2(delta_y,delta_x)-0*x(psi);
+	ynl(bearing) = atan2(delta_y,delta_x) -1*x(psi);
 	ynl(elevation) = asin((x(zp)-x(zb))/rng);
 
-	Hnl(range, xp)  = (x(xp)-x(xb))/rng;
-	Hnl(range, yp)  = (x(yp)-x(yb))/rng;
-	Hnl(range, zp)  = (x(zp)-x(zb))/rng;
+	Hnl(range, xp)  = -(x(xb)-x(xp))/rng;
+	Hnl(range, yp)  = -(x(yb)-x(yp))/rng;
+	Hnl(range, zp)  = -(x(zb)-x(zp))/rng;
 
-	Hnl(range, xb)  = -(x(xp)-x(xb))/rng;
-	Hnl(range, yb)  = -(x(yp)-x(yb))/rng;
-	Hnl(range, zb)  = -(x(zp)-x(zb))/rng;
+	Hnl(range, xb)  = (x(xb)-x(xp))/rng;
+	Hnl(range, yb)  = (x(yb)-x(yp))/rng;
+	Hnl(range, zb)  = (x(zb)-x(zp))/rng;
 
 	Hnl(bearing, xp) = delta_y/(delta_x*delta_x+delta_y*delta_y);
 	Hnl(bearing, yp) = -delta_x/(delta_x*delta_x+delta_y*delta_y);
 	Hnl(bearing, xb) = -delta_y/(delta_x*delta_x+delta_y*delta_y);
 	Hnl(bearing, yb) = delta_x/(delta_x*delta_x+delta_y*delta_y);
+
+	Hnl(bearing, psi) = -1;
 
 
 
