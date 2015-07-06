@@ -90,9 +90,7 @@ namespace labust
 			/*** Callback called every time feedback is received for the goal ***/
 			void feedbackCb(const Feedback::ConstPtr& feedback)
 			{
-			// ROS_INFO("Got Feedback of length %lu", feedback->sequence.size());
-			//if((counter++)%10 == 0)
-			//ROS_ERROR("Feedback - distance: %f", feedback->distance);
+				   ROS_ERROR("Feedback - distance: %f", feedback->distance);
 			}
 		};
 
@@ -191,10 +189,11 @@ namespace labust
 			/***  Callback called once when the goal completes ***/
 			void doneCb(const actionlib::SimpleClientGoalState& state, const Result::ConstPtr& result)
 			{
-			ROS_ERROR("Course keeping - Finished in state [%s]", state.toString().c_str());
+				 ROS_ERROR("iso - Finished in state [%s]", state.toString().c_str());
+				 ROS_ERROR("Result - DOF: %d, alpha: %f, beta: %f, betaa: %f, delta %f, wn: %f", result->dof,result->alpha, result->beta, result->betaa, result->delta, result->wn);
 
-			if (state == actionlib::SimpleClientGoalState::SUCCEEDED)
-			mainEventQueue->riseEvent("/PRIMITIVE_FINISHED");
+				if (state == actionlib::SimpleClientGoalState::SUCCEEDED)
+				mainEventQueue->riseEvent("/PRIMITIVE_FINISHED");
 
 			}
 
@@ -207,9 +206,7 @@ namespace labust
 			/*** Callback called every time feedback is received for the goal ***/
 			void feedbackCb(const Feedback::ConstPtr& feedback)
 			{
-			// ROS_INFO("Got Feedback of length %lu", feedback->sequence.size());
-			//if((counter++)%10 == 0)
-			//ROS_ERROR("Feedback - distance: %f", feedback->distance);
+				   ROS_ERROR("Feedback - dof: %d, error: %f, oscilation_num: %d", feedback->dof, feedback->error, feedback->oscillation_num);
 			}
 		};
 	}

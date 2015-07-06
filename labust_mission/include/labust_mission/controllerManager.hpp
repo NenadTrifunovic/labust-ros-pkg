@@ -1,4 +1,4 @@
-
+//TODO Dokumentiraj prototipe funkcija
 /*********************************************************************
  * controllerManager.hpp
  *
@@ -72,18 +72,6 @@
 #include <navcon_msgs/DynamicPositioningAction.h>
 #include <navcon_msgs/GoToPointAction.h>
 #include <navcon_msgs/DOFIdentificationAction.h>
-
-/*********************************************************************
- ***  Global variables
- ********************************************************************/
-
-/* Primitive callbacks */
-utils::CourseKeepingFA_CB CK_FA;
-utils::CourseKeepingUA_CB CK_UA;
-utils::DPprimitive_CB DP_FA;
-utils::Go2PointFA_CB G2P_FA;
-utils::Go2PointUA_CB G2P_UA;
-utils::ISO_CB ISO;
 
 /*********************************************************************
  *** ControllerManager class definition
@@ -183,8 +171,6 @@ namespace labust
 			/*********************************************************
 			 *** Class variables
 			 ********************************************************/
-			auv_msgs::NED posVariance;
-			auv_msgs::NavSts meas;
 
 		private:
 
@@ -205,16 +191,7 @@ using namespace labust::controller;
 	/*
 	 * Constructor
 	 */
-	ControllerManager::ControllerManager(ros::NodeHandle nh): LF_FAenable(false),
-											LF_UAenable(false),
-											HDGenable(false),
-											DPenable(false),
-											DEPTHenable(false),
-											ALTenable(false),
-											LL_VELenable(false),
-											Xpos(0.0),
-											Ypos(0.0),
-											YawPos(0.0),
+	ControllerManager::ControllerManager(ros::NodeHandle nh):
 											LLcfg(nh)
 	{
 
