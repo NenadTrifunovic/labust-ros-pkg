@@ -436,13 +436,6 @@ namespace labust {
 			state = *data;
 		}
 
-//		void MissionExecution::stateHatAbsCallback(const auv_msgs::NavSts::ConstPtr& data){
-//
-//			Xpos = data->position.north;
-//			Ypos = data->position.east;
-//			YawPos = data->orientation.yaw;
-//		}
-
 		/*********************************************************************
 		 *** Helper functions
 		 ********************************************************************/

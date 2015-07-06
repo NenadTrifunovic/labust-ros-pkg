@@ -180,39 +180,20 @@ namespace labust
 			/* Enable controller */
 			void enableController(const std::string serviceName, bool enable);
 
-			/* Get state estimates used in control loop */
-			void stateHatCallback(const auv_msgs::NavSts::ConstPtr& data);
-
-			/* Get absolute state estimates */
-			void stateHatAbsCallback(const auv_msgs::NavSts::ConstPtr& data);
-
-
 			/*********************************************************
 			 *** Class variables
 			 ********************************************************/
-
-			bool LF_FAenable;
-			bool LF_UAenable;
-			bool HDGenable;
-			bool DPenable;
-			bool DEPTHenable;
-			bool ALTenable;
-			bool LL_VELenable;
-			double Xpos, Ypos, YawPos;
-
 			auv_msgs::NED posVariance;
 			auv_msgs::NavSts meas;
 
 		private:
 
 			ros::Publisher pubStateRef;
-			ros::Subscriber subStateHat;
-			ros::Subscriber subStateHatAbs;
 			labust::LowLevelConfigure LLcfg;
 
 			labust::primitive::PrimitiveCallGo2Point Go2Point;
 			labust::primitive::PrimitiveCallCourseKeeping CourseKeeping;
-			labust::primitive::PrimitiveCallDynamicPositioning DynamicPositioninig;
+			labust::primitive::PrimitiveCallDynamicPositioning DynamicPositioning;
 			labust::primitive::PrimitiveCallDOFIdentification DOFIdentification;
 
 		};
@@ -241,12 +222,6 @@ using namespace labust::controller;
 		pubStateRef = nh.advertise<auv_msgs::NavSts>("stateRef", 1);
 
 		/** Subscribers */
-		subStateHat = nh.subscribe<auv_msgs::NavSts>("stateHat",1, &ControllerManager::stateHatCallback,this);
-		subStateHatAbs = nh.subscribe<auv_msgs::NavSts>("stateHatAbs",1, &ControllerManager::stateHatAbsCallback,this);
-
-
-
-
 	}
 
 
@@ -361,11 +336,11 @@ using namespace labust::controller;
 			goal.T1.point.z = 0;
 			goal.yaw = heading;
 
-			DynamicPositioninig.start(goal);
+			DynamicPositioning.start(goal);
 		}
 		else
 		{
-			DynamicPositioninig.stop();
+			DynamicPositioning.stop();
 		}
 	}
 
@@ -620,20 +595,6 @@ using namespace labust::controller;
 		utilities::callService<navcon_msgs::EnableControl>(clientControllerEnabler,enabler);
 	}
 
-	/*
-	 * Collect state measurements
-	 */
-	void ControllerManager::stateHatCallback(const auv_msgs::NavSts::ConstPtr& data){
-
-		posVariance = data->position_variance;
-	}
-
-	void ControllerManager::stateHatAbsCallback(const auv_msgs::NavSts::ConstPtr& data){
-
-		Xpos = data->position.north;
-		Ypos = data->position.east;
-		YawPos = data->orientation.yaw;
-	}
 
 
 #endif /* CONTROLLERMANAGER_HPP_ */
