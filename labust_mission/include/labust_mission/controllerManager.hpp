@@ -50,23 +50,19 @@
 
 #include <cmath>
 
-#include <auv_msgs/NavSts.h>
+//#include <auv_msgs/NavSts.h>
 #include <auv_msgs/Bool6Axis.h>
 #include <navcon_msgs/EnableControl.h>
 #include <navcon_msgs/ConfigureAxes.h>
-
-#include <labust_mission/labustMission.hpp>
-#include <labust_mission/primitiveActionClient.hpp>
-#include <labust_mission/utils.hpp>
-#include <labust_mission/lowLevelConfigure.hpp>
-
-#include <labust/primitive/PrimitiveCall.hpp>
-
-
 #include <navcon_msgs/ConfigureVelocityController.h>
 
-#include <actionlib/client/simple_action_client.h>
-#include <actionlib/client/terminal_state.h>
+#include <labust_mission/labustMission.hpp>
+#include <labust_mission/lowLevelConfigure.hpp>
+#include <labust/primitive/PrimitiveCall.hpp>
+#include <labust_mission/utils.hpp>
+
+//#include <actionlib/client/simple_action_client.h>
+//#include <actionlib/client/terminal_state.h>
 
 #include <navcon_msgs/CourseKeepingAction.h>
 #include <navcon_msgs/DynamicPositioningAction.h>
@@ -97,7 +93,7 @@ namespace labust
 			void start();
 
 			/*********************************************************
-			 *** Controller primitives
+			 *** Primitive function calls
 			 ********************************************************/
 
 			/* Go to point fully actuated primitive */
@@ -105,11 +101,9 @@ namespace labust
 
 			/* Go to point fully actuated primitive */
 			void go2point_FA(bool enable, double north1, double east1, double north2, double east2, double speed, double radius);
-			//void go2point_FA(bool enable);
 
 			/* Go to point underactuated primitive */
 			void go2point_UA(bool enable, double north1, double east1, double north2, double east2, double speed, double radius);
-			//void go2point_FA(bool enable);
 
 			/* Dynamic positioning primitive */
 			void dynamic_positioning(bool enable, double north, double east, double heading);
@@ -191,14 +185,9 @@ using namespace labust::controller;
 	/*
 	 * Constructor
 	 */
-	ControllerManager::ControllerManager(ros::NodeHandle nh):
-											LLcfg(nh)
+	ControllerManager::ControllerManager(ros::NodeHandle nh): LLcfg(nh)
 	{
 
-		/** Publishers */
-		pubStateRef = nh.advertise<auv_msgs::NavSts>("stateRef", 1);
-
-		/** Subscribers */
 	}
 
 
@@ -401,7 +390,6 @@ using namespace labust::controller;
 			LLcfg.LL_VELconfigure(true,velcon[0], velcon[1], velcon[2], velcon[3], velcon[4], velcon[5]);
 
 			//ROS_ERROR("DOF = %d, command = %f, hysteresis = %f, reference = %f, sampling_rate = %f", dof, command, hysteresis, reference, sampling_rate);
-
 
 			navcon_msgs::DOFIdentificationGoal goal;
 			goal.command = command;

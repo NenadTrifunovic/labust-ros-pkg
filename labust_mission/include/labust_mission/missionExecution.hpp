@@ -123,7 +123,7 @@ namespace labust {
 
 			void setTimeout(double timeout);
 
-			void setRefreshRate(double timeout, boost::function<void(void)> onRefreshCallback );
+			//void setRefreshRate(double timeout, boost::function<void(void)> onRefreshCallback );
 
 			void onTimeout(const ros::TimerEvent& timer);
 
@@ -470,14 +470,14 @@ namespace labust {
 		}
 
 		/** Set primitive reference refresh rate */
-		void MissionExecution::setRefreshRate(double timeout,  boost::function<void(void)> onRefreshCallback){
-
-		   	if(timeout != 0){
-		   		ROS_ERROR("Setting refresh rate: %f", timeout);
-		   		refreshRateTimer = nh_.createTimer(ros::Duration(timeout), boost::bind(onRefreshCallback), false);
-		   		refreshActive = true;
-		   	}
-		}
+//		void MissionExecution::setRefreshRate(double timeout,  boost::function<void(void)> onRefreshCallback){
+//
+//		   	if(timeout != 0){
+//		   		ROS_ERROR("Setting refresh rate: %f", timeout);
+//		   		refreshRateTimer = nh_.createTimer(ros::Duration(timeout), boost::bind(onRefreshCallback), false);
+//		   		refreshActive = true;
+//		   	}
+//		}
 
 		/** On timeout finish primitive execution */
 		void MissionExecution::onTimeout(const ros::TimerEvent& timer){
