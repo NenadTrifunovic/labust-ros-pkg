@@ -45,6 +45,7 @@
 
 
 #include <labust_mission/labustMission.hpp>
+#include <labust_mission/primitiveManager.hpp>
 #include <exprtk/exprtk.hpp>
 
 #include <decision_making/SynchCout.h>
@@ -134,7 +135,7 @@ namespace labust {
 			 ********************************************************************/
 
 			/** Controller manager class */
-			labust::controller::ControllerManager CM;
+			labust::controller::PrimitiveManager CM;
 
 			/** ROS Node handle */
 			ros::NodeHandle nh_;
@@ -187,8 +188,7 @@ namespace labust {
 																	nextPrimitive(1),
 																	refreshActive(false),
 																	timeoutActive(false),
-																	refreshRate(0.0),
-																	CM(nh){
+																	refreshRate(0.0){
 
 			/** Subscribers */
 			subEventString = nh.subscribe<std_msgs::String>("eventString",1, &MissionExecution::onEventString, this);
@@ -339,21 +339,21 @@ namespace labust {
 			CM.course_keeping_UA(true, primitiveMap["course"], primitiveMap["speed"]);
 	    }
 
-	    void MissionExecution::iso_state(){
+/*	    void MissionExecution::iso_state(){
 
-	    	/** Evaluate primitive data with current values */
+	    	* Evaluate primitive data with current values
 			evaluatePrimitive(receivedPrimitive.primitiveString.data);
-	    	/** Activate primitive timeout */
+	    	* Activate primitive timeout
 			if(!timeoutActive && primitiveMap["timeout"] > 0)
 				setTimeout(primitiveMap["timeout"]);
-			/** Activate primitive */
+			* Activate primitive
 			CM.ISOprimitive(true, primitiveMap["dof"], primitiveMap["command"], primitiveMap["hysteresis"], primitiveMap["reference"], primitiveMap["sampling_rate"]);
 	    }
 
 	    void MissionExecution::path_following_state(){
 //
 			evaluatePrimitive(receivedPrimitive.primitiveString.data);
-	    	/** Activate primitive timeout */
+	    	* Activate primitive timeout
 			if(!timeoutActive && primitiveMap["timeout"] > 0)
 				setTimeout(primitiveMap["timeout"]);
 //			CM.go2point_FA(true, oldPosition.north, oldPosition.east, primitiveMap["north"], primitiveMap["east"], primitiveMap["speed"], primitiveMap["heading"], primitiveMap["victory_radius"]);
@@ -364,13 +364,13 @@ namespace labust {
 	    void MissionExecution::pointer_state(){
 
 			evaluatePrimitive(receivedPrimitive.primitiveString.data);
-	    	/** Activate primitive timeout */
+	    	* Activate primitive timeout
 			if(!timeoutActive && primitiveMap["timeout"] > 0)
 				setTimeout(primitiveMap["timeout"]);
 //			CM.go2point_FA(true, oldPosition.north, oldPosition.east, primitiveMap["north"], primitiveMap["east"], primitiveMap["speed"], primitiveMap["heading"], primitiveMap["victory_radius"]);
 //			oldPosition.north = primitiveMap["north"];
 //			oldPosition.east = primitiveMap["east"];
-	    }
+	    }*/
 
 		/*****************************************************************
 		 ***  ROS Subscriptions Callback
@@ -409,7 +409,7 @@ namespace labust {
 		void MissionExecution::onReceivePrimitive(const misc_msgs::SendPrimitive::ConstPtr& data){
 
 			receivedPrimitive = *data;
-			refreshRate = data->refreshRate;
+			//refreshRate = data->refreshRate;
 
 			/** Check if received primitive has active events */
 			if(receivedPrimitive.event.onEventNextActive.empty() == 0){

@@ -49,6 +49,8 @@
 #include <labust_mission/xmlPrinter.hpp>
 #include <Eigen/Dense>
 
+
+
 using namespace labust::utils;
 
 /*********************************************************************
@@ -67,6 +69,13 @@ namespace labust {
 			 ********************************************************/
 
 			ManeuverGenerator();
+
+			void generateGoTo(double north, double east, double speed, double victory_radius);
+
+			void generateRows(double north, double east, double speed, double victory_radius, double width, double length, double hstep, double alternationPercent,
+					double curvOff, bool squareCurve, double bearing, double crossAngle, bool invertY);
+
+			void generateStationKeeping();
 
 			void writePrimitives(int primitiveID, std::vector<Eigen::Vector4d> points, double heading, double speed, double victoryRadius);
 
@@ -97,6 +106,38 @@ namespace labust {
 
 		ManeuverGenerator::ManeuverGenerator(){}
 
+		/*** North and east parameters must include offset in case of relative mission start. */
+		void ManeuverGenerator::generateGoTo(double north, double east, double speed, double victory_radius)
+		{
+			writeXML.addGo2point_FA(north, east, speed, victory_radius);
+		}
+
+		void ManeuverGenerator::generateRows(double north, double east, double speed, double victory_radius, double width, double length, double hstep, double alternationPercent,
+				double curvOff, bool squareCurve, double bearing, double crossAngle, bool invertY)
+		{
+			/* Generate maneuver points */
+			std::vector<Eigen::Vector4d> tmpPoints;
+			tmpPoints = calcRowsPoints(width, length, hstep,
+						alternationPercent/100, curvOff, squareCurve, bearing*M_PI/180,
+						crossAngle*M_PI/180, invertY);
+
+			/* For each point subtract offset and add start point */
+			for(std::vector<Eigen::Vector4d>::iterator it = tmpPoints.begin(); it != tmpPoints.end(); ++it){
+
+				Eigen::Vector4d vTmp = *it;
+				vTmp[X] += north;
+				vTmp[Y] += east;
+
+				*it = vTmp;
+			}
+
+			writePrimitives(go2point_FA, tmpPoints, 0, speed, victory_radius); /* heading, speed, victoryRadius */
+		}
+
+		void ManeuverGenerator::generateStationKeeping()
+		{
+
+		}
 
 		void ManeuverGenerator::writePrimitives(int primitiveID, std::vector<Eigen::Vector4d> points, double heading, double speed, double victoryRadius){
 
@@ -108,7 +149,7 @@ namespace labust {
 
 							Eigen::Vector4d vTmp = *it;
 
-							writeXML.addGo2point_FA(vTmp[X], vTmp[Y], heading, speed, victoryRadius);
+							writeXML.addGo2point_FA(vTmp[X], vTmp[Y], speed, victoryRadius);
 
 					}
 

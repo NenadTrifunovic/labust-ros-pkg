@@ -50,7 +50,6 @@
 #include <navcon_msgs/DynamicPositioningAction.h>
 #include <navcon_msgs/DOFIdentificationAction.h>
 
-
 #include <ros/ros.h>
 
 namespace labust
@@ -74,11 +73,11 @@ namespace labust
 			/***  Callback called once when the goal completes ***/
 			void doneCb(const actionlib::SimpleClientGoalState& state, const Result::ConstPtr& result)
 			{
-			ROS_ERROR("Go2PointFA - Finished in state [%s]", state.toString().c_str());
-
-			if (state == actionlib::SimpleClientGoalState::SUCCEEDED)
-			mainEventQueue->riseEvent("/PRIMITIVE_FINISHED");
-
+				if (state == actionlib::SimpleClientGoalState::SUCCEEDED)
+				{
+					ROS_ERROR("Go2PointFA - Finished in state [%s]", state.toString().c_str());
+					publishEventString("/PRIMITIVE_FINISHED");
+				}
 			}
 
 			/*** Callback called once when the goal becomes active ***/
@@ -111,11 +110,10 @@ namespace labust
 			/***  Callback called once when the goal completes ***/
 			void doneCb(const actionlib::SimpleClientGoalState& state, const Result::ConstPtr& result)
 			{
-			ROS_ERROR("Course keeping - Finished in state [%s]", state.toString().c_str());
-
-			if (state == actionlib::SimpleClientGoalState::SUCCEEDED)
-			mainEventQueue->riseEvent("/PRIMITIVE_FINISHED");
-
+				if (state == actionlib::SimpleClientGoalState::SUCCEEDED)
+				{
+					publishEventString("/PRIMITIVE_FINISHED");
+				}
 			}
 
 			/*** Callback called once when the goal becomes active ***/
@@ -150,11 +148,11 @@ namespace labust
 			/***  Callback called once when the goal completes ***/
 			void doneCb(const actionlib::SimpleClientGoalState& state, const Result::ConstPtr& result)
 			{
-			ROS_ERROR("Course keeping - Finished in state [%s]", state.toString().c_str());
-
-			if (state == actionlib::SimpleClientGoalState::SUCCEEDED)
-			mainEventQueue->riseEvent("/PRIMITIVE_FINISHED");
-
+				if (state == actionlib::SimpleClientGoalState::SUCCEEDED)
+				{
+					ROS_ERROR("Course keeping - Finished in state [%s]", state.toString().c_str());
+					publishEventString("/PRIMITIVE_FINISHED");
+				}
 			}
 
 			/*** Callback called once when the goal becomes active ***/
@@ -189,12 +187,12 @@ namespace labust
 			/***  Callback called once when the goal completes ***/
 			void doneCb(const actionlib::SimpleClientGoalState& state, const Result::ConstPtr& result)
 			{
-				 ROS_ERROR("iso - Finished in state [%s]", state.toString().c_str());
-				 ROS_ERROR("Result - DOF: %d, alpha: %f, beta: %f, betaa: %f, delta %f, wn: %f", result->dof,result->alpha, result->beta, result->betaa, result->delta, result->wn);
-
 				if (state == actionlib::SimpleClientGoalState::SUCCEEDED)
-				mainEventQueue->riseEvent("/PRIMITIVE_FINISHED");
-
+				{
+					ROS_ERROR("iso - Finished in state [%s]", state.toString().c_str());
+					ROS_ERROR("Result - DOF: %d, alpha: %f, beta: %f, betaa: %f, delta %f, wn: %f", result->dof,result->alpha, result->beta, result->betaa, result->delta, result->wn);
+					publishEventString("/PRIMITIVE_FINISHED");
+				}
 			}
 
 			/*** Callback called once when the goal becomes active ***/

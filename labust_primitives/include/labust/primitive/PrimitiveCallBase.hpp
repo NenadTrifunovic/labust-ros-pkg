@@ -46,6 +46,8 @@
 #include <ros/ros.h>
 #include <actionlib/client/simple_action_client.h>
 
+#include <std_msgs/String.h>
+
 namespace labust
 {
 	namespace primitive
@@ -108,7 +110,11 @@ namespace labust
 			// Called once when the goal completes
 			virtual void doneCb(const actionlib::SimpleClientGoalState& state, const typename Result::ConstPtr& result)
 			{
-				ROS_ERROR("Finished in state [%s]", state.toString().c_str());
+				if (state == actionlib::SimpleClientGoalState::SUCCEEDED)
+				{
+					ROS_ERROR("Finished in state [%s]", state.toString().c_str());
+					publishEventString("/PRIMITIVE_FINISHED");
+				}
 			}
 
 			// Called once when the goal becomes active
@@ -122,6 +128,14 @@ namespace labust
 			{
 
 			}
+
+			void publishEventString(std::string event)
+			{
+				std_msgs::String msg;
+				msg.data = event.c_str();
+				pubEventString.publish(msg);
+			}
+
 			/**
 			 * The name identifier.
 			 */
@@ -135,13 +149,13 @@ namespace labust
 			 */
 			Action action;
 			/**
-			* The identification action server.
-			*/
-			//ActionServerPtr aserver;
-			/**
 			* The service client for controller activation/deactivation
 			*/
 			ros::ServiceClient control_manager;
+			/**
+			 * Event string publisher
+			 */
+			ros::Publisher pubEventString;
 		};
 	}
 }

@@ -74,6 +74,8 @@
 
 #include <auv_msgs/NED.h>
 #include <auv_msgs/NavSts.h>
+#include <auv_msgs/DecimalLatLon.h>
+
 
 /*********************************************************************
  *** Common global variables

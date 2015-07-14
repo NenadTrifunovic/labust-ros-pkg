@@ -50,57 +50,63 @@
 
 #include <misc_msgs/StartParser.h>
 #include <misc_msgs/EvaluateExpression.h>
+
 #include <tinyxml2.h>
 
 using namespace tinyxml2;
 
-namespace labust {
-	namespace mission {
+namespace labust
+{
+	namespace mission
+	{
 
 		/*********************************************************************
 		 ***  MissionParser class definition
 		 ********************************************************************/
 
-		class MissionParser{
-
+		class MissionParser
+		{
 		public:
 
 			/*****************************************************************
 			 ***  Class functions
 			 ****************************************************************/
 
-			MissionParser(ros::NodeHandle& nh);
+			MissionParser();
+
+			~MissionParser(){};
 
 			void sendPrimitve();
 
-			int parseMission(int id, string xmlFile);
+			int parseMission(int id);
 
-			int parseEvents(string xmlFile);
+			int parseEvents();
 
-			int parseMissionParam(string xmlFile);
+			int parseMissionParam();
 
 			void onRequestPrimitive(const std_msgs::UInt16::ConstPtr& req);
 
 			void onEventString(const std_msgs::String::ConstPtr& msg);
 
-			void onReceiveXmlPath(const misc_msgs::StartParser::ConstPtr& msg);
+			void onReceiveMission(const misc_msgs::StartParser::ConstPtr& msg);
 
 			/*****************************************************************
 			 ***  Helper functions
 			 ****************************************************************/
 
-			void serializePrimitive(int id, vector<uint8_t> serializedData);
+			//void serializePrimitive(int id, vector<uint8_t> serializedData);
 
 			void onEventNextParse(XMLElement *elem2);
+
+			void resetParser();
 
 			/*****************************************************************
 			 ***  Class variables
 			 ****************************************************************/
 
 			int ID, lastID, eventID;
-			double newTimeout, newRefreshRate;
+			double newTimeout;
 
-			string xmlFile;
 			string missionEvents, missionParams;
 
 			vector<uint8_t> onEventNextActive, onEventNext;
@@ -110,14 +116,14 @@ namespace labust {
 			ros::ServiceClient srvExprEval;
 
 			auv_msgs::NED offset;
-			int breakpoint;
+			uint16_t breakpoint;
 
 			/** Send primitive to mission execution as string with general data */
 			stringstream primitiveString;
 
 			PrimitiveParams PP;
 
-
+			XMLDocument xmlDoc;
 		};
 
 
@@ -125,13 +131,19 @@ namespace labust {
 		 ***  Class functions
 		 ****************************************************************/
 
-		MissionParser::MissionParser(ros::NodeHandle& nh):ID(0), lastID(0),newTimeout(0), newRefreshRate(0), eventID(0), breakpoint(1),
-				missionEvents(""){
+		MissionParser::MissionParser():ID(0),
+										   lastID(0),
+										   newTimeout(0),
+										   eventID(0),
+										   breakpoint(1),
+										   missionEvents("")
+		{
+			ros::NodeHandle nh;
 
 			/** Subscribers */
 			subRequestPrimitive = nh.subscribe<std_msgs::UInt16>("requestPrimitive",1,&MissionParser::onRequestPrimitive, this);
 			subEventString = nh.subscribe<std_msgs::String>("eventString",1,&MissionParser::onEventString, this);
-			subReceiveXmlPath = nh.subscribe<misc_msgs::StartParser>("startParse",1,&MissionParser::onReceiveXmlPath, this);
+			subReceiveXmlPath = nh.subscribe<misc_msgs::StartParser>("startParse",1,&MissionParser::onReceiveMission, this);
 
 			/** Publishers */
 			pubSendPrimitive = nh.advertise<misc_msgs::SendPrimitive>("sendPrimitive",1);
@@ -140,18 +152,12 @@ namespace labust {
 
 			/** Service */
 			srvExprEval = nh.serviceClient<misc_msgs::EvaluateExpression>("evaluate_expression");
-
-			/** Parse file path */
-			ros::NodeHandle ph("~");
-			xmlFile = "mission.xml";
-			ph.param("xml_save_path", xmlFile, xmlFile);
 		}
 
-		void MissionParser::sendPrimitve(){
-
-			ROS_ERROR("%s",xmlFile.c_str());
+		void MissionParser::sendPrimitve()
+		{
 			ROS_ERROR("%d",ID);
-			int id = parseMission(ID, xmlFile);
+			int id = parseMission(ID);
 			ROS_ERROR("%s", PRIMITIVES[id]);
 
 			if(id != none){
@@ -164,7 +170,6 @@ namespace labust {
 				sendContainer.event.onEventNext = onEventNext;
 
 				sendContainer.primitiveString.data = primitiveString.str();
-				sendContainer.refreshRate = newRefreshRate;
 
 				pubSendPrimitive.publish(sendContainer);
 
@@ -172,114 +177,107 @@ namespace labust {
 
 				ROS_ERROR("Mission ended.");
 				std_msgs::String tmp;
-				tmp.data = "/STOP";
+				tmp.data = "/STOP"; //TODO Change to /missionEnded
 				pubRiseEvent.publish(tmp);
-
-				/** Reset file path */
-				ros::NodeHandle ph("~");
-				xmlFile = "mission.xml";
-				ph.param("xml_save_path", xmlFile, xmlFile);
 			}
 
 		}
 
 		/* Function for parsing primitives in XML mission file */
-		int MissionParser::parseMission(int id, string xmlFile){
-
-		   XMLDocument xmlDoc;
-
+		int MissionParser::parseMission(int id)
+		{
 		   XMLNode *mission;
 		   XMLNode *primitive;
 		   XMLNode *primitiveParam;
 
-		   /* Open XML file */
-		   if(xmlDoc.LoadFile(xmlFile.c_str()) == XML_SUCCESS) {
+		   /* Find mission node */
+		   mission = xmlDoc.FirstChildElement("main")->FirstChildElement("mission");
+		   if(mission)
+		   {
+			   /* Loop through primitive nodes */
+			   for (primitive = mission->FirstChildElement("primitive"); primitive != NULL; primitive = primitive->NextSiblingElement())
+			   {
+				   XMLElement *elem = primitive->ToElement();
+				   string primitiveName = elem->Attribute("name");
+				   ROS_INFO("%s", primitiveName.c_str());
 
-			   /* Find mission node */
-			   mission = xmlDoc.FirstChildElement("main")->FirstChildElement("mission");
-			   if(mission){
+				   primitiveParam = primitive->FirstChildElement("id");
+				   XMLElement *elemID = primitiveParam->ToElement();
 
-				   /* Loop through primitive nodes */
-				   for (primitive = mission->FirstChildElement("primitive"); primitive != NULL; primitive = primitive->NextSiblingElement()){
+				   /* If ID is correct process primitive data */
+				   string id_string = static_cast<ostringstream*>( &(ostringstream() << id) )->str();
+				   string tmp = elemID->GetText();
 
-					   XMLElement *elem = primitive->ToElement();
-					   string primitiveName = elem->Attribute("name");
-					   ROS_INFO("%s", primitiveName.c_str());
+				   if (tmp.compare(id_string) == 0)
+				   {
+					   /** Reset data */
+						newTimeout = 0;
+						onEventNextActive.clear();
+						onEventNext.clear();
 
-					   primitiveParam = primitive->FirstChildElement("id");
-					   XMLElement *elemID = primitiveParam->ToElement();
+						primitiveString.str(string());
 
-					   /* If ID is correct process primitive data */
-					   string id_string = static_cast<ostringstream*>( &(ostringstream() << id) )->str();
-					   string tmp = elemID->GetText();
+						/** Initialize service call data */
+						misc_msgs::EvaluateExpression evalExpr;
 
-					   if (tmp.compare(id_string) == 0){
+						for(int i = 1; i <= primitiveNum; ++i){
 
-						   /** Reset data */
-							newTimeout = 0;
-							newRefreshRate = 0;
-							onEventNextActive.clear();
-							onEventNext.clear();
+							if(primitiveName.compare(PRIMITIVES[i]) == 0)
+							{
+							   for (primitiveParam = primitive->FirstChildElement("param"); primitiveParam != NULL; primitiveParam = primitiveParam->NextSiblingElement())
+							   {
+								   XMLElement *elem2 = primitiveParam->ToElement();
+								   string primitiveParamName = elem2->Attribute("name");
 
-							primitiveString.str(string());
-
-							/** Initialize service call data */
-							misc_msgs::EvaluateExpression evalExpr;
-
-							for(int i = 1; i <= primitiveNum; ++i){
-
-								if(primitiveName.compare(PRIMITIVES[i]) == 0){
-
-								   for (primitiveParam = primitive->FirstChildElement("param"); primitiveParam != NULL; primitiveParam = primitiveParam->NextSiblingElement()){
-
-									   XMLElement *elem2 = primitiveParam->ToElement();
-									   string primitiveParamName = elem2->Attribute("name");
-
-									   for(std::vector<std::string>::iterator it = PP.primitive_params[i].begin(); it != PP.primitive_params[i].end(); ++it){
-
-										   if(primitiveParamName.compare((*it).c_str()) == 0){
-											   primitiveString << (*it).c_str() <<":"<< elem2->GetText() << ":";
-											   break;
-										   }
-									   }
-
-									   if(primitiveParamName.compare("onEventNext") == 0){
-
-										   onEventNextParse(elem2);
+								   for(std::vector<std::string>::iterator it = PP.primitive_params[i].begin(); it != PP.primitive_params[i].end(); ++it)
+								   {
+									   if(primitiveParamName.compare((*it).c_str()) == 0)
+									   {
+										   primitiveString << (*it).c_str() <<":"<< elem2->GetText() << ":";
+										   break;
 									   }
 								   }
 
-								   return i;
-								}
-							}
-					   }
-				   }
-				   return none;
+								   if(primitiveParamName.compare("onEventNext") == 0)
+								   {
+									   onEventNextParse(elem2);
+								   }
+							   }
 
-			   } else {
-				   ROS_ERROR("No mission defined");
-				   return -1;
+							   return i;
+							}
+						}
+				   }
 			   }
-		   } else {
-			   ROS_ERROR("Cannot open XML file!");
+			   return none;
+
+		   }
+		   else
+		   {
+			   ROS_ERROR("No mission defined");
 			   return -1;
 		   }
 		}
 
-		void MissionParser::onEventNextParse(XMLElement *elem2){
-
+		void MissionParser::onEventNextParse(XMLElement *elem2)
+		{
 			string primitiveNext = elem2->GetText();
 
-			if(primitiveNext.empty()==0){
-				if(strcmp(primitiveNext.c_str(),"bkp") == 0){
+			if(primitiveNext.empty()==0)
+			{
+				if(strcmp(primitiveNext.c_str(),"bkp") == 0)
+				{
 					onEventNext.push_back(breakpoint);
-				}else{
+				}
+				else
+				{
 					onEventNext.push_back(atoi(primitiveNext.c_str()));
 				}
-			} else {
+			}
+			else
+			{
 					onEventNext.push_back(ID+1); // provjeri teba li ovo
 			}
-
 			onEventNextActive.push_back(atoi(elem2->Attribute("event")));
 		}
 
@@ -289,121 +287,122 @@ namespace labust {
 		 ************************************************************/
 
 		/* Parse events on mission load */
-		int MissionParser::parseEvents(string xmlFile){
-
-		   XMLDocument xmlDoc;
+		int MissionParser::parseEvents()
+		{
 
 		   XMLNode *events;
 		   XMLNode *event;
 		   XMLNode *primitiveParam;
 
-		   /* Open XML file */
-		   if(xmlDoc.LoadFile(xmlFile.c_str()) == XML_SUCCESS) {
-
-			   /* Find events node */
-			   events = xmlDoc.FirstChildElement("main")->FirstChildElement("events");;
-			   if(events){
-				   for (event = events->FirstChildElement("event"); event != NULL; event = event->NextSiblingElement()){
-
-					   //eventsContainer.push_back(event->ToElement()->GetText());
-					   missionEvents.append(event->ToElement()->GetText());
-					   missionEvents.append(":");
-				   }
-				  // eventsFlag = true;
-			   } else {
-				   ROS_ERROR("No events defined");
-				   return -1;
+		   /* Find events node */
+		   events = xmlDoc.FirstChildElement("main")->FirstChildElement("events");
+		   if(events)
+		   {
+			   for (event = events->FirstChildElement("event"); event != NULL; event = event->NextSiblingElement())
+			   {
+				   //eventsContainer.push_back(event->ToElement()->GetText());
+				   missionEvents.append(event->ToElement()->GetText());
+				   missionEvents.append(":");
 			   }
-		   } else {
-			   ROS_ERROR("Cannot open XML file!");
+		   }
+		   else
+		   {
+			   ROS_ERROR("No events defined");
 			   return -1;
 		   }
 		   return 0;
 		}
 
 		/* Parse mission parameters on mission load */
-		int MissionParser::parseMissionParam(string xmlFile){
-
-		   XMLDocument xmlDoc;
-
+		int MissionParser::parseMissionParam()
+		{
 		   XMLNode *events;
 		   XMLNode *event;
 		   XMLNode *primitiveParam;
 
-		   /* Open XML file */
-		   if(xmlDoc.LoadFile(xmlFile.c_str()) == XML_SUCCESS) {
-
-			   /* Find events node */
-			   events = xmlDoc.FirstChildElement("main")->FirstChildElement("params");
-			   if(events){
-				   for (event = events->FirstChildElement("param"); event != NULL; event = event->NextSiblingElement()){
-
-					   missionParams.append(event->ToElement()->Attribute("name"));
-					   missionParams.append(":");
-					   missionParams.append(event->ToElement()->GetText());
-					   missionParams.append(":");
-				   }
-				 //  eventsFlag = true;
-			   } else {
-				   ROS_ERROR("No mission parameters defined");
-				   return -1;
+		   /* Find Mission param node */
+		   events = xmlDoc.FirstChildElement("main")->FirstChildElement("params");
+		   if(events)
+		   {
+			   for (event = events->FirstChildElement("param"); event != NULL; event = event->NextSiblingElement())
+			   {
+				   missionParams.append(event->ToElement()->Attribute("name"));
+				   missionParams.append(":");
+				   missionParams.append(event->ToElement()->GetText());
+				   missionParams.append(":");
 			   }
-		   } else {
-			   ROS_ERROR("Cannot open XML file!");
+		   }
+		   else
+		   {
+			   ROS_ERROR("No mission parameters defined");
 			   return -1;
 		   }
 		   return 0;
+		}
+
+		void MissionParser::resetParser()
+		{
+			/*** On mission stop reset variables */
+			ID = 0;
+			missionParams.clear();
+			missionEvents.clear();
+			xmlDoc.Clear();
 		}
 
 		/*************************************************************
 		 *** ROS subscriptions
 		 ************************************************************/
 
-		void MissionParser::onRequestPrimitive(const std_msgs::UInt16::ConstPtr& req){
-
-			if(req->data){
-				lastID = ID;
-				ID = req->data;
-				if(abs(ID-lastID)>1){
-					breakpoint = lastID;
-					ROS_ERROR("DEBUG: New breakpoint %d", breakpoint);
-				}
-
+		void MissionParser::onRequestPrimitive(const std_msgs::UInt16::ConstPtr& req)
+		{
+			if(req->data > 0)
+			{
+				ROS_INFO("REQUESTED PRIMITIVE ID: %d", req->data); //TODO
 				sendPrimitve();
 			}
-		}
-
-		void MissionParser::onEventString(const std_msgs::String::ConstPtr& msg){
-
-			if(strcmp(msg->data.c_str(),"/STOP") == 0){
-				ID = 0;
-				missionParams.clear();
-				missionEvents.clear();
-
-				/** Reset file path */
-				ros::NodeHandle ph("~");
-				xmlFile = "mission.xml";
-				ph.param("xml_save_path", xmlFile, xmlFile);
+			else
+			{
+				ROS_FATAL("REQUESTED INVALID ID");
 			}
 		}
 
-		void MissionParser::onReceiveXmlPath(const misc_msgs::StartParser::ConstPtr& msg){
+		void MissionParser::onEventString(const std_msgs::String::ConstPtr& msg)
+		{
+			if(strcmp(msg->data.c_str(),"/STOP") == 0)
+			{
+				resetParser();
+			}
+		}
 
-			if(msg->fileName.empty() == 0){
+		void MissionParser::onReceiveMission(const misc_msgs::StartParser::ConstPtr& msg)
+		{
+			XMLError err_status;
 
-				xmlFile.assign(msg->fileName.c_str());
+			if(msg->method == misc_msgs::StartParser::FILENAME)
+			{
+				err_status = xmlDoc.LoadFile(msg->missionData.c_str());
+			}
+			else if(msg->method == misc_msgs::StartParser::STRING)
+			{
+				err_status = xmlDoc.Parse(msg->missionData.c_str());
+			}
 
+			if(err_status == XML_SUCCESS)
+			{
 				/* Set mission start offset */
-				if(msg->relative){
+				if(msg->relative)
+				{
 					offset.north = -msg->startPosition.north;
 					offset.east = -msg->startPosition.east;
-				} else {
+				}
+				else
+				{
 					offset.north = offset.east = 0;
 				}
 
 				/* On XML load parse mission parameters and mission events */
-				parseEvents(xmlFile.c_str());
-				parseMissionParam(xmlFile.c_str());
+				parseEvents();
+				parseMissionParam();
 
 				/* Publish mission setup */
 				misc_msgs::MissionSetup missionSetup;
@@ -412,20 +411,22 @@ namespace labust {
 				missionSetup.missionOffset = offset;
 				pubMissionSetup.publish(missionSetup);
 			}
+			else
+			{
+				ROS_FATAL("INVALID MISSION PARSER REQUEST");
+			}
 		}
 	}
 }
-
 
 /*********************************************************************
  ***  Main function
  ********************************************************************/
 
-int main(int argc, char** argv){
-
+int main(int argc, char** argv)
+{
 	ros::init(argc, argv, "mission_parser");
-	ros::NodeHandle nh;
-	labust::mission::MissionParser MP(nh);
+	labust::mission::MissionParser MP;
 	ros::spin();
 	return 0;
 }
