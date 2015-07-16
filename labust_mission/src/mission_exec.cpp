@@ -41,7 +41,7 @@
 *********************************************************************/
 
 #include <labust_mission/labustMission.hpp>
-//#include <labust_mission/controllerManager.hpp>
+#include <labust_mission/primitiveManager.hpp>
 #include <labust_mission/missionExecution.hpp>
 
 #include <tinyxml2.h>
@@ -81,7 +81,7 @@ MainEventQueue(){ mainEventQueue = new RosEventQueue(); }
 			Dispatcher_state,
 			placeholder_state,
 			/*** Primitive states */
-			go2point_state,
+			go2point_FA_state,
 			dynamic_positioning_state,
 			course_keeping_state,
 			//iso_state,
@@ -123,9 +123,9 @@ MainEventQueue(){ mainEventQueue = new RosEventQueue(); }
 				{
 					FSM_ON_EVENT("/STOP", FSM_NEXT(Wait_state));
 					FSM_ON_EVENT("/PLACEHOLDER", FSM_NEXT(placeholder_state));
-					FSM_ON_EVENT("/GO2POINT", FSM_NEXT(go2point_state));
+					FSM_ON_EVENT("/GO2POINT_FA", FSM_NEXT(go2point_FA_state));
 					FSM_ON_EVENT("/DYNAMIC_POSITIONING", FSM_NEXT(dynamic_positioning_state));
-					FSM_ON_EVENT("/COURSE_KEEPING", FSM_NEXT(course_keeping_state));
+					//FSM_ON_EVENT("/COURSE_KEEPING", FSM_NEXT(course_keeping_state));
 					//FSM_ON_EVENT("/ISO", FSM_NEXT(iso_state));
 					//FSM_ON_EVENT("/PATH_FOLLOWING", FSM_NEXT(path_following_state));
 					//FSM_ON_EVENT("/POINTER", FSM_NEXT(pointer_state));
@@ -142,7 +142,7 @@ MainEventQueue(){ mainEventQueue = new RosEventQueue(); }
 					FSM_ON_EVENT("/TIMEOUT", FSM_NEXT(Dispatcher_state));
 				}
 			}
-			FSM_STATE(go2point_state)
+			FSM_STATE(go2point_FA_state)
 			{
 				ROS_ERROR("go2point_FA primitive active");
 
@@ -181,7 +181,7 @@ MainEventQueue(){ mainEventQueue = new RosEventQueue(); }
 					FSM_ON_EVENT("/TIMEOUT", FSM_NEXT(Dispatcher_state));
 				}
 			}
-			FSM_STATE(course_keeping_state)
+/*			FSM_STATE(course_keeping_state)
 			{
 				ROS_ERROR("course_keeping_FA primitive active");
 
@@ -203,7 +203,7 @@ MainEventQueue(){ mainEventQueue = new RosEventQueue(); }
 					FSM_ON_EVENT("/PRIMITIVE_FINISHED", FSM_NEXT(Dispatcher_state));
 					FSM_ON_EVENT("/TIMEOUT", FSM_NEXT(Dispatcher_state));
 				}
-			}
+			}*/
 /*			FSM_STATE(iso_state)
 			{
 				ROS_ERROR("iso primitive active");

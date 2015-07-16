@@ -76,13 +76,13 @@ namespace labust
 
 			~MissionParser(){};
 
-			void sendPrimitve();
+			void sendPrimitve(uint32_t id);
 
-			int parseMission(int id);
+			uint32_t parseMission(uint32_t id);
 
-			int parseEvents();
+			uint32_t parseEvents();
 
-			int parseMissionParam();
+			uint32_t parseMissionParam();
 
 			void onRequestPrimitive(const std_msgs::UInt16::ConstPtr& req);
 
@@ -143,7 +143,7 @@ namespace labust
 			/** Subscribers */
 			subRequestPrimitive = nh.subscribe<std_msgs::UInt16>("requestPrimitive",1,&MissionParser::onRequestPrimitive, this);
 			subEventString = nh.subscribe<std_msgs::String>("eventString",1,&MissionParser::onEventString, this);
-			subReceiveXmlPath = nh.subscribe<misc_msgs::StartParser>("startParse",1,&MissionParser::onReceiveMission, this);
+			subReceiveXmlPath = nh.subscribe<misc_msgs::StartParser>("startParser",1,&MissionParser::onReceiveMission, this);
 
 			/** Publishers */
 			pubSendPrimitive = nh.advertise<misc_msgs::SendPrimitive>("sendPrimitive",1);
@@ -154,16 +154,15 @@ namespace labust
 			srvExprEval = nh.serviceClient<misc_msgs::EvaluateExpression>("evaluate_expression");
 		}
 
-		void MissionParser::sendPrimitve()
+		void MissionParser::sendPrimitve(uint32_t id)
 		{
-			ROS_ERROR("%d",ID);
-			int id = parseMission(ID);
-			ROS_ERROR("%s", PRIMITIVES[id]);
+			uint32_t primitive_type = parseMission(id);
+			ROS_ERROR("PRIMITIVE TYPE: %s", PRIMITIVES[primitive_type]);
 
-			if(id != none){
+			if(primitive_type != none){
 
 				misc_msgs::SendPrimitive sendContainer;
-				sendContainer.primitiveID = id;
+				sendContainer.primitiveID = primitive_type;
 				//sendContainer.primitiveData = serializedData; /* Remove from msg */
 				sendContainer.event.timeout = newTimeout;
 				sendContainer.event.onEventNextActive = onEventNextActive;
@@ -184,7 +183,7 @@ namespace labust
 		}
 
 		/* Function for parsing primitives in XML mission file */
-		int MissionParser::parseMission(int id)
+		uint32_t MissionParser::parseMission(uint32_t id)
 		{
 		   XMLNode *mission;
 		   XMLNode *primitive;
@@ -287,7 +286,7 @@ namespace labust
 		 ************************************************************/
 
 		/* Parse events on mission load */
-		int MissionParser::parseEvents()
+		uint32_t MissionParser::parseEvents()
 		{
 
 		   XMLNode *events;
@@ -314,7 +313,7 @@ namespace labust
 		}
 
 		/* Parse mission parameters on mission load */
-		int MissionParser::parseMissionParam()
+		uint32_t MissionParser::parseMissionParam()
 		{
 		   XMLNode *events;
 		   XMLNode *event;
@@ -357,8 +356,8 @@ namespace labust
 		{
 			if(req->data > 0)
 			{
-				ROS_INFO("REQUESTED PRIMITIVE ID: %d", req->data); //TODO
-				sendPrimitve();
+				ROS_ERROR("REQUESTED PRIMITIVE ID: %d", req->data); //TODO
+				sendPrimitve(req->data);
 			}
 			else
 			{
@@ -410,6 +409,10 @@ namespace labust
 				missionSetup.missionParams = missionParams;
 				missionSetup.missionOffset = offset;
 				pubMissionSetup.publish(missionSetup);
+
+				std_msgs::String tmp;
+				tmp.data = "/START_DISPATCHER"; //TODO vidi da li to prebaciti sve na mission setup
+				pubRiseEvent.publish(tmp);
 			}
 			else
 			{

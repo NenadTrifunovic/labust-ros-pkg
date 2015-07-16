@@ -444,7 +444,7 @@ namespace labust {
 		void MissionExecution::onEventString(const std_msgs::String::ConstPtr& msg){
 
 			mainEventQueue->riseEvent(msg->data.c_str());
-			ROS_INFO("EventString: %s",msg->data.c_str());
+			ROS_ERROR("EventString: %s",msg->data.c_str());
 			if(strcmp(msg->data.c_str(),"/STOP") == 0){
 				onPrimitiveEndReset();
 				nextPrimitive = 1;

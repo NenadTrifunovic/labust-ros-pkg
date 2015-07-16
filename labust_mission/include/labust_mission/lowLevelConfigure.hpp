@@ -59,7 +59,7 @@ namespace labust {
 
 	public:
 
-		LowLevelConfigure(ros::NodeHandle nh);
+		LowLevelConfigure();
 
 		/*************************************************************
 		 *** Class functions
@@ -80,7 +80,9 @@ namespace labust {
 		ros::ServiceClient clientConfigureVelocitiyController;
 	};
 
-	LowLevelConfigure::LowLevelConfigure(ros::NodeHandle nh){
+	LowLevelConfigure::LowLevelConfigure(){
+
+		ros::NodeHandle nh;
 
 		nuAxis.x = false;
 		nuAxis.y = false;

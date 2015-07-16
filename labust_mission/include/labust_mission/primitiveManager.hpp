@@ -125,6 +125,8 @@ namespace labust
 			labust::primitive::PrimitiveCallDynamicPositioning DynamicPositioning;
 			labust::primitive::PrimitiveCallDOFIdentification DOFIdentification;
 
+			labust::LowLevelConfigure LLcfg;
+
 		};
 	}
 }
@@ -196,11 +198,15 @@ using namespace labust::controller;
 			goal.speed = speed;
 			goal.victory_radius = radius;
 
+
+			LLcfg.LL_VELconfigure(true,2,2,0,0,0,2);
 			Go2Point.start(goal);
 		}
 		else
 		{
 			Go2Point.stop();
+			LLcfg.LL_VELconfigure(false,1,1,0,0,0,1);
+
 		}
 	}
 
