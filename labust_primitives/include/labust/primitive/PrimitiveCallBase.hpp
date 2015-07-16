@@ -58,12 +58,15 @@ namespace labust
 		template <class ActionType, class ActionGoal, class ActionResult, class ActionFeedback>
 		class PrimitiveCallBase
 		{
-		protected:
+		public:
+
 			typedef ActionType Action;
 			typedef actionlib::SimpleActionClient<Action> ActionClient;
 			typedef ActionGoal Goal;
 			typedef ActionResult Result;
 			typedef ActionFeedback Feedback;
+
+		protected:
 
 			/**
 			 * Main constructor
@@ -71,6 +74,11 @@ namespace labust
 			PrimitiveCallBase(const std::string& name):primitiveName(name),
 														  ac(primitiveName.c_str())
 			{
+				ros::NodeHandle nh;
+
+				/*** Publishers */
+				pubEventString = nh.advertise<std_msgs::String>("eventString",1);
+
 				//TODO Throw exception
 				ROS_INFO("Waiting for action server to start.");
 				ac.waitForServer(); //will wait for infinite time

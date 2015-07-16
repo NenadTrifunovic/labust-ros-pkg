@@ -72,7 +72,7 @@ namespace labust
 			enum {ualf = 0, falf, hdg, fadp, numcnt};
 			enum {xp = 0, yp, zp};
 
-			GoToPoint():ExecutorBase("go2point_FA"),
+			GoToPoint():ExecutorBase("go2point"),
 						 underactuated(true),
 						 processNewGoal(false),
 						 lastDistance(0.0),
@@ -91,6 +91,8 @@ namespace labust
 				controllers.name[falf] = "FALF_enable";
 				controllers.name[hdg] = "HDG_enable";
 
+				ROS_ERROR("Action node initialized");
+
 			}
 
 			void onGoal()
@@ -104,6 +106,7 @@ namespace labust
 
 				// Vidi kakav redoslijed
 				/*** Check primitive subtype ***/
+
 				switch(new_goal->subtype)
 				{
 					case Goal::GO2POINT_UA:
@@ -119,6 +122,8 @@ namespace labust
 						break;
 				}
 
+
+
 				//Check if course keeping is possible.
 				if (new_goal->speed == 0)
 				{
@@ -133,6 +138,9 @@ namespace labust
 								|| (new_goal->heading != goal->heading)
 								|| (new_goal->speed != goal->speed))
 				{
+
+					//Save new goal
+					goal = new_goal;
 					//ROS_DEBUG("Change course: %f", new_goal->course);
 
 					/*** Calculate new course line ***/
@@ -140,6 +148,7 @@ namespace labust
 					T1 << new_goal->T1.point.x, new_goal->T1.point.y, 0;
 					T2 << new_goal->T2.point.x, new_goal->T2.point.y, 0;
 					line.setLine(T1,T2);
+
 
 					geometry_msgs::TransformStamped transform;
 					transform.transform.translation.x = T1(xp);
@@ -152,8 +161,11 @@ namespace labust
 					transform.header.stamp = ros::Time::now();
 					broadcaster.sendTransform(transform);
 
+
 					/*** Update reference ***/
 					stateRef.publish(step(lastState));
+
+
 
 					/*** Enable controllers depending on the primitive subtype ***/
 					if (!underactuated)
@@ -173,11 +185,17 @@ namespace labust
 							controllers.state[hdg] = false;
 						}
 					}
+
+
 					this->updateControllers();
+
+
 				}
 
 				//Save new goal
-				goal = new_goal;
+//				goal = new_goal;
+
+
 			}
 
 			void onPreempt()
@@ -203,18 +221,19 @@ namespace labust
 
 				/*** Enable or disable ualf/falf controller ***/
 				if(underactuated)
-					cl = nh.serviceClient<navcon_msgs::EnableControl>(std::string(controllers.name[ualf]));
+					cl = nh.serviceClient<navcon_msgs::EnableControl>(std::string(controllers.name[ualf]).c_str());
 				else
-					cl = nh.serviceClient<navcon_msgs::EnableControl>(std::string(controllers.name[falf]));
+					cl = nh.serviceClient<navcon_msgs::EnableControl>(std::string(controllers.name[falf]).c_str());
 
 				navcon_msgs::EnableControl a;
 				a.request.enable = controllers.state[ualf] || controllers.state[falf];
 				cl.call(a);
 
 				/*** Enable or disable hdg controller ***/
-				cl = nh.serviceClient<navcon_msgs::EnableControl>(std::string(controllers.name[hdg]));
+				cl = nh.serviceClient<navcon_msgs::EnableControl>(std::string(controllers.name[hdg]).c_str());
 				a.request.enable = controllers.state[hdg];
 				cl.call(a);
+
 			}
 
 			void onStateHat(const auv_msgs::NavSts::ConstPtr& estimate)
@@ -282,6 +301,7 @@ namespace labust
 				/*** If victory radius is missed change course  ***/
 				if(std::abs(labust::math::wrapRad(bearing_to_endpoint.gamma() - line.gamma())) > 60*M_PI/180 && Ddistance > 0)
 				{
+
 					ROS_ERROR("Changing course");
 					line = bearing_to_endpoint;
 
@@ -304,6 +324,7 @@ namespace labust
 					double delta = labust::math::wrapRad(state.orientation.yaw - line.gamma());
 					ROS_DEBUG("Delta, gamma: %f, %f",delta, line.gamma());
 
+
 					if (controllers.state[hdg] && (std::abs(delta) < M_PI/3))
 					{
 							/*** Disable hdg and activate ualf ***/
@@ -320,6 +341,7 @@ namespace labust
 							this->updateControllers();
 							ref->header.frame_id = "local";
 					}
+
 				}
 
 				ref->header.stamp = ros::Time::now();
