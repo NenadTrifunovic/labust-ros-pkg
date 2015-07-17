@@ -17,6 +17,7 @@ find_package(catkin REQUIRED COMPONENTS
   auv_msgs
   misc_msgs
   cmake_modules
+  labust_primitives
 )
 
 ## System dependencies are found with CMake's conventions
@@ -98,7 +99,7 @@ find_library(TinyXML2_LIBRARY
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
+  INCLUDE_DIRS include
 #  LIBRARIES caddy_state_machine
  CATKIN_DEPENDS decision_making decision_making_parser roscpp
 #  DEPENDS system_lib

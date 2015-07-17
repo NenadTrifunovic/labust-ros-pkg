@@ -1,4 +1,12 @@
 /*********************************************************************
+ * course_keeping.cpp
+ *
+ *  Created on: Feb 01, 2013
+ *      Author: Dula Nad
+ *
+ ********************************************************************/
+
+/*********************************************************************
  * Software License Agreement (BSD License)
  *
  *  Copyright (c) 2010, LABUST, UNIZG-FER
@@ -30,11 +38,8 @@
  *  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
- *
- *  Author: Dula Nad
- *  Created: 01.02.2013.
  *********************************************************************/
-#include <labust/control/PrimitiveBase.hpp>
+#include <labust/primitive/PrimitiveBase.hpp>
 #include <labust/math/NumberManipulation.hpp>
 #include <labust/math/Line.hpp>
 #include <labust/tools/conversions.hpp>
@@ -52,7 +57,8 @@
 
 namespace labust
 {
-	namespace control{
+	namespace primitive
+	{
 		///The course keeping action
 		///\todo Check what happens during the switch
 		///\todo Name remapping of controllers should be implemented similar to ROS remapping ?
@@ -62,10 +68,11 @@ namespace labust
 			typedef navcon_msgs::CourseKeepingGoal Goal;
 			typedef navcon_msgs::CourseKeepingResult Result;
 
-			enum {ualf=0,falf,heading, numcnt};
+			enum {ualf=0,falf,hdg, numcnt};
+			enum{xp=0,yp,zp};
 
 			CourseKeeping():
-				ExecutorBase("course_keeping_FA"),
+				ExecutorBase("course_keeping"),
 				underactuated(true),
 				headingEnabled(false),
 				processNewGoal(false){};
@@ -73,19 +80,14 @@ namespace labust
 			void init()
 			{
 				ros::NodeHandle ph("~");
-				ph.param("underactuated",underactuated,underactuated);
 
+				/*** Initialize controller names ***/
 				controllers.name.resize(numcnt);
 				controllers.state.resize(numcnt, false);
-				std::string temp("ualf");
-				ph.param("ualf_name",temp,temp);
-				controllers.name[ualf] = temp;
-				temp = "falf";
-				ph.param("falf_name",temp,temp);
-				controllers.name[falf] = temp;
-				temp = "heading";
-				ph.param("heading_name",temp,temp);
-				controllers.name[heading] = temp;
+
+				controllers.name[ualf] = "UALF_enable";
+				controllers.name[falf] = "FALF_enable";
+				controllers.name[hdg] = "HDG_enable";
 			}
 
 			void onGoal()
@@ -96,6 +98,21 @@ namespace labust
 				processNewGoal = true;
 				Goal::ConstPtr new_goal = aserver->acceptNewGoal();
 				processNewGoal = false;
+
+				switch(new_goal->subtype)
+				{
+					case Goal::COURSE_KEEPING_UA:
+						underactuated = true;
+						break;
+					case Goal::COURSE_KEEPING_FA:
+						underactuated = false;
+						break;
+					case Goal::COURSE_KEEPING_FA_HDG:
+						underactuated = false;
+						if(new_goal->ref_type != Goal::CONSTANT)
+							//connectTopics();
+						break;
+				}
 				//Check if course keeping is possible.
 				if (new_goal->speed == 0)
 				{
@@ -118,7 +135,7 @@ namespace labust
 							0;
 					line.setLine(T1,T2);
 
-					enum{xp=0,yp,zp};
+
 					geometry_msgs::TransformStamped transform;
 					transform.transform.translation.x = T1(xp);
 					transform.transform.translation.y = T1(yp);
@@ -138,16 +155,16 @@ namespace labust
 					if (!underactuated)
 					{
 						controllers.state[falf] = true;
-						controllers.state[heading] = true;
+						controllers.state[hdg] = true;
 					}
 					else
 					{
 						double delta = labust::math::wrapRad(lastState.orientation.yaw - line.gamma());
 						ROS_DEBUG("Delta: %f",delta);
-						if (fabs(delta) < M_PI_2)
+						if (std::abs(delta) < M_PI_2)
 						{
 							controllers.state[ualf] = true;
-							controllers.state[heading] = false;
+							controllers.state[hdg] = false;
 						}
 					}
 					this->updateControllers();
@@ -175,32 +192,22 @@ namespace labust
 
 			void updateControllers()
 			{
-//				navcon_msgs::ControllerSelectResponse resp;
-//				bool isOk = control_manager.call(controllers, resp);
-//				isOk = isOk && (controllers.name == resp.name);
-//				isOk = isOk && (controllers.state == resp.state);
-//				if (!isOk)
-//				{	//ConMan.DPcontrol();
-//					ROS_WARN("Service call failed.");
-//					aserver->setAborted(Result(), "Cannot update controllers state.");
-//				}
-
 				ros::NodeHandle nh;
-
 				ros::ServiceClient cl;
 
-				if(underactuated){				
+				/*** Enable or disable ualf/falf controller ***/
+				if(underactuated)
+					cl = nh.serviceClient<navcon_msgs::EnableControl>(std::string(controllers.name[ualf]));
+				else
+					cl = nh.serviceClient<navcon_msgs::EnableControl>(std::string(controllers.name[falf]));
 
-					cl = nh.serviceClient<navcon_msgs::EnableControl>("UALF_enable_1");
-				} else {
-					cl = nh.serviceClient<navcon_msgs::EnableControl>("UALF_enable");
-				}
 				navcon_msgs::EnableControl a;
 				a.request.enable = controllers.state[ualf] || controllers.state[falf];
 				cl.call(a);
 
-				cl = nh.serviceClient<navcon_msgs::EnableControl>("HDG_enable");
-				a.request.enable = controllers.state[heading];
+				/*** Enable or disable hdg controller ***/
+				cl = nh.serviceClient<navcon_msgs::EnableControl>(std::string(controllers.name[hdg]));
+				a.request.enable = controllers.state[hdg];
 				cl.call(a);
 			}
 
@@ -237,18 +244,18 @@ namespace labust
 					ref->orientation.yaw = line.gamma();
 					double delta = labust::math::wrapRad(state.orientation.yaw - line.gamma());
 					ROS_DEBUG("Delta, gamma: %f, %f",delta, line.gamma());
-					if (controllers.state[heading] && (fabs(delta) < M_PI/3))
+					if (controllers.state[hdg] && (std::abs(delta) < M_PI/3))
 					{
 							//disable heading and activate ualf
-							controllers.state[heading] = false;
+							controllers.state[hdg] = false;
 							controllers.state[ualf] = true;
 							this->updateControllers();
 							ref->header.frame_id = "course_frame";
 					}
-					else if (fabs(delta) >= M_PI/2)
+					else if (std::abs(delta) >= M_PI/2)
 					{
 							//deactivate ualf and activate heading
-							controllers.state[heading] = true;
+							controllers.state[hdg] = true;
 							controllers.state[ualf] = false;
 							this->updateControllers();
 							ref->header.frame_id = "local";
@@ -276,13 +283,16 @@ namespace labust
 
 int main(int argc, char* argv[])
 {
-	ros::init(argc,argv,"course_keeping_FA");
+    ros::init(argc,argv,"course_keeping");
 
-	labust::control::PrimitiveBase<labust::control::CourseKeeping> primitive;
+	labust::primitive::PrimitiveBase<labust::primitive::CourseKeeping> primitive;
 	ros::spin();
 
 	return 0;
 }
+
+
+
 
 
 
