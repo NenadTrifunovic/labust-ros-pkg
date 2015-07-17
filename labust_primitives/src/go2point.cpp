@@ -90,9 +90,6 @@ namespace labust
 				controllers.name[ualf] = "UALF_enable";
 				controllers.name[falf] = "FALF_enable";
 				controllers.name[hdg] = "HDG_enable";
-
-				ROS_ERROR("Action node initialized");
-
 			}
 
 			void onGoal()

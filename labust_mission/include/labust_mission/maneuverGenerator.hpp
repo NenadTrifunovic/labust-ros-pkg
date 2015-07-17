@@ -75,7 +75,7 @@ namespace labust {
 			void generateRows(double north, double east, double speed, double victory_radius, double width, double length, double hstep, double alternationPercent,
 					double curvOff, bool squareCurve, double bearing, double crossAngle, bool invertY);
 
-			void generateStationKeeping();
+			void generateStationKeeping(double north, double east, double heading);
 
 			void writePrimitives(int primitiveID, std::vector<Eigen::Vector4d> points, double heading, double speed, double victoryRadius);
 
@@ -134,9 +134,9 @@ namespace labust {
 			writePrimitives(go2point_FA, tmpPoints, 0, speed, victory_radius); /* heading, speed, victoryRadius */
 		}
 
-		void ManeuverGenerator::generateStationKeeping()
+		void ManeuverGenerator::generateStationKeeping(double north, double east, double heading)
 		{
-
+			writeXML.addDynamic_positioning(north, east, heading);
 		}
 
 		void ManeuverGenerator::writePrimitives(int primitiveID, std::vector<Eigen::Vector4d> points, double heading, double speed, double victoryRadius){

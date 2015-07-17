@@ -256,11 +256,15 @@ using namespace labust::controller;
 			goal.T1.point.z = 0;
 			goal.yaw = heading;
 
+			LLcfg.LL_VELconfigure(true,2,2,0,0,0,2);
 			DynamicPositioning.start(goal);
 		}
 		else
 		{
+
 			DynamicPositioning.stop();
+			LLcfg.LL_VELconfigure(false,2,2,0,0,0,2);
+
 		}
 	}
 

@@ -188,7 +188,7 @@ namespace labust{
 			addXMLNode(primitive,"param","name","north",north);
 			addXMLNode(primitive,"param","name","east",east);
 			addXMLNode(primitive,"param","name","heading",heading);
-			addXMLNode(primitive,"param","name","timeout",10);
+			addXMLNode(primitive,"param","name","timeout",0);
 
 			mission->InsertEndChild(primitive);
 		}

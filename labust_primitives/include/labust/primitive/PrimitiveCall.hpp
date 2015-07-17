@@ -150,7 +150,7 @@ namespace labust
 			{
 				if (state == actionlib::SimpleClientGoalState::SUCCEEDED)
 				{
-					ROS_ERROR("Course keeping - Finished in state [%s]", state.toString().c_str());
+					ROS_ERROR("Dynamic Positioning - Finished in state [%s]", state.toString().c_str());
 					publishEventString("/PRIMITIVE_FINISHED");
 				}
 			}
@@ -158,7 +158,7 @@ namespace labust
 			/*** Callback called once when the goal becomes active ***/
 			void activeCb()
 			{
-			ROS_ERROR("Goal just went active go2point_FA");
+			ROS_ERROR("Goal just went active dynamic_positioning");
 			}
 
 			/*** Callback called every time feedback is received for the goal ***/

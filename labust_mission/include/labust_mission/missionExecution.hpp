@@ -141,10 +141,10 @@ namespace labust {
 			ros::NodeHandle nh_;
 
 			/** Timers */
-			ros::Timer timer, refreshRateTimer;
+			ros::Timer timer;
 
 			/** Publishers */
-			ros::Publisher pubRequestPrimitive;
+			ros::Publisher pubRequestPrimitive, pubEventString;
 
 			/** Subscribers */
 			ros::Subscriber subDataEventsContainer, subEventString, subReceivePrimitive, subStateHat;
@@ -171,13 +171,13 @@ namespace labust {
 			map<string, string> primitiveStringMap;
 
 			/** Execution flags */
-			bool checkEventFlag, refreshActive, timeoutActive;
+			bool checkEventFlag, timeoutActive;
 
 			/** Next primitive to request */
 			int nextPrimitive;
 
-			/** Primitive reference refresh rate */
-			double refreshRate;
+			/** Mission state flag */
+			bool missionActive;
 		};
 
 		/*****************************************************************
@@ -186,9 +186,8 @@ namespace labust {
 
 		MissionExecution::MissionExecution(ros::NodeHandle& nh):checkEventFlag(false),
 																	nextPrimitive(1),
-																	refreshActive(false),
 																	timeoutActive(false),
-																	refreshRate(0.0){
+																	missionActive(false){
 
 			/** Subscribers */
 			subEventString = nh.subscribe<std_msgs::String>("eventString",1, &MissionExecution::onEventString, this);
@@ -198,6 +197,8 @@ namespace labust {
 
 			/** Publishers */
 			pubRequestPrimitive = nh.advertise<std_msgs::UInt16>("requestPrimitive",1);
+			pubEventString = nh.advertise<std_msgs::String>("eventString",1);
+
 
 			/** Services */
 			srvExprEval = nh.serviceClient<misc_msgs::EvaluateExpression>("evaluate_expression");
@@ -409,7 +410,6 @@ namespace labust {
 		void MissionExecution::onReceivePrimitive(const misc_msgs::SendPrimitive::ConstPtr& data){
 
 			receivedPrimitive = *data;
-			//refreshRate = data->refreshRate;
 
 			/** Check if received primitive has active events */
 			if(receivedPrimitive.event.onEventNextActive.empty() == 0){
@@ -424,7 +424,10 @@ namespace labust {
 				mainEventQueue->riseEvent(id_string.c_str());
 			}else{
 				ROS_ERROR("Mission ended.");
-				mainEventQueue->riseEvent("/STOP");
+				std_msgs::String msg;
+				msg.data = "/STOP";
+				pubEventString.publish(msg);
+				//mainEventQueue->riseEvent("/STOP");
 			}
 		}
 
@@ -442,6 +445,13 @@ namespace labust {
 
 		/** EventString topic callback */
 		void MissionExecution::onEventString(const std_msgs::String::ConstPtr& msg){
+
+			if(strcmp(msg->data.c_str(),"/START_DISPATCHER") == 0 && missionActive)
+			{
+				mainEventQueue->riseEvent("/STOP");
+				onPrimitiveEndReset();
+				nextPrimitive = 1;
+			}
 
 			mainEventQueue->riseEvent(msg->data.c_str());
 			ROS_ERROR("EventString: %s",msg->data.c_str());
@@ -469,16 +479,6 @@ namespace labust {
 		   	}
 		}
 
-		/** Set primitive reference refresh rate */
-//		void MissionExecution::setRefreshRate(double timeout,  boost::function<void(void)> onRefreshCallback){
-//
-//		   	if(timeout != 0){
-//		   		ROS_ERROR("Setting refresh rate: %f", timeout);
-//		   		refreshRateTimer = nh_.createTimer(ros::Duration(timeout), boost::bind(onRefreshCallback), false);
-//		   		refreshActive = true;
-//		   	}
-//		}
-
 		/** On timeout finish primitive execution */
 		void MissionExecution::onTimeout(const ros::TimerEvent& timer){
 
@@ -490,12 +490,11 @@ namespace labust {
 		/** Reset timers and flags */
 		void MissionExecution::onPrimitiveEndReset(){
 
-			/** Stop refresh rate timer */
-			refreshRateTimer.stop();
 			/** Stop timeout timer */
 			timer.stop();
 		    /** Reset execution flags */
-			refreshActive = timeoutActive = checkEventFlag = false;
+			timeoutActive = checkEventFlag = false;
+			missionActive = false;
 		}
 	}
 }

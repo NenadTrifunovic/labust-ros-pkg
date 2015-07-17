@@ -116,7 +116,7 @@ MainEventQueue(){ mainEventQueue = new RosEventQueue(); }
 			FSM_STATE(Dispatcher_state)
 			{
 				ROS_ERROR("Dispatcher active");
-
+				ME->missionActive = true;
 				ME->requestPrimitive();
 
 				FSM_TRANSITIONS
