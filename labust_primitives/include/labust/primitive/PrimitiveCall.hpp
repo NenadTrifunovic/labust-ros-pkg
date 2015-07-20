@@ -89,7 +89,7 @@ namespace labust
 			/*** Callback called every time feedback is received for the goal ***/
 			void feedbackCb(const Feedback::ConstPtr& feedback)
 			{
-				   ROS_ERROR("Feedback - distance: %f", feedback->distance);
+				   ROS_ERROR("Feedback - Go2point - distance: %f, bearing: %f", feedback->distance, feedback->bearing);
 			}
 		};
 
@@ -164,9 +164,8 @@ namespace labust
 			/*** Callback called every time feedback is received for the goal ***/
 			void feedbackCb(const Feedback::ConstPtr& feedback)
 			{
-			// ROS_INFO("Got Feedback of length %lu", feedback->sequence.size());
-			//if((counter++)%10 == 0)
-			//ROS_ERROR("Feedback - distance: %f", feedback->distance);
+				ROS_ERROR("Feedback - dynamic_positioning - x-error: %f, y-error: %f, distance: %f, bearing: %f",
+						feedback->error.point.x, feedback->error.point.y, feedback->distance, feedback->bearing);
 			}
 		};
 

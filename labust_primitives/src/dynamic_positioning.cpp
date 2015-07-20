@@ -59,6 +59,8 @@ namespace labust
 
 			typedef navcon_msgs::DynamicPositioningGoal Goal;
 			typedef navcon_msgs::DynamicPositioningResult Result;
+			typedef navcon_msgs::DynamicPositioningFeedback Feedback;
+
 
 			enum {ualf=0,falf, fadp, hdg, numcnt};
 
@@ -158,6 +160,25 @@ namespace labust
 				if (aserver->isActive()){
 
 					stateRef.publish(step(*estimate));
+
+					/*** Check if goal (victory radius) is achieved ***/
+					Eigen::Vector3d distance;
+					distance<<goal->T1.point.x-estimate->position.north, goal->T1.point.y-estimate->position.east, 0;
+
+					/*** Calculate bearing to endpoint ***/
+					Eigen::Vector3d T1,T2;
+					labust::math::Line bearing_to_endpoint;
+					T1 << estimate->position.north, estimate->position.east, 0;
+					T2 << goal->T1.point.x, goal->T1.point.y, 0;
+					bearing_to_endpoint.setLine(T1,T2);
+
+					/*** Publish primitive feedback ***/
+					Feedback feedback;
+					feedback.error.point.x = distance(0);
+					feedback.error.point.y = distance(1);
+					feedback.distance = distance.norm();
+					feedback.bearing = bearing_to_endpoint.gamma();
+					aserver->publishFeedback(feedback);
 				}
 				else if (goal != 0){
 
