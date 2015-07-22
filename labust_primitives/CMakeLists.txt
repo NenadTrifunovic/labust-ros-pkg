@@ -84,7 +84,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
+   INCLUDE_DIRS include
 #  LIBRARIES labust_primitives
 #  CATKIN_DEPENDS actionlib actionlib_msgs auv_msgs navcon_msgs roscpp tf2_ros
 #  DEPENDS system_lib
@@ -107,19 +107,14 @@ include_directories(
 # )
 
 ## Declare a cpp executable
-add_executable(course_keeping_FA src/CourseKeepingFA.cpp)
-add_executable(course_keeping_UA src/CourseKeepingUA.cpp)
-add_executable(dp_primitive src/DPprimitive.cpp)
-add_executable(go2point_FA src/go2point_FA.cpp)
-add_executable(go2point_UA src/go2point_UA.cpp)
-add_executable(test_course src/test/test_course.cpp)
+add_executable(go2point src/go2point.cpp)
+add_executable(course_keeping src/course_keeping.cpp)
+add_executable(dynamic_positioning src/dynamic_positioning.cpp)
+
 if (DEFINED catkin_EXPORTED_TARGETS)
- add_dependencies(course_keeping_FA ${catkin_EXPORTED_TARGETS})
- add_dependencies(course_keeping_UA ${catkin_EXPORTED_TARGETS})
- add_dependencies(dp_primitive ${catkin_EXPORTED_TARGETS})
- add_dependencies(go2point_FA ${catkin_EXPORTED_TARGETS})
- add_dependencies(go2point_UA ${catkin_EXPORTED_TARGETS})
- add_dependencies(test_course ${catkin_EXPORTED_TARGETS})
+ add_dependencies(go2point ${catkin_EXPORTED_TARGETS})
+ add_dependencies(course_keeping ${catkin_EXPORTED_TARGETS})
+ add_dependencies(dynamic_positioning ${catkin_EXPORTED_TARGETS})
 endif()
 
 ## Add cmake target dependencies of the executable/library
@@ -127,29 +122,20 @@ endif()
 # add_dependencies(labust_primitives_node labust_primitives_generate_messages_cpp)
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(course_keeping_FA
+target_link_libraries(go2point
    ${catkin_LIBRARIES}
 )
 
-target_link_libraries(course_keeping_UA
+target_link_libraries(course_keeping
    ${catkin_LIBRARIES}
 )
 
-target_link_libraries(dp_primitive
+target_link_libraries(dynamic_positioning
    ${catkin_LIBRARIES}
 )
 
-target_link_libraries(go2point_FA
-   ${catkin_LIBRARIES}
-)
 
-target_link_libraries(go2point_UA
-   ${catkin_LIBRARIES}
-)
 
-target_link_libraries(test_course
-   ${catkin_LIBRARIES}
-)
 
 #############
 ## Install ##

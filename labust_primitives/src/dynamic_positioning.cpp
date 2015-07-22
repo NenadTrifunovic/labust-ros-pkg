@@ -34,7 +34,7 @@
  *  Author: Dula Nad
  *  Created: 01.02.2013.
  *********************************************************************/
-#include <labust/control/PrimitiveBase.hpp>
+#include <labust/primitive/PrimitiveBase.hpp>
 #include <labust/math/NumberManipulation.hpp>
 #include <labust/math/Line.hpp>
 #include <labust/tools/conversions.hpp>
@@ -50,24 +50,35 @@
 #include <boost/thread/mutex.hpp>
 #include <boost/array.hpp>
 
-namespace labust{
-	namespace control{
+namespace labust
+{
+	namespace primitive
+	{
 
-		struct DPprimitive : protected ExecutorBase<navcon_msgs::DynamicPositioningAction>{
+		struct DynamicPositionining : protected ExecutorBase<navcon_msgs::DynamicPositioningAction>{
 
 			typedef navcon_msgs::DynamicPositioningGoal Goal;
 			typedef navcon_msgs::DynamicPositioningResult Result;
+			typedef navcon_msgs::DynamicPositioningFeedback Feedback;
 
-			enum {ualf=0,falf,heading, numcnt};
 
-			DPprimitive():
-				ExecutorBase("DPprimitive"),
+			enum {ualf=0,falf, fadp, hdg, numcnt};
+
+			DynamicPositionining():
+				ExecutorBase("dynamic_positioning"),
 				underactuated(true),
 				headingEnabled(false),
 				processNewGoal(false){};
 
 			void init(){
 				ros::NodeHandle ph("~");
+
+				/*** Initialize controller names ***/
+				controllers.name.resize(numcnt);
+				controllers.state.resize(numcnt, false);
+
+				controllers.name[fadp] = "FADP_enable";
+				controllers.name[hdg] = "HDG_enable";
 			}
 
 			void onGoal(){
@@ -99,7 +110,9 @@ namespace labust{
 
 					//Update reference
 					stateRef.publish(step(lastState));
-                    enableController = true;
+                    controllers.state[fadp] = true;
+                    controllers.state[hdg] = true;
+
 
 					this->updateControllers();
 				}
@@ -130,13 +143,13 @@ namespace labust{
 				ros::NodeHandle nh;
 				ros::ServiceClient cl;
 
-				cl = nh.serviceClient<navcon_msgs::EnableControl>("FADP_enable");
+				cl = nh.serviceClient<navcon_msgs::EnableControl>(std::string(controllers.name[fadp]));
 				navcon_msgs::EnableControl a;
-                a.request.enable = enableController;
+                a.request.enable =  controllers.state[fadp];
 				cl.call(a);
 
-				cl = nh.serviceClient<navcon_msgs::EnableControl>("HDG_enable");
-                a.request.enable = enableController;
+				cl = nh.serviceClient<navcon_msgs::EnableControl>(std::string(controllers.name[hdg]));
+                a.request.enable =  controllers.state[fadp];
 				cl.call(a);
 			}
 
@@ -147,14 +160,32 @@ namespace labust{
 				if (aserver->isActive()){
 
 					stateRef.publish(step(*estimate));
+
+					/*** Check if goal (victory radius) is achieved ***/
+					Eigen::Vector3d distance;
+					distance<<goal->T1.point.x-estimate->position.north, goal->T1.point.y-estimate->position.east, 0;
+
+					/*** Calculate bearing to endpoint ***/
+					Eigen::Vector3d T1,T2;
+					labust::math::Line bearing_to_endpoint;
+					T1 << estimate->position.north, estimate->position.east, 0;
+					T2 << goal->T1.point.x, goal->T1.point.y, 0;
+					bearing_to_endpoint.setLine(T1,T2);
+
+					/*** Publish primitive feedback ***/
+					Feedback feedback;
+					feedback.error.point.x = distance(0);
+					feedback.error.point.y = distance(1);
+					feedback.distance = distance.norm();
+					feedback.bearing = bearing_to_endpoint.gamma();
+					aserver->publishFeedback(feedback);
 				}
 				else if (goal != 0){
 
 						goal.reset();
 						ROS_INFO("Stopping controllers.");
 						controllers.state.assign(numcnt, false);
-                        enableController = false;
-						//this->updateControllers();
+						this->updateControllers();
 				}
 
 				lastState = *estimate;
@@ -184,16 +215,15 @@ namespace labust{
 			auv_msgs::NavSts lastState;
 			boost::mutex state_mux;
 			navcon_msgs::ControllerSelectRequest controllers;
-            bool enableController;
 		};
 	}
 }
 
 int main(int argc, char* argv[]){
 
-	ros::init(argc,argv,"DPprimitive");
+	ros::init(argc,argv,"dynamic_positioning");
 
-	labust::control::PrimitiveBase<labust::control::DPprimitive> primitive;
+	labust::primitive::PrimitiveBase<labust::primitive::DynamicPositionining> primitive;
 	ros::spin();
 
 	return 0;

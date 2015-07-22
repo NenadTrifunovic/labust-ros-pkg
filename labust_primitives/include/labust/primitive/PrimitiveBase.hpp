@@ -41,10 +41,10 @@
 
 namespace labust
 {
-	namespace control
+	namespace primitive
 	{
 		/**
-		 * The base class for course keeping behaviours.
+		 * The base primitive class.
 		 */
     template <class ActionType>
 		class ExecutorBase
@@ -82,8 +82,8 @@ namespace labust
 		};
 
 		template <class Executor,
-			class OutputType = auv_msgs::NavSts,
-			class StateType = auv_msgs::NavSts>
+				   class OutputType = auv_msgs::NavSts,
+			       class StateType = auv_msgs::NavSts>
 		class PrimitiveBase : public Executor
 		{
 			typedef PrimitiveBase<Executor,OutputType,StateType> Base;
@@ -93,25 +93,20 @@ namespace labust
 			 */
 			PrimitiveBase(){this->onInit();};
 			/**
-			 * Initialize and setup controller.
+			 * Initialize and setup primitive action node.
 			 */
 			void onInit()
 			{
 				ros::NodeHandle nh,ph("~");
-				this->aserver.reset(new typename Executor::ActionServer(nh,
-						this->primitiveName,	false));
+				this->aserver.reset(new typename Executor::ActionServer(nh, this->primitiveName,	false));
 
-			  this->aserver->registerGoalCallback(
-			  		boost::bind(&Base::onGoal, this));
-			  this->aserver->registerPreemptCallback(
-			  		boost::bind(&Base::onPreempt, this));
+				this->aserver->registerGoalCallback(boost::bind(&Base::onGoal, this));
+				this->aserver->registerPreemptCallback(boost::bind(&Base::onPreempt, this));
 
 				this->stateRef = nh.advertise<OutputType>("out", 1);
-				this->stateHat = nh.subscribe<StateType>("state", 1,
-						boost::bind(&Base::onStateHat,this,_1));
+				this->stateHat = nh.subscribe<StateType>("state", 1,boost::bind(&Base::onStateHat,this,_1));
 
-				this->control_manager =
-						nh.serviceClient<navcon_msgs::ControllerSelect>("controller_select", true);
+				this->control_manager = nh.serviceClient<navcon_msgs::ControllerSelect>("controller_select", true);
 
 				Executor::init();
 

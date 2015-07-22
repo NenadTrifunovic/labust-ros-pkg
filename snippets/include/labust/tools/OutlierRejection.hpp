@@ -20,7 +20,7 @@ namespace labust
 		class OutlierRejection
 		{
 		public:
-			OutlierRejection(int input_size, double lambda, double a_wk0 = 1, double b_wk0 = 1):
+			OutlierRejection(int input_size, double lambda, double a_wk0 = 1.0, double b_wk0 = 1.0):
 				input_size(input_size),
 				lambda(lambda),
 				a_wk0(a_wk0),
@@ -57,7 +57,7 @@ namespace labust
 			//{
 			//}
 
-			void step(Eigen::VectorXd input, double output){
+			void step(Eigen::VectorXd input, double output, double* y_filt, double* sigma, double* w){
 
 				/*** Automatic Outlier Detection: A Bayesian Approach
 				 *   Robotics and Automation, 2007 IEEE International Conference on In Robotics and Automation,
@@ -68,36 +68,36 @@ namespace labust
 				x_k = input;
 				y_k = output;
 
-				ROS_ERROR("Input: %f, %f, %f",input(0), input(1), input(2));
-				ROS_ERROR("Output: %f",output);
+				//ROS_ERROR("Input: %f, %f, %f",input(0), input(1), input(2));
+				//ROS_ERROR("Output: %f",output);
 
-
+				//exp_wk = (a_wk0+0.5)/(b_wk0+1/(2*variance_k)*(std::pow(y_k-exp_beta_k.transpose()*x_k,2)+x_k.transpose()*sigma_beta_k*x_k));
 
 				N_k = 1 + lambda*N_k;
 				sum_wxx = exp_wk*x_k*x_k.transpose()+lambda*sum_wxx;
 				sum_wyx = exp_wk*y_k*x_k + lambda*sum_wyx;
 				sum_wyy = exp_wk*y_k*y_k + lambda*sum_wyy;
 
-				ROS_ERROR("Nk: %f", N_k);
+			/*	ROS_ERROR("Nk: %f", N_k);
 				ROS_ERROR("sum_wxx");
 				ROS_ERROR_STREAM(sum_wxx);
 				ROS_ERROR("sum_wyx");
 				ROS_ERROR_STREAM(sum_wyx);
 				ROS_ERROR("sum_wyy");
 				ROS_ERROR_STREAM(sum_wyy);
-
+*/
 				sigma_beta_k = (sigma_beta_0_inv + 1/variance_k*sum_wxx);
 				sigma_beta_k = sigma_beta_k.inverse(); // Ovaj korak se moze zamjeniti rekurzivnim oblikom (u clanku referenca).
 				exp_beta_k = sigma_beta_k*(sigma_beta_0_inv*beta_0 + 1/variance_k*sum_wyx);
 
-				ROS_ERROR("sigma_beta_k");
-				ROS_ERROR_STREAM(sigma_beta_k);
-				ROS_ERROR("exp_beta_k");
-				ROS_ERROR_STREAM(exp_beta_k);
+				//ROS_ERROR("sigma_beta_k");
+				//ROS_ERROR_STREAM(sigma_beta_k);
+				//ROS_ERROR("exp_beta_k");
+				//ROS_ERROR_STREAM(exp_beta_k);
 
 				exp_wk = (a_wk0+0.5)/(b_wk0+1/(2*variance_k)*(std::pow(y_k-exp_beta_k.transpose()*x_k,2)+x_k.transpose()*sigma_beta_k*x_k));
 
-				ROS_ERROR("exp(w_k): %f", exp_wk);
+				//ROS_ERROR("exp(w_k): %f", exp_wk);
 
 				Eigen::VectorXd Iones(Eigen::VectorXd::Constant(input_size,1.0));
 
@@ -107,13 +107,20 @@ namespace labust
 
 				variance_k = 1/N_k*(sum_wyy - p1 + p2  + p3);
 
-				ROS_ERROR("variance_k: %f", variance_k);
+				//ROS_ERROR("variance_k: %f", variance_k);
+
+				*y_filt = exp_beta_k.transpose()*input;
+				*sigma = variance_k;
+				*w = exp_wk;
 
 				std_msgs::Float32 msg;
 				msg.data = exp_wk;
 				pubWK.publish(msg);
 				msg.data = variance_k;
 				pubSIGMA.publish(msg);
+				msg.data = exp_beta_k.transpose()*input;
+				pubY.publish(msg);
+
 			}
 
 			int input_size;

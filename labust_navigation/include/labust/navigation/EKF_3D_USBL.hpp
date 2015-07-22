@@ -48,6 +48,8 @@
 #include <labust/navigation/SensorHandlers.hpp>
 #include <labust/math/NumberManipulation.hpp>
 #include <navcon_msgs/ModelParamsUpdate.h>
+#include <labust/tools/OutlierRejection.hpp>
+
 
 #include <tf2_ros/transform_broadcaster.h>
 #include <std_msgs/Float32.h>
@@ -173,7 +175,7 @@ namespace labust
 			/**
 			 * Estimated and measured state publisher.
 			 */
-			ros::Publisher stateMeas, stateHat, currentsHat, buoyancyHat, pubRange;
+			ros::Publisher stateMeas, stateHat, currentsHat, buoyancyHat, pubRange, pubRangeFiltered, pubwk;
 			/**
 			 * Sensors and input subscribers.
 			 */
@@ -246,6 +248,8 @@ namespace labust
 			KFNav::matrix Pstart, Rstart;
 
 			std::deque<FilterState> pastStates;
+
+			labust::tools::OutlierRejection OR;
 
 		};
 	}

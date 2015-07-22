@@ -188,7 +188,7 @@ public:
 		if(underactuated)
 			MG.writeXML.addGo2point_UA(position.north-offset.north, position.east-offset.east,speed,victory_radius);
 		else
-			MG.writeXML.addGo2point_FA(position.north-offset.north, position.east-offset.east,heading,speed,victory_radius);
+			MG.writeXML.addGo2point_FA(position.north-offset.north, position.east-offset.east,speed,victory_radius);
 	}
 
 	void parseRows(XMLElement *maneuverType){
