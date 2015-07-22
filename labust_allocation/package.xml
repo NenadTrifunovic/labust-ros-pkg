@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package>
   <name>labust_allocation</name>
-  <version>0.0.60</version>
+  <version>0.1.0</version>
   <description>
       The package contains thruster allocation and thruster nonlinearity compensation. 
    </description>

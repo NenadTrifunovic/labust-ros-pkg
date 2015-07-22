@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package>
 	<name>labust_sim</name>
-	<version>0.6.0</version>
+	<version>0.1.0</version>
 	<description>
 	    The vehicle and sensor simulation package. The package
 		contains the 6DOF vehicle model,transform frame publishing 

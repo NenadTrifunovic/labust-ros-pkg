@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package>
   <name>ident_so</name>
-  <version>0.0.60</version>
+  <version>0.1.0</version>
   <description>
       The package contains the library implementation of the closed-loop 
       vehicle model identification by use of self-oscillations. The 
