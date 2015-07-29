@@ -117,24 +117,24 @@ void PIFF_wffStep(PIDBase* self, float Ts, float error, float perror, float ff)
 
 	}
 
-	/*if (self->windup && self->useBackward)
+	if (self->windup && self->useBackward)
 	{
 		//Proportional difference
 		float diff = self->track - self->output + self->lastI;
 		//ROS_ERROR("Windup diff=%f track=%f output=%f", diff, self->track, self->output);
 		//ROS_ERROR("Windup I=%f, lI = %f, lerror=%f, error=%f", self->I, self->lastI, self->lastError, error);
-		if ((diff*self->track <= 0) || (self->output*self->track <=0))
+		//if ((diff*self->track <= 0) || (self->output*self->track <=0))
 		{
 			//Unwind
 			self->I -= self->lastI;
 			//ROS_ERROR("Unwinding");
 		}
-		else
+		/*else
 		{
 			//ROS_ERROR("Recalculating");
 			self->I -= self->lastI - diff;
-		}
-	}*/
+		}*/
+	}
 
 
 
