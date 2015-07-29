@@ -253,7 +253,7 @@ using namespace labust::controller;
 
 		/** Subscribers */
 		subStateHat = nh.subscribe<auv_msgs::NavSts>("stateHat",1, &ControllerManager::stateHatCallback,this);
-		subStateHatAbs = nh.subscribe<auv_msgs::NavSts>("stateHatAbs",1, &ControllerManager::stateHatAbsCallback,this);
+		//subStateHatAbs = nh.subscribe<auv_msgs::NavSts>("stateHatAbs",1, &ControllerManager::stateHatAbsCallback,this);
 	}
 
 
@@ -775,13 +775,13 @@ using namespace labust::controller;
 	void ControllerManager::stateHatCallback(const auv_msgs::NavSts::ConstPtr& data){
 
 		posVariance = data->position_variance;
+		Xpos = data->position.north;
+		Ypos = data->position.east;
+		YawPos = data->orientation.yaw;
 	}
 
 	void ControllerManager::stateHatAbsCallback(const auv_msgs::NavSts::ConstPtr& data){
 
-		Xpos = data->position.north;
-		Ypos = data->position.east;
-		YawPos = data->orientation.yaw;
 	}
 
 
