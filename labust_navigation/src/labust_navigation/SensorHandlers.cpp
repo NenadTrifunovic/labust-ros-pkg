@@ -146,12 +146,25 @@ void DvlHandler::configure(ros::NodeHandle& nh)
 {
 	nu_dvl = nh.subscribe<geometry_msgs::TwistStamped>("dvl", 1,
 			&DvlHandler::onDvl, this);
+	nu_dvl = nh.subscribe<std_msgs::Bool>("dvl_bottom", 1,
+			&DvlHandler::onBottomLock, this);
+
+	bottom_lock = false;
+
 
 	uvw[u] = uvw[v] = uvw[w] = 0;
 }
 
+void DvlHandler::onBottomLock(const std_msgs::Bool::ConstPtr& data)
+{
+		this->bottom_lock = data->data;
+}
+
 void DvlHandler::onDvl(const geometry_msgs::TwistStamped::ConstPtr& data)
 {
+	//Ignore water lock data (?)
+	if (!bottom_lock) return;
+
 	if (data->header.frame_id == "dvl_frame")
 	{
 		try

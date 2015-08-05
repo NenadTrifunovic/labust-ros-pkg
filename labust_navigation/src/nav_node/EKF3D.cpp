@@ -68,7 +68,10 @@ Estimator3D::Estimator3D():
 		compassVariance(0.3),
 		gyroVariance(0.003),
 		absoluteEKF(false),
-		max_dvl(1.5){this->onInit();};
+		max_dvl(1.5),
+		min_altitude(0.5),
+		dvl_timeout(5),
+		dvl_time(ros::Time::now()){this->onInit();};
 
 void Estimator3D::onInit()
 {
@@ -81,6 +84,7 @@ void Estimator3D::onInit()
 	currentsHat = nh.advertise<geometry_msgs::TwistStamped>("currentsHat",1);
 	buoyancyHat = nh.advertise<std_msgs::Float32>("buoyancy",1);
 	turns_pub = nh.advertise<std_msgs::Float32>("turns",1);
+	unsafe_dvl = nh.advertise<std_msgs::Bool>("unsafe_dvl",1);
 	//Subscribers
 	tauAch = nh.subscribe<auv_msgs::BodyForceReq>("tauAch", 1, &Estimator3D::onTau,this);
 	depth = nh.subscribe<std_msgs::Float32>("depth", 1,	&Estimator3D::onDepth, this);
@@ -88,6 +92,7 @@ void Estimator3D::onInit()
 	modelUpdate = nh.subscribe<navcon_msgs::ModelParamsUpdate>("model_update", 1, &Estimator3D::onModelUpdate,this);
 	resetTopic = nh.subscribe<std_msgs::Bool>("reset_nav_covariance", 1, &Estimator3D::onReset,this);
 	useGyro = nh.subscribe<std_msgs::Bool>("use_gyro", 1, &Estimator3D::onUseGyro,this);
+
 
 	KFmode = quadMeasAvailable = false;
 	sub = nh.subscribe<auv_msgs::NED>("quad_delta_pos", 1, &Estimator3D::deltaPosCallback,this);
@@ -100,6 +105,8 @@ void Estimator3D::onInit()
 	ph.param("compass_variance",compassVariance,compassVariance);
 	ph.param("gyro_variance",gyroVariance,gyroVariance);
 	ph.param("max_dvl",max_dvl,max_dvl);
+	ph.param("min_altitude", min_altitude, min_altitude);
+	ph.param("dvl_timeout", dvl_timeout, dvl_timeout);
 	double trustf(0);
 	ph.param("dvl_rot_trust_factor", trustf, trustf);
 	double sway_corr(0);
@@ -224,13 +231,15 @@ void Estimator3D::onAltitude(const std_msgs::Float32::ConstPtr& data)
 {
 	boost::mutex::scoped_lock l(meas_mux);
 	measurements(KFNav::altitude) = data->data;
+	//Skip measurement if minimum altitude is encountered
+	if (data->data <= min_altitude) return;
 	//Dismiss false altitude
-	if (fabs(data->data-nav.getState()(KFNav::altitude)) < 10*nav.calculateAltInovationVariance(nav.getStateCovariance())) 
+	if (fabs(data->data-nav.getState()(KFNav::altitude)) < 3*nav.calculateAltInovationVariance(nav.getStateCovariance()))
 	{
 		newMeas(KFNav::altitude) = 1;
 		alt = data->data;
 		ROS_DEBUG("Accepted altitude: meas=%f, estimate=%f, variance=%f",
-			data->data, nav.getState()(KFNav::altitude), 10* nav.calculateAltInovationVariance(nav.getStateCovariance()));
+			data->data, nav.getState()(KFNav::altitude), 3*nav.calculateAltInovationVariance(nav.getStateCovariance()));
 	}
 	else
 	{
@@ -369,7 +378,23 @@ void Estimator3D::processMeasurements()
 			newMeas(KFNav::v) = false;
 		}
 
+		if (newMeas(KFNav::u) || newMeas(KFNav::v))
+		{
+			dvl_time = ros::Time::now();
+			std_msgs::Bool data;
+			data.data = false;
+			unsafe_dvl.publish(data);
+		}
 		//measurements(KFNav::w) = dvl.body_speeds()[DvlHandler::w];
+	}
+	else
+	{
+		if ((ros::Time::now() - dvl_time).toSec() > dvl_timeout)
+		{
+			std_msgs::Bool data;
+			data.data = true;
+			unsafe_dvl.publish(data);
+		}
 	}
 	l.unlock();
 
@@ -493,7 +518,7 @@ void Estimator3D::start()
 
 		if (newArrived)	nav.correct(nav.update(measurements, newMeas));
 		KFNav::vector tcstate = nav.getState();
-		if (tcstate(KFNav::buoyancy) < -10) tcstate(KFNav::buoyancy) = -10;
+		if (tcstate(KFNav::buoyancy) < -30) tcstate(KFNav::buoyancy) = -10;
 		if (tcstate(KFNav::buoyancy) > 0) tcstate(KFNav::buoyancy) = 0;
 		nav.setState(tcstate);
 		l.unlock();

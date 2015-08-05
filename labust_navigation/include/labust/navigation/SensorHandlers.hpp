@@ -37,6 +37,7 @@
 
 #include <sensor_msgs/NavSatFix.h>
 #include <sensor_msgs/Imu.h>
+#include <std_msgs/Bool.h>
 #include <geometry_msgs/TwistStamped.h>
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
@@ -133,7 +134,7 @@ namespace labust
 		public:
 			enum {u=0,v,w};
 
-			DvlHandler():r(0),listener(buffer){};
+			DvlHandler():r(0),listener(buffer),bottom_lock(false){};
 
 			void configure(ros::NodeHandle& nh);
 
@@ -143,8 +144,10 @@ namespace labust
 
 		private:
 			void onDvl(const geometry_msgs::TwistStamped::ConstPtr& data);
+			void onBottomLock(const std_msgs::Bool::ConstPtr& data);
 			double uvw[3], r;
-			ros::Subscriber nu_dvl;
+			bool bottom_lock;
+			ros::Subscriber nu_dvl, dvl_bottom;
 			tf2_ros::Buffer buffer;
 			tf2_ros::TransformListener listener;
 		};

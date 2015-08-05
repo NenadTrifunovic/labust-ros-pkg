@@ -47,6 +47,7 @@
 #include <Eigen/Dense>
 #include <auv_msgs/BodyForceReq.h>
 #include <std_msgs/Float32.h>
+#include <std_msgs/Bool.h>
 #include <ros/ros.h>
 
 namespace labust
@@ -55,13 +56,20 @@ namespace labust
 		///The Depthitude/depth controller
 		struct DepthControl : DisableAxis
 		{
-			DepthControl():Ts(0.1){};
+			DepthControl():Ts(0.1),manRefFlag(true){};
 
 			void init()
 			{
 				ros::NodeHandle nh;
+				manRefSub = nh.subscribe<std_msgs::Bool>("manRefDepthPosition",1,&DepthControl::onManRef,this);
 				initialize_controller();
 			}
+
+			void onManRef(const std_msgs::Bool::ConstPtr& state)
+			{
+				manRefFlag = state->data;
+			}
+
 
   		void windup(const auv_msgs::BodyForceReq& tauAch)
 			{
@@ -91,15 +99,45 @@ namespace labust
 				con.desired = ref.position.depth;
 				con.state = state.position.depth;
 				con.track = state.body_velocity.z;
-				//Step
-				PIFF_ffStep(&con, Ts, ref.body_velocity.z);
-				//Publish
+
+				double tmp_output;
 				auv_msgs::BodyVelocityReqPtr nu(new auv_msgs::BodyVelocityReq());
+
+				if(manRefFlag)
+				{
+					if (state.position.depth > depth_threshold) 
+					{
+						ROS_ERROR("Underwater");					
+						underwater_time = ros::Time::now();
+					}
+					//If more than depth_timeout on surface stop the controller
+					if (((ros::Time::now() - underwater_time).toSec() > depth_timeout) &&
+								ref.position.depth < depth_threshold)
+					{
+						PIFF_ffIdle(&con, Ts, 0);
+						ROS_ERROR("Surface");
+						tmp_output = 0;
+					}
+					else
+					{
+						//PIFF_wffStep(&con,Ts, werror, wperror, 0*ref.orientation_rate.yaw);
+						ROS_ERROR("working");
+						PIFF_ffStep(&con, Ts, 0*ref.body_velocity.z);
+						tmp_output = con.output;
+					}
+					//tmp_output = con.output;
+				}
+				else
+				{
+		  			PIFF_idle(&con, Ts);
+					tmp_output = ref.body_velocity.z;
+				}
+
 				nu->header.stamp = ros::Time::now();
 				nu->goal.requester = "depth_controller";
 				labust::tools::vectorToDisableAxis(disable_axis, nu->disable_axis);
 
-				nu->twist.linear.z = con.output;
+				nu->twist.linear.z = tmp_output;
 
 				return nu;
 			}
@@ -112,6 +150,9 @@ namespace labust
 				double closedLoopFreq(1);
 				nh.param("depth_controller/closed_loop_freq", closedLoopFreq, closedLoopFreq);
 				nh.param("depth_controller/sampling",Ts,Ts);
+				nh.param("depth_controller/depth_threshold",depth_threshold,depth_threshold);
+				nh.param("depth_controller/depth_timeout",depth_timeout,depth_timeout);
+
 
 				disable_axis[2] = 0;
 
@@ -124,6 +165,11 @@ namespace labust
 		private:
 			PIDBase con;
 			double Ts;
+			double depth_threshold;
+			double depth_timeout;
+			ros::Time underwater_time;
+			ros::Subscriber manRefSub;
+			bool manRefFlag;
 		};
 	}}
 
