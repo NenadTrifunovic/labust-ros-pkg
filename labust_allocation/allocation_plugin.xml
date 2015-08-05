@@ -1,0 +1,8 @@
+<library path="lib/liblabust_allocation">
+	<class type="labust::allocation::X2dAdaptive" 
+	    base_class_type="labust::allocation::AllocationInterface">
+		<description>
+			The X horizontal configuration allocator with daisy-chaining.
+		</description>
+	</class>
+</library>

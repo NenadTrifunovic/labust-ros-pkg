@@ -1,0 +1,24 @@
+<launch>
+  <node pkg="labust_allocation" name="alloc" type="allocation_node">
+  	<rosparam command="load" 
+  	     file="$(find labust_allocation)/launch/xconfig3.yaml" />   
+    <!-- Allocator type -->
+    <param name="allocation_plugin" value="labust::allocation::X2dAdaptive" />
+    <!-- Allocator parameter -->
+    <param name="min_torque" value="2" />
+    <param name="adapt" value="true" />
+  </node>
+  
+  <node pkg="labust_allocation" name="alloc_nd" type="allocation_node">
+  	<rosparam command="load" 
+  	     file="$(find labust_allocation)/launch/xconfig3.yaml" />   
+    <!-- Allocator type -->
+    <param name="allocation_plugin" value="labust::allocation::X2dAdaptive" />
+    <!-- Allocator parameter -->
+    <param name="min_torque" value="2" />
+    <param name="daisy_chain" value="false" />
+    <!-- Remap output -->
+    <remap from="pwm_out" to="pwm_out_nd" />
+    <remap from="tau_ach" to="tau_ach_nd" />
+  </node>
+</launch>

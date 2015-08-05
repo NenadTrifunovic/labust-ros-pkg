@@ -95,6 +95,7 @@ namespace labust
 		 * The class contains the ROS template for high level controllers.
 		 *
 		 * \todo Add windup type. Convert into template. EnablePolicy add service, topic option selection.
+		 * \todo Consider joining the windup type and output type - this will require republishing of windup up the cascade ?
 		 */
 		template <
 		class Controller,
@@ -106,11 +107,14 @@ namespace labust
 		>
 		class HLControl : public Controller, Enable, Windup
 		{
+			enum {TIMEOUT=2};
 		public:
 			/**
 			 * Main constructor
 			 */
-			HLControl()
+			HLControl():
+				lastEn(false),
+				refOk(false)
 			{
 				onInit();
 			}
@@ -128,6 +132,8 @@ namespace labust
 						&HLControl::onEstimate,this);
 				trackState = nh.subscribe<ReferenceType>("ref", 1,
 						&HLControl::onRef,this);
+				extSub = nh.subscribe<OutputType>("track", 1,
+						&HLControl::onTrack,this);
 
 				Controller::init();
 			}
@@ -137,23 +143,34 @@ namespace labust
 			void onRef(const typename ReferenceType::ConstPtr& ref)
 			{
 				boost::mutex::scoped_lock l(cnt_mux);
+				refOk = true;
 				this->ref = *ref;
+			}
+
+			void onTrack(const typename OutputType::ConstPtr& ext)
+			{
+				boost::mutex::scoped_lock l(cnt_mux);
+				this->ext = *ext;
 			}
 
 			void onEstimate(const typename InputType::ConstPtr& estimate)
 			{
 				if (!Enable::enable)
 				{
+					this->idle(ref, *estimate, ext);
 					lastEn = false;
+					refOk = false;
 					return;
 				}
+
+				if (!refOk) return;
 
 				//Copy into controller
 				Windup::get_windup(this);
 				boost::mutex::scoped_lock l(cnt_mux);
 				if (Enable::enable && !lastEn)
 				{
-					this->reset(ref, *estimate);
+					//this->reset(ref, *estimate);
 					lastEn = true;
 				}
 				outPub.publish(Controller::step(ref, *estimate));
@@ -166,15 +183,17 @@ namespace labust
 			/**
 			 * The subscribed topics.
 			 */
-			ros::Subscriber stateSub, trackState;
+			ros::Subscriber stateSub, trackState, extSub;
 			/**
 			 * The desired state to track.
 			 */
 			ReferenceType ref;
+			///The external achieved reference
+			OutputType ext;
 			/**
 			 * The disabled axis.
 			 */
-			bool disabled_axis[6], lastEn;
+			bool disabled_axis[6], lastEn, refOk;
 			/**
 			 * Control locker.
 			 */

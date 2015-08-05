@@ -1,0 +1,23 @@
+# Battery specifications
+# Default supply voltage
+Us: 26
+# Nominal motor voltage
+Un: 19
+# Thruster coefficients
+Kp: [0.0013104, 0.0018041, 0.0017005, 0.0016748]
+Kn: [0.0012837, 0.0019542, 0.0014235, 0.0017347]
+# Allocation matrix
+B: [[-0.707107, 0.707107, 0.707107, -0.707107],
+    [-0.707107, -0.707107, 0.707107, 0.707107],
+    [     1   ,     -1   ,    1    ,   -1    ]] 
+# PWM specifications
+# Mapping - the number of the PWM related 
+# to the motor number (starts from 1)
+pwm_mapping: [1,2,3,4]
+# PWM sign to achieved positive direction of the thruster 
+# (1 for normal, -1 if reversed connection)
+pwm_direction: [1,1,1,1]
+# Maximum of the achievable PWM cycle (0-1)
+pwm_max: [0.7,0.7,0.7,0.7]
+# Minimum of the achievable PWM cycle (-1-0)
+pwm_min: [-0.7,-0.7,-0.7,-0.7]

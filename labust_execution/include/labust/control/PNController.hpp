@@ -231,7 +231,7 @@ namespace labust
 				template <class Vertex>
 				void operator()(std::ostream &out, const Vertex& e) const
 				{
-					if (graph[e].type == PNGraphType::vertex_property_type::value_type::p)
+					if (graph[e].type == PNVertexProperty::p)
 					{
 						out << "[label="<< graph[e].name<<"]";
 					}

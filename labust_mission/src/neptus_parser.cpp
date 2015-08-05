@@ -69,7 +69,12 @@ public:
 	 ********************************************************************/
 
 	NeptusParser():startPointSet(false),
-					 startRelative(true){
+					 startRelative(true),
+					 latLonAbs(false),
+					 underactuated(true),
+					 speed(0.5),
+					 heading(0.0),
+					 victory_radius(1.0){
 
 		offset.north = offset.east = 0;
 		xmlSavePath = "";
@@ -180,7 +185,10 @@ public:
 		}
 
 		/* Write point to XML file */
-		MG.writeXML.addGo2point_FA(position.north-offset.north, position.east-offset.east,0,0.5,1.0);
+		if(underactuated)
+			MG.writeXML.addGo2point_UA(position.north-offset.north, position.east-offset.east,speed,victory_radius);
+		else
+			MG.writeXML.addGo2point_FA(position.north-offset.north, position.east-offset.east,speed,victory_radius);
 	}
 
 	void parseRows(XMLElement *maneuverType){
@@ -213,7 +221,6 @@ public:
 		double alternationPercent = 100;
 		double curvOff = 15;
 		double crossAngle = 0;
-		double speed = 0.5; /* Speed in m/s */
 		bool squareCurve = true;
 		bool invertY = false;
 
@@ -307,8 +314,11 @@ ROS_ERROR("width: %f, length: %f, hstep: %f, bearing: %f, alternationPercent: %f
 			*it = vTmp;
 		}
 
-		/* Write maneuver points to XML */
-		MG.writePrimitives(go2point_FA, tmpPoints,speed,1.0); /* speed, victoryRadius */
+		/*** Write maneuver points to XML ***/
+		if(underactuated)
+			MG.writePrimitives(go2point_UA, tmpPoints, heading, speed, victory_radius); /* heading, speed, victoryRadius */
+		else
+			MG.writePrimitives(go2point_FA, tmpPoints, heading, speed, victory_radius); /* heading, speed, victoryRadius */
 	}
 
 	void parseStationKeeping(XMLElement *maneuverType){
@@ -334,7 +344,7 @@ ROS_ERROR("width: %f, length: %f, hstep: %f, bearing: %f, alternationPercent: %f
 		setStartPoint(position);
 
 		/* Write point to XML file */
-		MG.writeXML.addDynamic_positioning(position.north-offset.north, position.east-offset.east,0);
+		MG.writeXML.addDynamic_positioning(position.north-offset.north, position.east-offset.east, heading);
 
 
 	}
@@ -374,7 +384,7 @@ ROS_ERROR("width: %f, length: %f, hstep: %f, bearing: %f, alternationPercent: %f
 
 
 		//posxy =	labust::tools::deg2meter(LatLon.latitude - startPoint.latitude, LatLon.longitude - startPoint.longitude, startPoint.longitude);
-		posxy =	labust::tools::deg2meter(LatLon.latitude - origin.latitude, LatLon.longitude - origin.longitude, origin.longitude);
+		posxy =	labust::tools::deg2meter(LatLon.latitude - origin.latitude, LatLon.longitude - origin.longitude, origin.latitude);
 
 	    position.north = posxy.first;
 	    position.east = posxy.second;
@@ -412,6 +422,10 @@ ROS_ERROR("width: %f, length: %f, hstep: %f, bearing: %f, alternationPercent: %f
 	bool startRelative;
 	bool latLonAbs;
 	string xmlSavePath;
+
+	/*** Mission parameters ***/
+	bool underactuated;
+	double speed, heading, victory_radius;
 };
 
 void startParseCallback(ros::Publisher &pubStartDispatcher, const misc_msgs::StartNeptusParser::ConstPtr& msg){
@@ -435,9 +449,14 @@ void startParseCallback(ros::Publisher &pubStartDispatcher, const misc_msgs::Sta
 		NP.offset.north = NP.offset.east = 0;
 	}
 
-	int status = NP.parseNeptus(msg->fileName);
+	NP.underactuated = msg->underactuated;
+	NP.speed = msg->speed; // read from .nmis file
+	NP.heading = msg->heading;
 
-	if(status == 1){
+	NP.victory_radius = msg->victory_radius;
+
+	/*** If Neptus file is successfully parsed  ***/
+	if(NP.parseNeptus(msg->fileName) == 1){
 		std_msgs::String tmp;
 		tmp.data = "/START_DISPATCHER";
 		pubStartDispatcher.publish(tmp);
@@ -450,12 +469,11 @@ int main(int argc, char** argv){
 	ros::init(argc, argv, "neptusParser");
 	ros::NodeHandle nh;
 
-	/* Publishers */
+	/*** Publishers ***/
 	ros::Publisher pubStartDispatcher = nh.advertise<std_msgs::String>("eventString",1);
 
-	/* Subscribers */
+	/*** Subscribers ***/
 	ros::Subscriber subStartParse = nh.subscribe<misc_msgs::StartNeptusParser>("startNeptusParse",1, boost::bind(&startParseCallback, boost::ref(pubStartDispatcher), _1));
-	//subStateHatAbs= nh.subscribe<auv_msgs::NavSts>("stateHatAbs",1, &onStateHat, this);
 
 	ros::spin();
 	return 0;

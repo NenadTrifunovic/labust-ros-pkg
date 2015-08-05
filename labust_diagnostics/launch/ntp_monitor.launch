@@ -1,0 +1,4 @@
+<launch>
+  <node pkg="labust_diagnostics" type="ntp_monitor.py" name="ntp_monitor"
+        args="2.ubuntu.pool.ntp.org --diag-hostname=my_machine"  />
+</launch>

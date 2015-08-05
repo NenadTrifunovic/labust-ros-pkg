@@ -157,6 +157,7 @@ namespace labust
 			 */
 			inline void publish_dispatch(auv_msgs::BodyForceReq::Ptr& tau)
 			{
+				tau->header.stamp = ros::Time::now();
 				this->tauAch.publish(tau);
 			}
 			/**

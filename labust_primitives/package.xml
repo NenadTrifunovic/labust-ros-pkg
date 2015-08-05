@@ -1,15 +1,15 @@
 <?xml version="1.0"?>
 <package>
   <name>labust_primitives</name>
-  <version>0.0.0</version>
+  <version>0.1.0</version>
   <description>
       The package contains the actions and primitives used for high-level control and 
       mission management.
   </description>
 
-  <maintainer email="dula.nad@gmail.com">Gyula Nagy</maintainer>
+  <maintainer email="filip.mandic@fer.hr">Filip Mandic</maintainer>
   <license>BSD</license>
-  <author email="dula.nad@gmail.com">Gyula Nagy</author>
+  <author email="filip.mandic@fer.hr">Filip Mandic</author>
 
   <buildtool_depend>catkin</buildtool_depend>
   <build_depend>actionlib</build_depend>

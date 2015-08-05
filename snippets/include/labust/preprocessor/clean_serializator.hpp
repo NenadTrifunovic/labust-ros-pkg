@@ -40,6 +40,8 @@
 #include <boost/archive/detail/oserializer.hpp>
 #include <boost/archive/detail/iserializer.hpp>
 #include <boost/serialization/array.hpp>
+#include <boost/serialization/string.hpp>
+#include <boost/serialization/collections_save_imp.hpp>
 
 /**
  * This is a specialization of the array saver to prevent writing the
@@ -87,6 +89,16 @@ struct load_array_type<CLASS_NAME> { \
 	} \
 };\
 }}};\
+
+/**
+ * This is brute-force method for clean serialization of std::string.
+ */
+template <class Archive>
+void clean_string_serialize(Archive &ar, const std::string& s)
+{
+	uint32_t size = s.size();
+	for(int i=0; i<size; ++i) ar & s[i];
+}
 
 /* CLEAN_SERIALIZATOR_HPP_ */
 #endif

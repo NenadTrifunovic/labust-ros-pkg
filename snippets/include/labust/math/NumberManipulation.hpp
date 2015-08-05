@@ -144,6 +144,25 @@ namespace labust
       for(typename Vector::const_iterator cnt = vec.begin(); cnt != vec.end(); ++cnt, ++size) sum+=std::pow(((*cnt) - mean),2);
       return size?std::sqrt(sum/size):-1;
     }
+
+    /**
+     * The function calculates the vector deviation over a range.
+     *
+     * \param vec Data vector.
+     *
+     * \param mean Mean value of the same data
+     *
+     * \tparam Template used for polymorphism.
+     */
+    template<class Vector>
+    inline double std2(const Vector& vec, double mean)
+    {
+      double sum(0);
+      unsigned int size(0);
+      for(typename Vector::const_iterator cnt = vec.begin(); cnt != vec.end(); ++cnt, ++size) sum+=std::pow(((*cnt) - mean),2);
+      return size?std::sqrt(sum/size):-1;
+    }  
+      
     /**
      * The structure handles angle unwrapping. We use a structure for re-entrant behaviour.
      * When doing estimation or control use the angle unwrapper to condition the vehicle angle.

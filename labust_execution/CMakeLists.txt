@@ -5,6 +5,7 @@ project(labust_execution)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
+  cmake_modules
   navcon_msgs
   std_msgs
   roscpp

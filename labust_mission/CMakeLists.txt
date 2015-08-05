@@ -8,7 +8,7 @@ find_package(catkin REQUIRED COMPONENTS
   decision_making
   decision_making_parser
   roscpp
-  random_numbers
+  #random_numbers
   sensor_msgs
   std_msgs
   geometry_msgs
@@ -16,11 +16,22 @@ find_package(catkin REQUIRED COMPONENTS
   tf2_ros
   auv_msgs
   misc_msgs
+  cmake_modules
+  labust_primitives
 )
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 find_package(Boost REQUIRED)
+
+find_path(TinyXML2_INCLUDE_DIR tinyxml2.h
+	PATH_SUFFIXES include
+	PATHS /usr/local /usr)
+
+find_library(TinyXML2_LIBRARY
+	tinyxml2
+	PATH_SUFFIXES lib64 lib
+	PATHS /usr/local /usr)
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -88,7 +99,7 @@ find_package(Boost REQUIRED)
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
+  INCLUDE_DIRS include
 #  LIBRARIES caddy_state_machine
  CATKIN_DEPENDS decision_making decision_making_parser roscpp
 #  DEPENDS system_lib
@@ -105,6 +116,7 @@ include_directories(
   include
   ${catkin_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIRS}
+  ${TinyXML2_INCLUDE_DIR}
 )
 
 ## Declare a cpp library
@@ -112,7 +124,7 @@ include_directories(
 #   src/${PROJECT_NAME}/caddy_state_machine.cpp
 # )
 add_executable(mission_exec src/mission_exec.cpp)
-add_executable(mission_exec_INTEGRATED src/mission_exec_INTEGRATED.cpp)
+#add_executable(mission_exec_INTEGRATED src/mission_exec_INTEGRATED.cpp)
 add_executable(neptus_parser src/neptus_parser.cpp)
 add_executable(mission_parser src/mission_parser.cpp)
 add_executable(data_event_manager src/data_event_manager.cpp)
@@ -136,7 +148,7 @@ add_executable(mzos missions/mzos.cpp)
 
 if (DEFINED catkin_EXPORTED_TARGETS)
   add_dependencies(mission_exec ${catkin_EXPORTED_TARGETS})
-  add_dependencies(mission_exec_INTEGRATED ${catkin_EXPORTED_TARGETS})
+#  add_dependencies(mission_exec_INTEGRATED ${catkin_EXPORTED_TARGETS})
   add_dependencies(neptus_parser ${catkin_EXPORTED_TARGETS})
   add_dependencies(mission_parser ${catkin_EXPORTED_TARGETS})
   add_dependencies(data_event_manager ${catkin_EXPORTED_TARGETS})
@@ -148,11 +160,11 @@ if (DEFINED catkin_EXPORTED_TARGETS)
 endif()
 
 #link_directories(/usr/include/)
-target_link_libraries(mission_exec ${catkin_LIBRARIES})
-target_link_libraries(mission_exec_INTEGRATED ${catkin_LIBRARIES}  tinyxml2)
-target_link_libraries(neptus_parser ${catkin_LIBRARIES}  tinyxml2)
-target_link_libraries(mission_parser ${catkin_LIBRARIES}  tinyxml2)
-target_link_libraries(data_event_manager ${catkin_LIBRARIES}  tinyxml2)
+target_link_libraries(mission_exec ${catkin_LIBRARIES} ${TinyXML2_LIBRARY})
+#target_link_libraries(mission_exec_INTEGRATED ${catkin_LIBRARIES}  tinyxml2)
+target_link_libraries(neptus_parser ${catkin_LIBRARIES} ${TinyXML2_LIBRARY})
+target_link_libraries(mission_parser ${catkin_LIBRARIES} ${TinyXML2_LIBRARY})
+target_link_libraries(data_event_manager ${catkin_LIBRARIES} ${TinyXML2_LIBRARY})
 target_link_libraries(lod ${catkin_LIBRARIES})
 target_link_libraries(ckt ${catkin_LIBRARIES})
 target_link_libraries(mzos ${catkin_LIBRARIES})

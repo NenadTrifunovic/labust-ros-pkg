@@ -1,0 +1,5 @@
+<launch>
+  <node name="rosbag_monitor" pkg="labust_diagnostics" type="rosbag_monitor.py">
+    <param name="save_directory" value="/home/filip/catkin_ws/" />
+  </node>
+</launch>

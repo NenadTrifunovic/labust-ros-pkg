@@ -67,11 +67,13 @@ typedef struct PIDBase
 	 * The proportional, integral, derivative,
 	 * filter and tracking gain.
 	 */
-	float Kp, Ki, Kd, Tf, Kt;
+	float Kp, Ki, Kd, Tf, Kt, b;
 	/**
 	 * Automatic tracking flag.
 	 */
 	char autoWindup;
+	///Backward re-calculation flag
+	char useBackward;
 	/**
 	 * The windup flag
 	 */
@@ -83,17 +85,21 @@ typedef struct PIDBase
 	/**
 	 * Internal state of the backward euler.
 	 */
-	float internalState, lastRef, lastError, lastFF, lastState, llastError, llastState, lastDerivative;
+	float internalState, lastRef, lastError, lastPError, lastFF, lastState, llastError, llastState, lastDerivative, lastI, I;
 
 	/**
 	 * The reference, state, output, feedforward, tracking
 	 */
-	float desired, state, output;
+	float desired, state, output, track;
 
 	/**
 	 * The internal model parameters.
 	 */
 	PT1Model model;
+	/**
+	 * Closed loop frequency.
+	 */
+	float w;
 } PIDBase;
 
 /**

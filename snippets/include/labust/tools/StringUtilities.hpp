@@ -86,6 +86,97 @@ namespace labust
       for (size_t i=0; i<len; ++i){calc^=data[i];};
       return calc;
     }
+    /**
+     * The function converts a binary range into a hex string representation.
+     * NOTE: this will work robustly for char nad uint8_t types. For other types
+     * the outcome might not be what you expect.
+     *
+     * \param start The iterator pointing to the start of the binary vector
+     * \param end The iterator pointing to the end of the binary vector
+     * \param data Pointer to the string where to store the hex representation
+     */
+    template <class Iterator>
+    inline void binaryToHex(const Iterator& start, const Iterator& end, std::string* data)
+    {
+    	static const char* hex_array = "0123456789ABCDEF";
+
+    	for(Iterator it=start; it != end; ++it)
+    	{
+    		int v = (*it) & 0xFF;
+    		data->push_back(hex_array[v >> 4]);
+    		data->push_back(hex_array[v & 0x0F]);
+    	}
+    }
+    /**
+     * The function converts a binary range into a hex string representation.
+     * NOTE: this will work robustly for char nad uint8_t types. For other types
+     * the outcome might not be what you expect.
+     *
+     * \param start The iterator pointing to the start of the binary vector
+     * \param end The iterator pointing to the end of the binary vector
+     * \param data Pointer to the output stream.
+     */
+    template <class Iterator, class Stream>
+    inline void binaryToHex(const Iterator& start, const Iterator& end, Stream& data)
+    {
+    	static const char* hex_array = "0123456789ABCDEF";
+
+    	for(Iterator it=start; it != end; ++it)
+    	{
+    		int v = (*it) & 0xFF;
+    		data<<hex_array[v >> 4]<<hex_array[v & 0x0F];
+    	}
+    }
+    /**
+     * The function converts a binary range into a hex string representation.
+     * NOTE: this will work robustly for char nad uint8_t types. For other types
+     * the outcome might not be what you expect.
+     *
+     * \param start The iterator pointing to the start of the binary vector
+     * \param end The iterator pointing to the end of the binary vector
+     * \param data Pointer to the string where to store the hex representation
+     */
+    template <class Iterator>
+    inline void hexToBinary(const std::string& data,
+    				const Iterator& start, const Iterator& end)
+    {
+    	Iterator it(start);
+    	int temp(0);
+    	std::stringstream t;
+    	for(int i=0; i<data.size()/2; ++i,++it)
+    	{
+    		if (it == end) break;
+    		t<<data[2*i]<<data[2*i+1];
+    		t>>std::hex>>temp;
+    		t.str("");
+    		*it = temp;
+    	}
+    }
+    /**
+     * The function converts a binary range into a hex string representation.
+     * NOTE: this will work robustly for char nad uint8_t types. For other types
+     * the outcome might not be what you expect.
+     *
+     * \param start The iterator pointing to the start of the binary vector
+     * \param end The iterator pointing to the end of the binary vector
+     * \param data Pointer to the string where to store the hex representation
+     */
+    template <class IteratorIn, class OutVector>
+    inline void hexToBinary(const IteratorIn& instart, const IteratorIn& inend,
+    				OutVector* out)
+    {
+    	int temp(0);
+    	for(IteratorIn it=instart;
+    		 it != inend; ++it)
+    	{
+        	std::stringstream t;
+    		t<<*it;
+    		if (++it == inend) break;
+    		t<<*it;
+    		t>>std::hex>>temp;
+    		out->push_back(temp);
+    	}
+    }
   }
 }
 /* STRINGUTILITIES_HPP_ */

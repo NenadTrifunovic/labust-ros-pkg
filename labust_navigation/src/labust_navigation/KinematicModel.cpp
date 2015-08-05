@@ -48,7 +48,7 @@ void KinematicModel::initModel()
   A(xp,Vv) = Ts*std::cos(x(psi));
   A(yp,Vv) = Ts*std::sin(x(psi));
   A(psi,r) = Ts;
-  A(r,r) = 0.9;
+  //A(r,r) = 0.9;
   W = Base::matrix::Identity(stateNum,stateNum);
 
   //These are the noise variances

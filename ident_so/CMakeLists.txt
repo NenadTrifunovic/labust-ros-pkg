@@ -5,7 +5,7 @@ project(ident_so)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  navcon_msgs
+  auv_msgs
   actionlib
   snippets
   roscpp
@@ -83,7 +83,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
    INCLUDE_DIRS include
    LIBRARIES I_SO
-   CATKIN_DEPENDS navcon_msgs roscpp actionlib
+   CATKIN_DEPENDS auv_msgs roscpp actionlib
 #  DEPENDS system_lib
 )
 
@@ -127,6 +127,15 @@ target_link_libraries(ident_so
 target_link_libraries(test_ident
   ${catkin_LIBRARIES}
 )
+
+##########
+## Docs ##
+##########
+add_custom_target(docs_${PROJECT_NAME} 
+  rosdoc_lite -o ${CATKIN_DEVEL_PREFIX}/docs/${PROJECT_NAME} 
+  ${CMAKE_CURRENT_LIST_DIR}
+)
+
 #############
 ## Install ##
 #############

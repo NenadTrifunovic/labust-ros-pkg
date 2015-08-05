@@ -48,6 +48,7 @@
 #include <auv_msgs/BodyVelocityReq.h>
 #include <auv_msgs/BodyForceReq.h>
 #include <geometry_msgs/TransformStamped.h>
+#include <geometry_msgs/Vector3Stamped.h>
 #include <ros/ros.h>
 
 namespace labust
@@ -61,6 +62,7 @@ namespace labust
 				aAngle(M_PI/8),
 				wh(0.2),
 				underactuated(false),
+				use_gvel(false),
 				listener(buffer){};
 
 			void init()
@@ -76,6 +78,36 @@ namespace labust
 				//con.windup = tauAch.disable_axis.yaw;
   			con.extWindup = tauAch.windup.y;
 			};
+
+  		void idle(const auv_msgs::NavSts& ref, const auv_msgs::NavSts& state,
+  				const auv_msgs::BodyVelocityReq& track)
+  		{
+  			//Tracking external commands while idle (bumpless)ž
+  			if (!underactuated)
+  			{
+  				try
+  				{
+  					geometry_msgs::TransformStamped dH;
+  					dH = buffer.lookupTransform("course_frame", "base_link", ros::Time(0));
+  					double roll, pitch, gamma;
+  					labust::tools::eulerZYXFromQuaternion(dH.transform.rotation,
+  							roll, pitch, gamma);
+
+  					con.desired = ref.position.east;
+  					con.state = dH.transform.translation.y;
+  					Eigen::Vector2f out, in;
+  					Eigen::Matrix2f R;
+  					in<<state.body_velocity.x,state.body_velocity.y;
+  					out = R*in;
+  					con.track = out(1);
+  					PIFF_ffIdle(&con, Ts, 0);
+  				}
+  				catch (tf2::TransformException& ex)
+  				{
+  					ROS_WARN("%s",ex.what());
+  				}
+  			}
+  		};
 
 			auv_msgs::BodyVelocityReqPtr step(const auv_msgs::NavSts& ref,
 					const auv_msgs::NavSts& state)
@@ -97,6 +129,12 @@ namespace labust
 
 					con.desired = ref.position.east;
 					con.state = dH.transform.translation.y;
+
+					geometry_msgs::Vector3Stamped vdh;
+					vdh.vector.y = con.state;
+					vdh.header.stamp = ros::Time::now();
+					dh_pub.publish(vdh);
+
 					//Calculate desired yaw-rate
 					if (underactuated)
 					{
@@ -104,28 +142,38 @@ namespace labust
 						double dd = -ref.body_velocity.x*sin(gamma);
 						PSatD_dStep(&con,Ts,dd);
 						//PSatD_step(&con,Ts);
-						ROS_INFO("Limiter: %f", con.outputLimit);
+						ROS_DEBUG("Limiter: %f", con.outputLimit);
 						nu->twist.angular.z = con.output;
 						nu->twist.linear.x = ref.body_velocity.x;
 					}
 					else
 					{
-						PIFF_step(&con,Ts);
-						double ul = ref.body_velocity.x;
-						double vl = con.output;
-						ROS_INFO("Command output: ul=%f, vl=%f", ul, vl);
-
 						Eigen::Vector2f out, in;
 						Eigen::Matrix2f R;
-						in<<ul,vl;
-						R<<cos(gamma),sin(gamma),-sin(gamma),cos(gamma);
-						ROS_INFO("Gamma: %f", gamma);
+						if (use_gvel)
+						{
+							in<<state.gbody_velocity.x,state.gbody_velocity.y;
+						}
+						else
+						{
+							in<<state.body_velocity.x,state.body_velocity.y;
+						}
+						R<<cos(gamma),-sin(gamma),sin(gamma),cos(gamma);
 						out = R*in;
+						con.track = out(1);
+						PIFF_ffStep(&con,Ts,0);
+						double ul = ref.body_velocity.x;
+						double vl = con.output;
+						ROS_DEBUG("Command output: ul=%f, vl=%f", ul, vl);
+
+						in<<ul,vl;
+						ROS_DEBUG("Gamma: %f", gamma);
+						out = R.transpose()*in;
 						nu->twist.linear.x = out(0);
 						nu->twist.linear.y = out(1);
 					}
 
-					ROS_INFO("Command output: cmd=%f, dH=%f, ac=%f", con.output, dH.transform.translation.y,
+					ROS_DEBUG("Command output: cmd=%f, dH=%f, ac=%f", con.output, dH.transform.translation.y,
 							dH.transform.translation.x);
 				}
 				catch (tf2::TransformException& ex)
@@ -149,8 +197,10 @@ namespace labust
 				nh.param("ualf_controller/default_surge",surge,surge);
   			nh.param("ualf_controller/approach_angle",aAngle,aAngle);
 				nh.param("ualf_controller/sampling",Ts,Ts);
+				nh.param("velocity_controller/use_ground_vel", use_gvel, use_gvel);
 				ph.param("underactuated",underactuated,underactuated);
-
+				dh_pub = nh.advertise<geometry_msgs::Vector3Stamped>("dh_calc",1);
+				
 				PIDBase_init(&con);
 
 				disable_axis[0] = 0;
@@ -164,6 +214,7 @@ namespace labust
 					disable_axis[1] = 0;
 					PIFF_tune(&con,wh);
 				}
+				//con.b = 1.0;
 
 				ROS_INFO("LF controller initialized.");
 			}
@@ -173,8 +224,10 @@ namespace labust
 			double Ts;
 			double aAngle, wh;
 			bool underactuated;
+			bool use_gvel;
 			tf2_ros::Buffer buffer;
 			tf2_ros::TransformListener listener;
+			ros::Publisher dh_pub;
 		};
 	}}
 

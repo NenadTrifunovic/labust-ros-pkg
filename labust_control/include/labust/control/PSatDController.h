@@ -45,6 +45,10 @@ void PSatD_dStep(PIDBase* self, float Ts, float derivative);
 /**
  * Calculate one step of the PIFF controller.
  */
+void PSatD_dIdle(PIDBase* self, float Ts, float derivative);
+/**
+ * Calculate one step of the PIFF controller.
+ */
 inline void PSatD_step(PIDBase* self, float Ts)
 {
 	PSatD_dStep(self,

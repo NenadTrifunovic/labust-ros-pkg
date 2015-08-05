@@ -74,7 +74,7 @@ namespace labust{
 
 			void addXMLNode(XMLNode* parentNode, string nodeName, string attrName, string attrValue, double value);
 
-			void addGo2point_FA(double north, double east, double heading, double speed, double victoryRadius);
+			void addGo2point_FA(double north, double east, double speed, double victoryRadius);
 
 			void addGo2point_UA(double north, double east, double speed, double victoryRadius);
 
@@ -92,6 +92,7 @@ namespace labust{
 			XMLDocument doc;
 
 			XMLNode *mission;
+			XMLNode *main;
 			XMLNode *primitive;
 			XMLNode *param;
 			XMLNode *idNode;
@@ -106,21 +107,23 @@ namespace labust{
 		}
 
 		void WriteXML::addMission(){
-
+			main = doc.NewElement("main");
 			mission = doc.NewElement("mission");
-			doc.InsertEndChild(mission);
+			doc.InsertEndChild(main);
+			main->InsertEndChild(mission);
 			id = 0;
 		}
 
 		void WriteXML::addEvent(){
 
 			events = doc.NewElement("events");
-			doc.InsertEndChild(events);
+			doc.InsertEndChild(events); // Provjeri ubacuje li u pravi parent
 		}
 
 		void WriteXML::saveXML(string fileName){
 
 			doc.SaveFile( fileName.c_str() );
+			doc.Clear();
 			ROS_ERROR("Mission generated.");
 		}
 
@@ -155,7 +158,7 @@ namespace labust{
 			mission->InsertEndChild(primitive);
 		}
 
-		void WriteXML::addGo2point_FA(double north, double east, double heading, double speed, double victoryRadius){
+		void WriteXML::addGo2point_FA(double north, double east, double speed, double victoryRadius){
 
 			id++;
 
@@ -166,7 +169,7 @@ namespace labust{
 
 			addXMLNode(primitive,"param","name","north",north);
 			addXMLNode(primitive,"param","name","east",east);
-			addXMLNode(primitive,"param","name","heading",heading);
+			//addXMLNode(primitive,"param","name","heading",heading);
 			addXMLNode(primitive,"param","name","speed",speed);
 			addXMLNode(primitive,"param","name","victory_radius",victoryRadius);
 
@@ -185,7 +188,7 @@ namespace labust{
 			addXMLNode(primitive,"param","name","north",north);
 			addXMLNode(primitive,"param","name","east",east);
 			addXMLNode(primitive,"param","name","heading",heading);
-			addXMLNode(primitive,"param","name","timeout",10);
+			addXMLNode(primitive,"param","name","timeout",0);
 
 			mission->InsertEndChild(primitive);
 		}

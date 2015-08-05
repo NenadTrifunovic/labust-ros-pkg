@@ -69,6 +69,17 @@ struct PitchControl : DisableAxis
 		con.windup = tauAch.disable_axis.pitch;
 	};
 
+	void idle(const auv_msgs::NavSts& ref, const auv_msgs::NavSts& state,
+			const auv_msgs::BodyVelocityReq& track)
+	{
+		//Tracking external commands while idle (bumpless)
+		con.desired = ref.orientation.pitch;
+		con.output = con.internalState = track.twist.angular.y;
+		con.lastState = con.state = state.orientation.pitch;
+		con.lastError = con.desired - con.output;
+		con.track = state.orientation_rate.pitch;
+	};
+
 	void reset(const auv_msgs::NavSts& ref, const auv_msgs::NavSts& state)
 	{
 		con.internalState = 0;
@@ -80,6 +91,7 @@ struct PitchControl : DisableAxis
 	{
 		con.desired = ref.orientation.pitch;
 		con.state = state.orientation.pitch;
+		con.track = state.orientation_rate.pitch;
 
 		//Zero feed-forward
 		//PIFF_ffStep(&con,Ts,0);

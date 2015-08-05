@@ -47,6 +47,7 @@
 #include <Eigen/Dense>
 #include <auv_msgs/BodyForceReq.h>
 #include <std_msgs/Float32.h>
+#include <std_msgs/Bool.h>
 #include <ros/ros.h>
 
 namespace labust
@@ -55,27 +56,38 @@ namespace labust
 		///The altitude/depth controller
 		struct ALTControl : DisableAxis
 		{
-			enum {x=0,y};
-
-			ALTControl():Ts(0.1), useIP(false), minAltitude(5), trimOffset(0){};
+			ALTControl():Ts(0.1),manRefFlag(true),depth_threshold(0.1),depth_timeout(10){};
 
 			void init()
 			{
 				ros::NodeHandle nh;
+				manRefSub = nh.subscribe<std_msgs::Bool>("manRefAltitude",1,&ALTControl::onManRef,this);
 				initialize_controller();
 			}
 
+			void onManRef(const std_msgs::Bool::ConstPtr& state)
+			{
+				manRefFlag = state->data;
+			}
   		void windup(const auv_msgs::BodyForceReq& tauAch)
 			{
 				//Copy into controller
-				//con.windup = tauAch.disable_axis.z;
-  			con.extWindup = -tauAch.windup.z;
+  			con.extWindup = tauAch.windup.z;
 			};
+
+  		void idle(const auv_msgs::NavSts& ref, const auv_msgs::NavSts& state,
+  				const auv_msgs::BodyVelocityReq& track)
+  		{
+  			//Tracking external commands while idle (bumpless)
+  			con.desired = state.altitude;
+  			con.state = state.altitude;
+  			con.track = -track.twist.linear.z;
+  			PIFF_ffIdle(&con, Ts, -ref.body_velocity.z);
+  		};
 
   		void reset(const auv_msgs::NavSts& ref, const auv_msgs::NavSts& state)
   		{
-  			con.internalState = 0;
-  			con.lastState = state.altitude;
+  			//UNUSED
   		};
 
 			auv_msgs::BodyVelocityReqPtr step(const auv_msgs::NavSts& ref,
@@ -83,80 +95,75 @@ namespace labust
 			{
 				con.desired = ref.altitude;
 				con.state = state.altitude;
+				con.track = -state.body_velocity.z;
 
-				//Zero feed-forward
-				//PIFF_ffStep(&con,Ts,0);
-				//\todo Check the derivative sign
-				if (useIP)
+				double tmp_output;
+				auv_msgs::BodyVelocityReqPtr nu(new auv_msgs::BodyVelocityReq());
+
+				if(manRefFlag)
 				{
-					IPFF_ffStep(&con, Ts, ref.body_velocity.z);
-					//IPFF_ffStep(&con, Ts, 0);
-					ROS_INFO("Current state=%f, desired=%f, windup=%d", con.state, con.desired, con.windup);
+					if (state.position.depth > depth_threshold) underwater_time = ros::Time::now();
+					//If more than depth_timeout on surface stop the controller
+					if (((ros::Time::now() - underwater_time).toSec() > depth_timeout)) 
+					{
+						PIFF_ffIdle(&con, Ts, 0);
+						tmp_output = 0;
+					}
+					else
+					{
+						//PIFF_wffStep(&con,Ts, werror, wperror, 0*ref.orientation_rate.yaw);
+						PIFF_ffStep(&con, Ts, 0*(-1)*ref.body_velocity.z);
+						tmp_output = -con.output;
+					}
+
+					//tmp_output = -con.output;
 				}
 				else
 				{
-					PIFF_ffStep(&con,Ts, ref.body_velocity.z);
-					//PSatD_dStep(&con, Ts, 0);
-					ROS_INFO("Current state=%f, desired=%f", con.state, con.desired);
+					PIFF_ffIdle(&con, Ts, -ref.body_velocity.z);
+					tmp_output = ref.body_velocity.z;
 				}
 
-				auv_msgs::BodyVelocityReqPtr nu(new auv_msgs::BodyVelocityReq());
 				nu->header.stamp = ros::Time::now();
 				nu->goal.requester = "alt_controller";
 				labust::tools::vectorToDisableAxis(disable_axis, nu->disable_axis);
 
-				nu->twist.linear.z = trimOffset - con.output;
-
-				//Safety
-				if (state.altitude < minAltitude)
-				{
-					con.internalState = 0;
-					nu->twist.linear.z = 0;
-				}
+				nu->twist.linear.z = tmp_output;
 
 				return nu;
 			}
 
 			void initialize_controller()
 			{
-				ROS_INFO("Initializing depth/altitude controller...");
+				ROS_INFO("Initializing altitude controller...");
 
 				ros::NodeHandle nh;
 				double closedLoopFreq(1);
 				nh.param("alt_controller/closed_loop_freq", closedLoopFreq, closedLoopFreq);
 				nh.param("alt_controller/sampling",Ts,Ts);
-				nh.param("alt_controller/use_ip",useIP,useIP);
-				nh.param("alt_controller/min_altitude",minAltitude,minAltitude);
-				nh.param("alt_controller/trim_offset",trimOffset,trimOffset);
+				nh.param("depth_controller/depth_threshold",depth_threshold,depth_threshold);
+				nh.param("depth_controller/depth_timeout",depth_timeout,depth_timeout);
 
 				disable_axis[2] = 0;
 
 				PIDBase_init(&con);
-				//PIFF_tune(&con, float(closedLoopFreq));
-				if (useIP)
-				{
-					IPFF_tune(&con, float(closedLoopFreq));
-				}
-				else
-				{
-					//PSatD_tune(&con, float(closedLoopFreq), 0, 1);
-					IPFF_tune(&con, float(closedLoopFreq));
-					con.outputLimit = 1;
-				}
+				PIFF_tune(&con, float(closedLoopFreq));
 
-				ROS_INFO("Depth/Altitude controller initialized.");
+				ROS_INFO("Altitude controller initialized.");
 			}
 
 		private:
 			ros::Subscriber alt_sub;
 			PIDBase con;
 			double Ts;
-			bool useIP;
-			double lastRef;
-			double minAltitude;
-			double trimOffset;
+			double depth_threshold;
+			double depth_timeout;
+			ros::Time underwater_time;
+			ros::Subscriber manRefSub;
+			bool manRefFlag;
 		};
-	}}
+	}
+}
 
 int main(int argc, char* argv[])
 {

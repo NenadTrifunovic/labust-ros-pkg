@@ -40,6 +40,7 @@
 
 ///\todo Remove this after debugging
 #include <iostream>
+#include <ros/ros.h>
 
 namespace labust
 {
@@ -89,6 +90,7 @@ namespace labust
 			 */
 			typename Base::vectorref correct(typename Base::outputref y_meas)
 			{
+				//ros::Time start(ros::Time::now());
 				/**
 				 * Calculate the Kalman gain matrix
 				 *
@@ -99,7 +101,11 @@ namespace labust
 				typename Base::matrix VR = this->V*this->R;
 				//This can be optimized for constant R, V combinations
 				this->innovationCov += VR*this->V.transpose();
-				this->K = PH*this->innovationCov.inverse();
+				//this->K = PH*this->innovationCov.inverse();
+				//TODO Add option to select solvers based on size for larger matrices this should be faster
+				this->K = PH*this->innovationCov.ldlt().solve(
+								Base::matrix::Identity(this->innovationCov.rows(),
+												this->innovationCov.cols()));
 				/*
 				 * Correct the state estimate
 				 *
@@ -116,6 +122,10 @@ namespace labust
 				typename Base::matrix IKH = Base::matrix::Identity(this->P.rows(), this->P.cols());
 				IKH -= this->K*this->H;
 				this->P = IKH*this->P;
+
+				//ros::Time end(ros::Time::now());
+
+				//ROS_INFO("KF: Total elapsed time: %f", (start-end).toSec());
 
 				return this->xk_1 = this->x;
 			}

@@ -107,6 +107,8 @@ namespace labust
 
 				for (int i=0; i<dofs.size(); ++i) tauOut(dofs[i])=vi(i);
 
+				bool scaling = false;
+
 				//Determine coercion for windup
 				switch (type)
 				{
@@ -123,16 +125,16 @@ namespace labust
 					}
 					break;
 				case ScaleAlloc:
-					//						bool scaling;
-					//						for (int i=0; i<group_scales.size(); ++i) if ((scaling = (group_scales[i]>1))) break;
-					//						if (scaling)
-					//						{
-					//							for (int i=0; i<dofs.size(); ++i)
-					//							{
-					//								if (tauIn(dofs[i])>tauOut(dofs[i]))	coercion(dofs[i])=1;
-					//								else if (tauIn(dofs[i])<tauOut(dofs[i]))	coercion(dofs[i])=-1;
-					//							}
-					//						}
+//						for (int i=0; i<group_scales.size(); ++i) if ((scaling = (group_scales[i]>1))) break;
+//
+//						if (scaling)
+//						{
+//							for (int i=0; i<dofs.size(); ++i)
+//							{
+//								if (tauIn(dofs[i])>=tauOut(dofs[i]))	coercion(dofs[i])=1;
+//								else if (tauIn(dofs[i])<=tauOut(dofs[i]))	coercion(dofs[i])=-1;
+//							}
+//						}
 
 					//Alternative to scaling inspection
 					for (int i=0; i<dofs.size(); ++i)
@@ -141,8 +143,8 @@ namespace labust
 						//If there is deviation between input and output we assume
 						if (fabs(tauIn(dofs[i]) - tauOut(dofs[i])) > 0.01)
 						{
-							if (tauIn(dofs[i])>tauOut(dofs[i]))	coercion(dofs[i])=1;
-							else if (tauIn(dofs[i])<tauOut(dofs[i]))	coercion(dofs[i])=-1;
+							if (tauIn(dofs[i])>=tauOut(dofs[i]))	coercion(dofs[i])=1;
+							else if (tauIn(dofs[i])<=tauOut(dofs[i]))	coercion(dofs[i])=-1;
 						}
 					}
 					break;

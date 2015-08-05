@@ -62,6 +62,7 @@ namespace labust
 		 * For disabled axis define the axis number -1.
 		 * The scaling is defined in (joystick_mapping/scale_map) as a desired double
 		 * number.
+		 * \deprecated
 		 */
 		struct JoystickMapping
 		{

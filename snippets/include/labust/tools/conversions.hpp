@@ -177,7 +177,24 @@ namespace labust
 		}
 
 		//\todo Test and document this method
-		void eulerZYXFromQuaternion(const geometry_msgs::Quaternion& q, double& roll, double& pitch, double& yaw)
+		template <class T, class V>
+		void eulerZYXFromQuaternion(const T& q, V& vect)
+		{
+			using namespace Eigen;
+			//From child to parent
+			enum {roll=0, pitch, yaw};
+			vect(roll) = atan2(2*(q.y()*q.z() + q.x()*q.w()),1-2*(q.x()*q.x() + q.y()*q.y()));
+			vect(pitch) = -asin(2*(q.x()*q.z()-q.y()*q.w()));
+			vect(yaw) = atan2(2*(q.y()*q.x()+q.w()*q.z()),1-2*(q.y()*q.y()+q.z()*q.z()));
+			//From parent to child
+			//roll = atan2(2*(q.y()*q.z() - q.x()*q.w()),1-2*(q.x()*q.x() + q.y()*q.y()));
+			//pitch = -asin(2*(q.x()*q.z() + q.y()*q.w()));
+			//yaw = atan2(2*(q.x()*q.y()-q.w()*q.z()),1-2*(q.y()*q.y()+q.z()*q.z()));
+		}
+
+		//\todo Test and document this method
+		inline void eulerZYXFromQuaternion(const geometry_msgs::Quaternion& q,
+				double& roll, double& pitch, double& yaw)
 		{
 			using namespace Eigen;
 			//From child to parent

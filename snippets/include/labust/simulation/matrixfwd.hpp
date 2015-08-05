@@ -44,9 +44,10 @@ namespace labust
 	namespace simulation
 	{
 		typedef Eigen::Matrix<double,6,6> matrix;
-		typedef Eigen::Matrix<double,3,3> matrix3;
+		typedef Eigen::Matrix3d matrix3;
 		typedef Eigen::Matrix<double,6,1> vector;
-		typedef Eigen::Matrix<double,3,1> vector3;
+		typedef Eigen::Vector3d vector3;
+		typedef Eigen::Quaternion<double> quaternion;
 		typedef Eigen::Matrix<double,12,1> vector12;
 	}
 }

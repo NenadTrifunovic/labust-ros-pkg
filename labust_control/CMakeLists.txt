@@ -5,9 +5,11 @@ project(labust_control)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
+  cmake_modules
   auv_msgs
   navcon_msgs
   sensor_msgs
+  dynamic_reconfigure
   roscpp
   snippets
   tf2_ros
@@ -15,6 +17,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
+find_package(rosdoc_lite)
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -60,8 +63,8 @@ find_package(catkin REQUIRED COMPONENTS
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES labust_control
+   INCLUDE_DIRS include
+   LIBRARIES pidtoolkit2
    CATKIN_DEPENDS auv_msgs roscpp snippets navcon_msgs sensor_msgs
 #  DEPENDS system_lib
 )
@@ -72,13 +75,13 @@ catkin_package(
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
-include_directories(include)
+include_directories(include src/esctoolkit)
 include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
-add_executable(hlmanager src/hl_node.cpp src/HLManager.cpp
-	include/labust/control/HLManager.hpp)
+#add_executable(hlmanager src/hl_node.cpp src/HLManager.cpp
+#	include/labust/control/HLManager.hpp)
 ## Declare a cpp library
 add_library(pidtoolkit2
    src/pidtoolkit/PIDBase.c
@@ -88,6 +91,7 @@ add_library(pidtoolkit2
    src/pidtoolkit/PIDFFController.c
    src/pidtoolkit/IPDFFController.c
 )
+
 set_source_files_properties(
    src/pidtoolkit/PIDBase.c
    src/pidtoolkit/PIFFController.c
@@ -96,18 +100,27 @@ set_source_files_properties(
    src/pidtoolkit/PIDFFController.c
    src/pidtoolkit/IPDFFController.c PROPERTIES LANGUAGE CXX)
 
+add_executable(manual_control src/manual_control/manual_control.cpp)
+ 
 add_executable(fadp_controller2 src/FADPControl.cpp)
+add_executable(fadp_3d_controller src/FADP_3DControl.cpp)
 add_executable(hdg_controller2 src/HDGControl.cpp)
-add_executable(hdg_controller_direct src/HDGControlDirect.cpp)
+#add_executable(hdg_controller_direct src/HDGControlDirect.cpp)
 add_executable(alt_controller2 src/ALTControl.cpp)
 add_executable(depth_controller2 src/DepthControl.cpp)
 add_executable(pitch_controller src/PitchControl.cpp)
-add_executable(lf_controller2 src/LFControl.cpp)
 add_executable(ualf_controller src/line_following/UALFControl.cpp)
-#add_executable(falf_controller src/line_following/FALFControl.cpp)
 add_executable(nu_manual src/NuManual.cpp)
 add_executable(ref_manual src/RefManual.cpp)
 add_executable(async_merger src/AsyncMerger.cpp)
+add_executable(velocity_control	src/VelocityControl.cpp)
+
+# ESC executables
+add_executable(esc_uv src/esc/ESCControlClassic_UV.cpp src/esctoolkit/esc_classic.cpp)
+add_executable(esc_ekf_uv src/esc/ESControlEKF_UV.cpp src/esctoolkit/esc_ekf_grad.cpp)
+add_executable(esc_ekf_model_uv src/esc/ESControlEKF_MODEL_UV.cpp src/esctoolkit/esc_ekf_grad_model.cpp)
+add_executable(esc_bounded_uv src/esc/ESControlBounded_UV.cpp src/esctoolkit/esc_bounded.cpp)
+
 
 ## Declare a cpp executable
 # add_executable(labust_control_node src/labust_control_node.cpp)
@@ -116,30 +129,32 @@ add_executable(async_merger src/AsyncMerger.cpp)
 ## as an example, message headers may need to be generated before nodes
 # add_dependencies(labust_control_node labust_control_generate_messages_cpp)
 if (DEFINED catkin_EXPORTED_TARGETS)
- add_dependencies(hlmanager ${catkin_EXPORTED_TARGETS})
+ add_dependencies(manual_control ${catkin_EXPORTED_TARGETS})
  add_dependencies(fadp_controller2 ${catkin_EXPORTED_TARGETS})
- add_dependencies(lf_controller2 ${catkin_EXPORTED_TARGETS})
+ add_dependencies(fadp_3d_controller ${catkin_EXPORTED_TARGETS})
  add_dependencies(ualf_controller ${catkin_EXPORTED_TARGETS})
  add_dependencies(hdg_controller2 ${catkin_EXPORTED_TARGETS})
- add_dependencies(hdg_controller_direct ${catkin_EXPORTED_TARGETS})
+ #add_dependencies(hdg_controller_direct ${catkin_EXPORTED_TARGETS})
  add_dependencies(alt_controller2 ${catkin_EXPORTED_TARGETS})
  add_dependencies(depth_controller2 ${catkin_EXPORTED_TARGETS})
  add_dependencies(pitch_controller ${catkin_EXPORTED_TARGETS})
  add_dependencies(nu_manual ${catkin_EXPORTED_TARGETS})
  add_dependencies(ref_manual ${catkin_EXPORTED_TARGETS})
  add_dependencies(async_merger ${catkin_EXPORTED_TARGETS})
+ add_dependencies(velocity_control ${catkin_EXPORTED_TARGETS})
+
+ add_dependencies(esc_uv ${catkin_EXPORTED_TARGETS})
+ add_dependencies(esc_ekf_uv ${catkin_EXPORTED_TARGETS})
+ add_dependencies(esc_ekf_model_uv ${catkin_EXPORTED_TARGETS}) 
+ add_dependencies(esc_bounded_uv ${catkin_EXPORTED_TARGETS}) 
+ 
 endif()
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(hlmanager  ${catkin_LIBRARIES})
+target_link_libraries(manual_control ${catkin_LIBRARIES})
 target_link_libraries(nu_manual ${catkin_LIBRARIES})
 target_link_libraries(ref_manual ${catkin_LIBRARIES})
 target_link_libraries(async_merger ${catkin_LIBRARIES})
-
-target_link_libraries(lf_controller2
-  pidtoolkit2
-  ${catkin_LIBRARIES}
-)
 
 target_link_libraries(ualf_controller
   pidtoolkit2
@@ -147,6 +162,11 @@ target_link_libraries(ualf_controller
 )
 
 target_link_libraries(fadp_controller2
+  pidtoolkit2
+  ${catkin_LIBRARIES}
+)
+
+target_link_libraries(fadp_3d_controller
   pidtoolkit2
   ${catkin_LIBRARIES}
 )
@@ -171,10 +191,34 @@ target_link_libraries(hdg_controller2
   ${catkin_LIBRARIES}
 )
 
-target_link_libraries(hdg_controller_direct
+#target_link_libraries(hdg_controller_direct
+#  pidtoolkit2
+#  ${catkin_LIBRARIES}
+#)
+
+target_link_libraries(velocity_control
   pidtoolkit2
   ${catkin_LIBRARIES}
 )
+
+
+target_link_libraries(esc_uv  ${catkin_LIBRARIES})
+target_link_libraries(esc_ekf_uv  ${catkin_LIBRARIES})
+target_link_libraries(esc_ekf_model_uv  ${catkin_LIBRARIES})
+target_link_libraries(esc_bounded_uv  ${catkin_LIBRARIES})
+
+
+###################
+## Documentation ##
+###################
+if (BUILD_ROS_DOCS)
+    if (rosdoc_lite_FOUND)
+     set(doc_files mainpage.dox)   
+     add_custom_target(${PROJECT_NAME}_docs ALL rosdoc_lite -o 
+         ${CMAKE_BINARY_DIR}/doc/${PROJECT_NAME} ${CMAKE_CURRENT_SOURCE_DIR} DEPENDS ${doc_files})
+     endif()
+endif()
+
 #############
 ## Install ##
 #############

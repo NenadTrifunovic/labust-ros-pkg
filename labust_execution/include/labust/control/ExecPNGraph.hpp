@@ -152,7 +152,7 @@ namespace labust
 				{
 
 					out << "[label="<< graph[e].name;
-					out << ((graph[e].type == GraphType::vertex_property_type::value_type::t)?", shape=rectangle":"") << "]";
+					out << ((graph[e].type == VertexProperty::t)?", shape=rectangle":"") << "]";
 				}
 				GraphType& graph;
 			};

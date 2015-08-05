@@ -5,7 +5,9 @@ project(labust_sim)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS 
+    cmake_modules
     auv_msgs 
+    nav_msgs
     roscpp 
     rospy 
     tf2_ros 
@@ -72,8 +74,9 @@ include_directories(include
 )
 
 file(GLOB SRC src/labust_sim/*.cpp)
-file(GLOB HPP include/labust/simulation/*.hpp) 
+file(GLOB HPP include/labust/simulation/*.hpp include/labust/simulation/*.h) 
 add_library(labust_sim ${SRC} ${HPP})
+target_link_libraries(labust_sim ${Boost_RANDOM_LIBRARY})
 
 #file(GLOB SRC src/sim_sensors/*.cpp)
 #file(GLOB HPP include/labust/ros/*.hpp) 
@@ -91,6 +94,23 @@ add_executable(dvl_sim src/sim_sensors/DvlSim.cpp)
 target_link_libraries(dvl_sim ${catkin_LIBRARIES})
 add_executable(gps_sim src/sim_sensors/GPSSim.cpp)
 target_link_libraries(gps_sim ${catkin_LIBRARIES})
+add_executable(diver_sim src/diver_sim/diver_sim.cpp)
+target_link_libraries(diver_sim labust_sim ${catkin_LIBRARIES})
+add_executable(navsts2odom src/navsts2odom/navsts2odom.cpp)
+target_link_libraries(navsts2odom ${catkin_LIBRARIES})
+add_executable(usbl_sim src/data_sim/USBLSim.cpp)
+target_link_libraries(usbl_sim ${catkin_LIBRARIES})
+
+if (DEFINED catkin_EXPORTED_TARGETS)
+ add_dependencies(imu_sim ${catkin_EXPORTED_TARGETS})
+ add_dependencies(dvl_sim ${catkin_EXPORTED_TARGETS})
+ add_dependencies(gps_sim ${catkin_EXPORTED_TARGETS})
+ #add_dependencies(hdg_controller_direct ${catkin_EXPORTED_TARGETS})
+ add_dependencies(usbl_sim ${catkin_EXPORTED_TARGETS})
+ add_dependencies(uvsim ${catkin_EXPORTED_TARGETS})
+ add_dependencies(diver_sim ${catkin_EXPORTED_TARGETS})
+ add_dependencies(navsts2odom ${catkin_EXPORTED_TARGETS})
+endif()
 #############
 ## Install ##
 #############

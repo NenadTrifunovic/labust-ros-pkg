@@ -60,5 +60,9 @@ void PSatD_dStep(PIDBase* self, float Ts, float derivative)
 	self->lastError = (self->desired - self->state);
 }
 
+void PSatD_dIdle(PIDBase* self, float Ts, float derivative)
+{
+	self->lastError = (self->desired - self->state);
+}
 
 

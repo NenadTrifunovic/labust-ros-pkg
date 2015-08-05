@@ -59,23 +59,31 @@ void IPFF_wffStep(PIDBase* self, float Ts, float error, float ff)
 	//Perform windup test if automatic mode is enabled.
 	if (self->autoWindup == 1)
 	{
-		self->windup = (self->internalState > self->output) && (error>0);
-		self->windup = (self->windup) ||
-				((self->internalState < self->output) && (error<0));
+		self->track = self->output;
+		self->windup = (self->internalState != self->track) && (error*self->track > 0);
 	}
 	else
 	{
 		//Experimental
-		self->windup = ((self->extWindup >0) && (error>0)) ||
-				((self->extWindup <0) && (error<0));
+		self->windup = (self->extWindup && (error*self->output > 0));
+	}
+
+	//Backward recalculation
+	if ((self->lastI != 0) && self->windup && self->useBackward)
+	{
+		//Calculate the proportional influence
+		float diff = self->track - self->internalState + self->lastI;
+		//If the proportional part is already in windup remove the whole last integral
+		//Otherwise recalculate the integral to be on the edge of windup
+		self->internalState -= ((diff*self->track <= 0)?self->lastI:(self->lastI - diff));
 	}
 
 	//Proportional term
 	self->internalState -= self->Kp*(self->state-self->lastState);
 	//Integral term
 	//Disabled if windup is in progress.
-  if (!self->windup) self->internalState += self->Ki*Ts*error;
-	//Feed forward term
+	if (!self->windup) self->internalState += (self->lastI = self->Ki*Ts*error);
+	else self->lastI = 0;
 	self->internalState += ff - self->lastFF;
 	//Set final output
 	self->output = self->internalState;

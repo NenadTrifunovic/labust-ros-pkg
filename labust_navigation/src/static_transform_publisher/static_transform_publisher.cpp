@@ -40,7 +40,7 @@
 #include <geometry_msgs/TransformStamped.h>
 #include <tf2_ros/static_transform_broadcaster.h>
 #include <ros/ros.h>
-
+///\deprecated
 int main(int argc, char* argv[])
 {
 	ros::init(argc,argv,"static_transform_publisher");

@@ -42,17 +42,21 @@
  */
 void PIFF_modelTune(PIDBase* self,
 		const PT1Model* const model,
-		float w);
+		float w, float a=1.5);
 /**
  * Autotune the PIFF controller using the plant model 1.
  * Valid for higher level controllers.
  */
-void PIFF_tune(PIDBase* self, float w);
+void PIFF_tune(PIDBase* self, float w, float a=1.5);
 /**
  * Calculate one step of the PIFF controller with externally
  * supplied error and feedforward calculation.
  */
-void PIFF_wffStep(PIDBase* self, float Ts, float error, float ff);
+void PIFF_wffStep(PIDBase* self, float Ts, float error, float perror, float ff);
+/**
+ * The idle step of the controller.
+ */
+void PIFF_wffIdle(PIDBase* self, float Ts, float error, float perror, float ff);
 /**
  * Calculate one step of the PIFF controller.
  */
@@ -60,19 +64,43 @@ inline void PIFF_step(PIDBase* self, float Ts)
 {
 	PIFF_wffStep(self, Ts,
 			self->desired - self->state,
-			(self->model.beta +
-			self->model.betaa*fabs(self->desired))*self->desired);
+			self->b*self->desired - self->state,
+			//Feed-forward as feedback linearization
+			(self->model.betaa*fabs(self->state))*self->state);
+}
+/**
+ * The idle step of the controller.
+ */
+void PIFF_idle(PIDBase* self, float Ts)
+{
+	PIFF_wffIdle(self, Ts,
+			self->desired - self->state,
+			self->b*self->desired - self->state,
+			//Feed-forward as feedback linearization
+			(self->model.betaa*fabs(self->state))*self->state);
 }
 /**
  * Calculate one step of the PIFF controller with externally
  * supplied error calculation.
  */
-inline void PIFF_wStep(PIDBase* self, float Ts, float error)
+inline void PIFF_wStep(PIDBase* self, float Ts, float error, float perror)
 {
 	PIFF_wffStep(self, Ts,
 			error,
-			(self->model.beta +
-			self->model.betaa*fabs(self->desired))*self->desired);
+			perror,
+			//Feed-forward as feedback linearization
+			(self->model.betaa*fabs(self->state))*self->state);
+}
+/**
+ * The idle step of the controller.
+ */
+void PIFF_wIdle(PIDBase* self, float Ts, float error, float perror)
+{
+	PIFF_wffIdle(self, Ts,
+			error,
+			perror,
+			//Feed-forward as feedback linearization
+			(self->model.betaa*fabs(self->state))*self->state);
 }
 /**
  * Calculate one step of the PIFF controller with externally
@@ -82,6 +110,17 @@ inline void PIFF_ffStep(PIDBase* self, float Ts, float ff)
 {
 	PIFF_wffStep(self, Ts,
 			self->desired - self->state,
+			self->b*self->desired - self->state,
+			ff);
+}
+/**
+ * The idle step of the controller.
+ */
+void PIFF_ffIdle(PIDBase* self, float Ts, float ff)
+{
+	PIFF_wffIdle(self, Ts,
+			self->desired - self->state,
+			self->b*self->desired - self->state,
 			ff);
 }
 

@@ -5,6 +5,7 @@ project(labust_navigation)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
+  cmake_modules
   auv_msgs
   roscpp
   snippets
@@ -12,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   navcon_msgs
   geometry_msgs
   tf2_ros
+  underwater_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -72,6 +74,7 @@ catkin_package(
 include_directories(include)
 include_directories(
   ${catkin_INCLUDE_DIRS}
+  ${Eigen_INCLUDE_DIRS}
 )
 
 ## Declare a cpp library
@@ -80,31 +83,40 @@ add_library(labust_navigation
    src/labust_navigation/XYModel.cpp
    src/labust_navigation/SensorHandlers.cpp
    src/labust_navigation/LDTravModelExtended.cpp
+   src/labust_navigation/EKF_3D_USBLModel.cpp  
 )
 
 ## Declare a cpp executable
 # add_executable(labust_navigation_node src/labust_navigation_node.cpp)
 add_executable(eigen_test src/test/eigen_test.cpp)
+add_executable(decomposition_test src/test/decomposition_test.cpp)
+add_executable(geo_test src/test/geo_test.cpp)
 add_executable(euler_quat src/test/euler_quat.cpp)
+add_executable(tf_comp_test src/test/tf_comp_test.cpp)
 add_executable(quat_to_euler src/test/quat_to_euler.cpp)
 add_executable(nav_node2 src/nav_node/nav_node2.cpp)
 add_executable(llnode src/latlon_node/LLNode.cpp)
+add_executable(ltp_node src/latlon_node/ltp_node.cpp)
 add_executable(static_transform_publisher src/static_transform_publisher/static_transform_publisher.cpp)
-
-#add_executable(ekf3d_node src/EKF3D.cpp src/LDTravModelExtended.cpp
-#	include/labust/navigation/LDTravModelExtended.hpp)
 add_executable(ekf3d_node src/nav_node/EKF3D.cpp)
+add_executable(ekf_3d_usbl_node src/nav_node/EKF_3D_USBL.cpp)
+
+
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
 # add_dependencies(labust_navigation_node labust_navigation_generate_messages_cpp)
 if (DEFINED catkin_EXPORTED_TARGETS)
+ add_dependencies(decomposition_test ${catkin_EXPORTED_TARGETS})
  add_dependencies(eigen_test ${catkin_EXPORTED_TARGETS})
  add_dependencies(euler_quat ${catkin_EXPORTED_TARGETS})
  add_dependencies(quat_to_euler ${catkin_EXPORTED_TARGETS})
  add_dependencies(nav_node2 ${catkin_EXPORTED_TARGETS})
  add_dependencies(llnode ${catkin_EXPORTED_TARGETS})
+ add_dependencies(ltp_node ${catkin_EXPORTED_TARGETS})
  add_dependencies(static_transform_publisher ${catkin_EXPORTED_TARGETS})
  add_dependencies(ekf3d_node ${catkin_EXPORTED_TARGETS})
+ add_dependencies(ekf_3d_usbl_node ${catkin_EXPORTED_TARGETS}) 
+ 
 endif()
 
 ## Specify libraries to link a library or executable target against
@@ -113,12 +125,18 @@ target_link_libraries(labust_navigation
 )
 
 target_link_libraries(eigen_test ${catkin_LIBRARIES} labust_navigation)
+target_link_libraries(geo_test ${catkin_LIBRARIES})
 target_link_libraries(euler_quat ${catkin_LIBRARIES} labust_navigation)
+target_link_libraries(tf_comp_test ${catkin_LIBRARIES} labust_navigation)
 target_link_libraries(quat_to_euler ${catkin_LIBRARIES})
 target_link_libraries(nav_node2 ${catkin_LIBRARIES} labust_navigation)
 target_link_libraries(llnode ${catkin_LIBRARIES})
+target_link_libraries(ltp_node ${catkin_LIBRARIES})
 target_link_libraries(static_transform_publisher ${catkin_LIBRARIES})
 target_link_libraries(ekf3d_node ${catkin_LIBRARIES} labust_navigation)
+target_link_libraries(ekf_3d_usbl_node ${catkin_LIBRARIES} labust_navigation)
+
+
 
 #############
 ## Install ##
