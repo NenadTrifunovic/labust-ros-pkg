@@ -452,7 +452,8 @@ void startParseCallback(ros::Publisher &pubStartDispatcher, const misc_msgs::Sta
 	NP.underactuated = msg->underactuated;
 	NP.speed = msg->speed; // read from .nmis file
 	NP.heading = msg->heading;
-	NP.victory_radius= msg->victory_radius;
+
+	NP.victory_radius = msg->victory_radius;
 
 	/*** If Neptus file is successfully parsed  ***/
 	if(NP.parseNeptus(msg->fileName) == 1){

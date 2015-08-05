@@ -94,7 +94,7 @@ namespace labust
 					Eigen::Vector4d* cmin);
 
 			///Helper function for coercing XY in-place
-			bool saturateXY(Eigen::Vector4d& t, const Eigen::Vector4d& pmin, const Eigen::Vector4d& pmax);
+			bool saturate(Eigen::Vector4d& t, const Eigen::Vector4d& pmin, const Eigen::Vector4d& pmax);
 			///Helper function for coercing N in-place
 			bool saturateN(Eigen::Vector4d& t, const Eigen::Vector4d& pmin, const Eigen::Vector4d& pmax);
 

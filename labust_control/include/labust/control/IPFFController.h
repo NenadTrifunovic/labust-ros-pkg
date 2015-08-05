@@ -60,8 +60,7 @@ inline void IPFF_step(PIDBase* self, float Ts)
 {
 	IPFF_wffStep(self, Ts,
 			self->desired - self->state,
-			(self->model.beta +
-			self->model.betaa*fabs(self->desired))*self->desired);
+			(self->model.betaa*fabs(self->state))*self->state);
 }
 /**
  * Calculate one step of the IPFF controller with externally
@@ -71,8 +70,7 @@ inline void IPFF_wStep(PIDBase* self, float Ts, float error)
 {
 	IPFF_wffStep(self, Ts,
 			error,
-			(self->model.beta +
-			self->model.betaa*fabs(self->desired))*self->desired);
+			(self->model.betaa*fabs(self->state))*self->state);
 }
 /**
  * Calculate one step of the IPFF controller with externally

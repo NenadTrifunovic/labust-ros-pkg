@@ -107,11 +107,14 @@ namespace labust
 		>
 		class HLControl : public Controller, Enable, Windup
 		{
+			enum {TIMEOUT=2};
 		public:
 			/**
 			 * Main constructor
 			 */
-			HLControl()
+			HLControl():
+				lastEn(false),
+				refOk(false)
 			{
 				onInit();
 			}
@@ -140,6 +143,7 @@ namespace labust
 			void onRef(const typename ReferenceType::ConstPtr& ref)
 			{
 				boost::mutex::scoped_lock l(cnt_mux);
+				refOk = true;
 				this->ref = *ref;
 			}
 
@@ -155,8 +159,11 @@ namespace labust
 				{
 					this->idle(ref, *estimate, ext);
 					lastEn = false;
+					refOk = false;
 					return;
 				}
+
+				if (!refOk) return;
 
 				//Copy into controller
 				Windup::get_windup(this);
@@ -186,7 +193,7 @@ namespace labust
 			/**
 			 * The disabled axis.
 			 */
-			bool disabled_axis[6], lastEn;
+			bool disabled_axis[6], lastEn, refOk;
 			/**
 			 * Control locker.
 			 */

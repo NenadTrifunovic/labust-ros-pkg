@@ -44,7 +44,9 @@ using namespace labust::navigation;
 LDTravModel::LDTravModel():
 		dvlModel(0),
 		xdot(0),
-		ydot(0)
+		ydot(0),
+		trustf(0),
+		kvr(0)
 {
 	this->initModel();
 };
@@ -85,11 +87,23 @@ void LDTravModel::calculateUVInovationVariance(const LDTravModel::matrix& P, dou
 void LDTravModel::step(const input_type& input)
 {
   x(u) += Ts*(-surge.Beta(x(u))/surge.alpha*x(u) + 1/surge.alpha * input(X));
+  double vd = -sway.Beta(x(v))/sway.alpha*x(v) + 1/sway.alpha * input(Y);
   x(v) += Ts*(-sway.Beta(x(v))/sway.alpha*x(v) + 1/sway.alpha * input(Y));
   x(w) += Ts*(-heave.Beta(x(w))/heave.alpha*x(w) + 1/heave.alpha * (input(Z) + x(buoyancy)));
   //x(p) += Ts*(-roll.Beta(x(p))/roll.alpha*x(p) + 1/roll.alpha * (input(Kroll) + x(roll_restore)));
   x(q) += Ts*(-pitch.Beta(x(p))/pitch.alpha*x(q) + 1/pitch.alpha * (input(M) + x(pitch_restore)));
-  x(r) += Ts*(-yaw.Beta(x(r))/yaw.alpha*x(r) + 1/yaw.alpha * input(N) + 0*x(b));
+  
+  double use_sc(1);
+  double acc_port = 0.3;
+  double acc_starboard = 0.3;
+  double vec_port = 0.07;
+  double vec_starboard = 0.07;
+
+  double acc = (x(v)>0)?acc_starboard:acc_port;
+  double vec = (x(v)>0)?vec_starboard:vec_port;
+  //if (fabs(x(v)) < 0.15) use_sc=0;
+  
+x(r) += Ts*(-yaw.Beta(x(r))/yaw.alpha*x(r) + 1/yaw.alpha * input(N) + 0*x(b) - use_sc*vec*x(v) - acc*use_sc*vd);
 
   xdot = x(u)*cos(x(psi)) - x(v)*sin(x(psi)) + x(xc);
   ydot = x(u)*sin(x(psi)) + x(v)*cos(x(psi)) + x(yc);
@@ -122,6 +136,7 @@ void LDTravModel::derivativeAW()
 	A(q,q) = 1-Ts*(pitch.beta + 2*pitch.betaa*fabs(x(q)))/pitch.alpha;
 	A(q,pitch_restore) = Ts/pitch.alpha;
 	A(r,r) = 1-Ts*(yaw.beta + 2*yaw.betaa*fabs(x(r)))/yaw.alpha;
+	A(r,v) = Ts*kvr;
 	//A(r,b) = Ts;
 
 	A(xp,u) = Ts*cos(x(psi));
@@ -155,10 +170,9 @@ const LDTravModel::output_type& LDTravModel::update(vector& measurements, vector
 	{
 		if (newMeas(i))
 		{
-			//ROS_INFO("New meas: %d", i);
+			ROS_INFO("New meas: %d", i);
 			if (i == u)
 			{
-				double trustf=30;
 				ROS_INFO("Trust factor:%f",cosh(trustf*x(r)));
 				R0(u,u) = cosh(trustf*x(r))*r0u;
 				R0(v,v) = cosh(trustf*x(r))*r0u;

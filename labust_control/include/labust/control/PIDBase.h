@@ -85,7 +85,7 @@ typedef struct PIDBase
 	/**
 	 * Internal state of the backward euler.
 	 */
-	float internalState, lastRef, lastError, lastFF, lastState, llastError, llastState, lastDerivative, lastI;
+	float internalState, lastRef, lastError, lastPError, lastFF, lastState, llastError, llastState, lastDerivative, lastI, I;
 
 	/**
 	 * The reference, state, output, feedforward, tracking

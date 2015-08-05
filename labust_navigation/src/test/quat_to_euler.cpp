@@ -50,9 +50,9 @@ void handleImu(ros::Publisher& rpy, const sensor_msgs::Imu::ConstPtr& data)
 	//pitch = -asin(2*(q.x*q.z + q.y*q.w));
 	//yaw = atan2(2*(q.x*q.y-q.w*q.z),1-2*(q.y*q.y+q.z*q.z));
 	auv_msgs::RPY out;
-	out.roll = roll;
-	out.pitch = pitch;
-	out.yaw = yaw;
+	out.roll = roll/M_PI*180;
+	out.pitch = pitch/M_PI*180;
+	out.yaw = yaw/M_PI*180;
 	rpy.publish(out);
 
 	ROS_INFO("R=%f,P=%f,Y=%f",roll, pitch, yaw);

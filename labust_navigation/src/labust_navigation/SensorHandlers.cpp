@@ -50,34 +50,35 @@ void GPSHandler::configure(ros::NodeHandle& nh)
 void GPSHandler::onGps(const sensor_msgs::NavSatFix::ConstPtr& data)
 {
 	//Calculate to X-Y tangent plane
-	geometry_msgs::TransformStamped transformDeg, transformLocal;
+	geometry_msgs::TransformStamped transformDeg, transformLocal, transformGPS;
 	try
 	{
 		transformLocal = buffer.lookupTransform("local", "gps_frame", ros::Time(0));
+		transformGPS = buffer.lookupTransform("base_link", "gps_frame", ros::Time(0));
 		transformDeg = buffer.lookupTransform("worldLatLon", "local", ros::Time(0));
 		posxy =	labust::tools::deg2meter(data->latitude - transformDeg.transform.translation.y,
 					data->longitude - transformDeg.transform.translation.x,
 					transformDeg.transform.translation.y);
-//<<<<<<< Updated upstream
-//=======
-//		Eigen::Quaternion<double> rot(transformLocal.transform.rotation.w,
-//				transformLocal.transform.rotation.x,
-//				transformLocal.transform.rotation.y,
-//				transformLocal.transform.rotation.z);
-//		Eigen::Vector3d offset(transformGPS.transform.translation.x,
-//				transformGPS.transform.translation.y,
-//				transformGPS.transform.translation.z);
-//		Eigen::Vector3d pos_corr = rot.matrix()*offset;
-//
-// 		posxy.first -= pos_corr(0);
-// 		posxy.second -= pos_corr(1);
-//>>>>>>> Stashed changes
+	/*	Eigen::Quaternion<double> rot(transformLocal.transform.rotation.w,
+				transformLocal.transform.rotation.x,
+				transformLocal.transform.rotation.y,
+				transformLocal.transform.rotation.z);*/
+		Eigen::Vector3d offset(transformGPS.transform.translation.x,
+				transformGPS.transform.translation.y,
+				transformGPS.transform.translation.z);
+		Eigen::Vector3d pos_corr = rot.matrix()*offset;
 
+ 		posxy.first -= pos_corr(0);
+ 		posxy.second -= pos_corr(1);
+		
+		//ROS_ERROR("Corrected position: %f %f", pos_corr(0), pos_corr(1));
+		
 		originLL.first = transformDeg.transform.translation.y;
 		originLL.second = transformDeg.transform.translation.x;
 
-		posLL.first = data->latitude;
-		posLL.second = data->longitude;
+		std::pair<double, double> posxy_corr = labust::tools::meter2deg(posxy.first, posxy.second, transformDeg.transform.translation.y);
+		posLL.first = originLL.first + posxy_corr.first;
+		posLL.second = originLL.second + posxy_corr.second;
 
 		isNew = true;
 	}
@@ -106,6 +107,7 @@ void ImuHandler::onImu(const sensor_msgs::Imu::ConstPtr& data)
 				transform.transform.rotation.y,
 				transform.transform.rotation.z);
 		Eigen::Quaternion<double> result = meas*rot;
+		if (gps != 0) gps->setRotation(result);
 		//KDL::Rotation::Quaternion(result.x(),result.y(),result.z(),result.w()).GetEulerZYX
 		//		(rpy[yaw],rpy[pitch],rpy[roll]);
 		labust::tools::eulerZYXFromQuaternion(result, rpy[roll], rpy[pitch], rpy[yaw]);
@@ -144,12 +146,25 @@ void DvlHandler::configure(ros::NodeHandle& nh)
 {
 	nu_dvl = nh.subscribe<geometry_msgs::TwistStamped>("dvl", 1,
 			&DvlHandler::onDvl, this);
+	nu_dvl = nh.subscribe<std_msgs::Bool>("dvl_bottom", 1,
+			&DvlHandler::onBottomLock, this);
+
+	bottom_lock = false;
+
 
 	uvw[u] = uvw[v] = uvw[w] = 0;
 }
 
+void DvlHandler::onBottomLock(const std_msgs::Bool::ConstPtr& data)
+{
+		this->bottom_lock = data->data;
+}
+
 void DvlHandler::onDvl(const geometry_msgs::TwistStamped::ConstPtr& data)
 {
+	//Ignore water lock data (?)
+	if (!bottom_lock) return;
+
 	if (data->header.frame_id == "dvl_frame")
 	{
 		try
@@ -206,6 +221,41 @@ void DvlHandler::onDvl(const geometry_msgs::TwistStamped::ConstPtr& data)
 		uvw[u] = result.x();
 		uvw[v] = result.y();
 		uvw[w] = result.z();
+	}
+	else if (data->header.frame_id == "gps_frame")
+	{
+		try
+		{
+			geometry_msgs::TransformStamped transform;
+			transform = buffer.lookupTransform("base_link", "gps_frame", ros::Time(0));
+
+			Eigen::Vector3d speed(data->twist.linear.x, data->twist.linear.y, data->twist.linear.z);
+			Eigen::Quaternion<double> rot(transform.transform.rotation.w,
+					transform.transform.rotation.x,
+					transform.transform.rotation.y,
+					transform.transform.rotation.z);
+			Eigen::Vector3d body_speed = rot.matrix()*speed;
+
+			//Add compensation for excentralized GPS
+			Eigen::Vector3d origin(transform.transform.translation.x,
+					transform.transform.translation.y,
+					transform.transform.translation.z);
+			if (origin.x() != 0 || origin.y() != 0)
+			{
+
+				body_speed -= Eigen::Vector3d(-r*origin.y(),r*origin.x(),0);
+			}
+
+			uvw[u] = body_speed.x();
+			uvw[v] = body_speed.y();
+			uvw[w] = body_speed.z();
+		}
+		catch (std::exception& ex)
+		{
+			ROS_WARN("DVL measurement failure:%s",ex.what());
+			isNew = false;
+			return;
+		}
 	}
 	else
 	{

@@ -141,7 +141,9 @@ namespace labust
 			/**
 			 * Estimated and measured state publisher.
 			 */
-			ros::Publisher stateMeas, stateHat, currentsHat, buoyancyHat;
+			ros::Publisher stateMeas, stateHat, currentsHat, buoyancyHat, unsafe_dvl;
+			///Turn count publisher
+			ros::Publisher turns_pub;
 			/**
 			 * Sensors and input subscribers.
 			 */
@@ -158,6 +160,14 @@ namespace labust
 			 * The DVL handler.
 			 */
 			DvlHandler dvl;
+			/// Maximum dvl speed for sanity checks
+			double max_dvl;
+			/// Minimum safe altitude that is accepted as measurement
+			double min_altitude;
+			/// Last DVL measurement received time
+			ros::Time dvl_time;
+			/// Timeout value for the DVL
+			double dvl_timeout;
 			/**
 			 * The transform broadcaster.
 			 */

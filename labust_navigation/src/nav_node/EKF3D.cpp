@@ -67,7 +67,11 @@ Estimator3D::Estimator3D():
 		dvl_model(0),
 		compassVariance(0.3),
 		gyroVariance(0.003),
-		absoluteEKF(false){this->onInit();};
+		absoluteEKF(false),
+		max_dvl(1.5),
+		min_altitude(0.5),
+		dvl_timeout(5),
+		dvl_time(ros::Time::now()){this->onInit();};
 
 void Estimator3D::onInit()
 {
@@ -79,6 +83,8 @@ void Estimator3D::onInit()
 	stateMeas = nh.advertise<auv_msgs::NavSts>("meas",1);
 	currentsHat = nh.advertise<geometry_msgs::TwistStamped>("currentsHat",1);
 	buoyancyHat = nh.advertise<std_msgs::Float32>("buoyancy",1);
+	turns_pub = nh.advertise<std_msgs::Float32>("turns",1);
+	unsafe_dvl = nh.advertise<std_msgs::Bool>("unsafe_dvl",1);
 	//Subscribers
 	tauAch = nh.subscribe<auv_msgs::BodyForceReq>("tauAch", 1, &Estimator3D::onTau,this);
 	depth = nh.subscribe<std_msgs::Float32>("depth", 1,	&Estimator3D::onDepth, this);
@@ -86,6 +92,7 @@ void Estimator3D::onInit()
 	modelUpdate = nh.subscribe<navcon_msgs::ModelParamsUpdate>("model_update", 1, &Estimator3D::onModelUpdate,this);
 	resetTopic = nh.subscribe<std_msgs::Bool>("reset_nav_covariance", 1, &Estimator3D::onReset,this);
 	useGyro = nh.subscribe<std_msgs::Bool>("use_gyro", 1, &Estimator3D::onUseGyro,this);
+
 
 	KFmode = quadMeasAvailable = false;
 	sub = nh.subscribe<auv_msgs::NED>("quad_delta_pos", 1, &Estimator3D::deltaPosCallback,this);
@@ -97,15 +104,24 @@ void Estimator3D::onInit()
 	ph.param("imu_with_yaw_rate",useYawRate,useYawRate);
 	ph.param("compass_variance",compassVariance,compassVariance);
 	ph.param("gyro_variance",gyroVariance,gyroVariance);
-
+	ph.param("max_dvl",max_dvl,max_dvl);
+	ph.param("min_altitude", min_altitude, min_altitude);
+	ph.param("dvl_timeout", dvl_timeout, dvl_timeout);
+	double trustf(0);
+	ph.param("dvl_rot_trust_factor", trustf, trustf);
+	double sway_corr(0);
+	ph.param("sway_corr", sway_corr, sway_corr);
 	ph.param("absoluteEKF", absoluteEKF,absoluteEKF);
 
 	//Configure handlers.
 	gps.configure(nh);
 	dvl.configure(nh);
 	imu.configure(nh);
+	imu.setGpsHandler(&gps);
 
-   Pstart = nav.getStateCovariance();
+  Pstart = nav.getStateCovariance();
+  nav.setDVLRotationTrustFactor(trustf);
+  nav.setSwayCorrection(sway_corr);
 //Rstart = nav.R;
  // ROS_ERROR("NAVIGATION");
 
@@ -215,13 +231,15 @@ void Estimator3D::onAltitude(const std_msgs::Float32::ConstPtr& data)
 {
 	boost::mutex::scoped_lock l(meas_mux);
 	measurements(KFNav::altitude) = data->data;
+	//Skip measurement if minimum altitude is encountered
+	if (data->data <= min_altitude) return;
 	//Dismiss false altitude
-	if (fabs(data->data-nav.getState()(KFNav::altitude)) < 10*nav.calculateAltInovationVariance(nav.getStateCovariance())) 
+	if (fabs(data->data-nav.getState()(KFNav::altitude)) < 3*nav.calculateAltInovationVariance(nav.getStateCovariance()))
 	{
 		newMeas(KFNav::altitude) = 1;
 		alt = data->data;
 		ROS_DEBUG("Accepted altitude: meas=%f, estimate=%f, variance=%f",
-			data->data, nav.getState()(KFNav::altitude), 10* nav.calculateAltInovationVariance(nav.getStateCovariance()));
+			data->data, nav.getState()(KFNav::altitude), 3*nav.calculateAltInovationVariance(nav.getStateCovariance()));
 	}
 	else
 	{
@@ -342,22 +360,41 @@ void Estimator3D::processMeasurements()
 		default: break;
 		}
 
-		if (fabs((vx - vxe)) > fabs(rvx))
+		if ((fabs((vx - vxe)) > fabs(rvx)) || (fabs((vy - vye)) > fabs(rvy)))
 		{
 			ROS_INFO("Outlier rejected: meas=%f, est=%f, tolerance=%f", vx, nav.getState()(KFNav::u), fabs(rvx));
-			newMeas(KFNav::u) = false;
-		}
-		measurements(KFNav::u) = vx;
-
-
-		if (fabs((vy - vye)) > fabs(rvy))
-		{
 			ROS_INFO("Outlier rejected: meas=%f, est=%f, tolerance=%f", vy, nav.getState()(KFNav::v), fabs(rvy));
+			newMeas(KFNav::u) = false;
 			newMeas(KFNav::v) = false;
 		}
+		measurements(KFNav::u) = vx;
 		measurements(KFNav::v) = vy;
 
+		//Sanity check
+		if ((fabs(vx) > max_dvl) || (fabs(vy) > max_dvl))
+		{
+			ROS_INFO("DVL measurement failed sanity check for maximum speed %f. Got: vx=%f, vy=%f.",max_dvl, vx, vy);
+			newMeas(KFNav::u) = false;
+			newMeas(KFNav::v) = false;
+		}
+
+		if (newMeas(KFNav::u) || newMeas(KFNav::v))
+		{
+			dvl_time = ros::Time::now();
+			std_msgs::Bool data;
+			data.data = false;
+			unsafe_dvl.publish(data);
+		}
 		//measurements(KFNav::w) = dvl.body_speeds()[DvlHandler::w];
+	}
+	else
+	{
+		if ((ros::Time::now() - dvl_time).toSec() > dvl_timeout)
+		{
+			std_msgs::Bool data;
+			data.data = true;
+			unsafe_dvl.publish(data);
+		}
 	}
 	l.unlock();
 
@@ -450,6 +487,10 @@ void Estimator3D::publishState()
 	std_msgs::Float32::Ptr buoyancy(new std_msgs::Float32());
 	buoyancy->data = estimate(KFNav::buoyancy);
 	buoyancyHat.publish(buoyancy);
+
+	std_msgs::Float32::Ptr turns(new std_msgs::Float32());
+	turns->data = estimate(KFNav::psi)/(2*M_PI);
+	turns_pub.publish(turns);
 }
 
 void Estimator3D::start()
@@ -476,6 +517,10 @@ void Estimator3D::start()
 		ROS_INFO("Measurements %d:%s",KFNav::psi, out.str().c_str());
 
 		if (newArrived)	nav.correct(nav.update(measurements, newMeas));
+		KFNav::vector tcstate = nav.getState();
+		if (tcstate(KFNav::buoyancy) < -30) tcstate(KFNav::buoyancy) = -10;
+		if (tcstate(KFNav::buoyancy) > 0) tcstate(KFNav::buoyancy) = 0;
+		nav.setState(tcstate);
 		l.unlock();
 		publishState();
 

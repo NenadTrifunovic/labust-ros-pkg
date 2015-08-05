@@ -62,7 +62,7 @@ namespace labust
 		{
 			enum {x=0,y, z};
 
-			FADPControl():Ts(0.1), useIP(false){};
+			FADPControl():Ts(0.1){};
 
 			void init()
 			{
@@ -72,14 +72,10 @@ namespace labust
 
 			void windup(const auv_msgs::BodyForceReq& tauAch)
 			{
-				//Copy into controller
-				//con[x].windup = tauAch.disable_axis.x;
-				//con[y].windup = tauAch.disable_axis.y;
-				//TODO Windup through rotation matrix ?
-				bool joint_windup = tauAch.windup.x || tauAch.windup.y || tauAch.windup.z;
+				bool joint_windup = tauAch.windup.x || tauAch.windup.y;
 				con[x].extWindup = joint_windup;
 				con[y].extWindup = joint_windup;
-				con[z].extWindup = joint_windup;
+				con[z].extWindup = tauAch.windup.z;
 
 			};
 
@@ -87,49 +83,39 @@ namespace labust
 							const auv_msgs::BodyVelocityReq& track)
 			{
 				//Tracking external commands while idle (bumpless)
+				Eigen::Quaternion<float> q;
+				Eigen::Vector3f in, out;
+				labust::tools::quaternionFromEulerZYX(
+						state.orientation.roll,
+						state.orientation.pitch,
+						state.orientation.yaw, q);
+				in<<track.twist.linear.x,track.twist.linear.y,track.twist.linear.z;
+				out = q.matrix()*in;
 				con[x].desired = state.position.north;
 				con[y].desired = state.position.east;
 				con[z].desired = state.position.depth;
-				con[x].output = con[x].internalState = track.twist.linear.x;
-				con[y].output = con[y].internalState = track.twist.linear.y;
-				con[z].output = con[z].internalState = track.twist.linear.z;
-				con[x].lastState = con[x].state = state.position.north;
-				con[y].lastState = con[y].state = state.position.east;
-				con[z].lastState = con[z].state = state.position.depth;
+				con[x].track = out(x);
+				con[y].track = out(y);
+				con[z].track = out(z);
+				con[x].state = state.position.north;
+				con[y].state = state.position.east;
+				con[z].state = state.position.depth;
 
-				if (!useIP)
-				{
-					PIFF_idle(&con[x], Ts);
-					PIFF_idle(&con[y], Ts);
-					PIFF_idle(&con[z], Ts);
-				}
+				labust::tools::quaternionFromEulerZYX(
+						ref.orientation.roll,
+						ref.orientation.pitch,
+						ref.orientation.yaw, q);
+				in<<ref.body_velocity.x,ref.body_velocity.y,ref.body_velocity.z;
+				out = q.matrix()*in;
+
+				PIFF_ffIdle(&con[x], Ts, float(out(x)));
+				PIFF_ffIdle(&con[y], Ts, float(out(y)));
+				PIFF_ffIdle(&con[z], Ts, float(out(z)));
 			};
 
 			void reset(const auv_msgs::NavSts& ref, const auv_msgs::NavSts& state)
 			{
-				Eigen::Vector2f out, in;
-				Eigen::Matrix2f R;
-				//				in<<0.5,0;
-				//				double yaw(state.orientation.yaw);
-				//				R<<cos(yaw),-sin(yaw),sin(yaw),cos(yaw);
-				//				out = R*in;
-				//  			con[x].internalState = out(0);
-				//  			con[y].internalState = out(1);
-				con[x].internalState = 0;
-				con[y].internalState = 0;
-				con[z].internalState = 0;
-				con[x].lastState = state.position.north;
-				con[y].lastState = state.position.east;
-				con[z].lastState = state.position.depth;
-				con[x].lastRef = ref.position.north;
-				con[y].lastRef = ref.position.east;
-				con[z].lastRef = ref.position.depth;
-				con[x].lastError = ref.position.north - state.position.north;
-				con[y].lastError = ref.position.east - state.position.east;
-				con[z].lastError = ref.position.depth - state.position.depth;
-
-				ROS_INFO("Reset: %f %f %f %f %f %f", con[x].internalState, con[y].internalState, con[z].internalState,
-								state.position.north, state.position.east, state.position.depth);
+				//UNUSED
 			};
 
 			auv_msgs::BodyVelocityReqPtr step(const auv_msgs::NavSts& ref,
@@ -138,80 +124,44 @@ namespace labust
 				con[x].desired = ref.position.north;
 				con[y].desired = ref.position.east;
 				con[z].desired = ref.position.depth;
-
-				ROS_INFO("Position desired: %f %f %f", ref.position.north, ref.position.east, ref.position.depth);
-
-				Eigen::Vector3d out, in;
-				Eigen::Matrix3d R;
-
-				in<<ref.body_velocity.x,ref.body_velocity.y, ref.body_velocity.z;
-
-				double roll(ref.orientation.roll);
-				double pitch(ref.orientation.pitch);
-				double yaw(ref.orientation.yaw);
-
-				R<< cos(yaw)*cos(pitch), -sin(yaw)*cos(roll)+cos(yaw)*sin(pitch)*sin(roll), sin(yaw)*sin(roll)+cos(yaw)*cos(roll)*sin(pitch),
-					sin(yaw)*cos(pitch), cos(yaw)*cos(roll)+sin(roll)*sin(pitch)*sin(yaw), -cos(yaw)*sin(roll)+sin(pitch)*sin(yaw)*cos(roll),
-					-sin(pitch), cos(pitch)*sin(roll), cos(pitch)*cos(roll);
-
-				out = R*in;
-
-				double uff = out(x);
-				double vff = out(y);
-				double wff = out(z);
-
 				con[x].state = state.position.north;
 				con[y].state = state.position.east;
 				con[z].state = state.position.depth;
-
-
-				in<<state.body_velocity.x,state.body_velocity.y, state.body_velocity.z;
-
-				roll = state.orientation.roll;
-				pitch = state.orientation.pitch;
-				yaw = state.orientation.yaw;
-
-				R<< cos(yaw)*cos(pitch), -sin(yaw)*cos(roll)+cos(yaw)*sin(pitch)*sin(roll), sin(yaw)*sin(roll)+cos(yaw)*cos(roll)*sin(pitch),
-					sin(yaw)*cos(pitch), cos(yaw)*cos(roll)+sin(roll)*sin(pitch)*sin(yaw), -cos(yaw)*sin(roll)+sin(pitch)*sin(yaw)*cos(roll),
-					-sin(pitch), cos(pitch)*sin(roll), cos(pitch)*cos(roll);
-
-				out = R*in;
-
+				//Calculate tracking values
+				Eigen::Quaternion<float> qs,qr;
+				Eigen::Vector3f in, out;
+				labust::tools::quaternionFromEulerZYX(
+						state.orientation.roll,
+						state.orientation.pitch,
+						state.orientation.yaw, qs);
+				in<<state.body_velocity.x,state.body_velocity.y,state.body_velocity.z;
+				out = qs.matrix()*in;
 				con[x].track = out(x);
-				con[y].track = out(y);
-				con[z].track = out(z);
+				con[x].track = out(y);
+				con[x].track = out(z);
+				//Calculate feed forward
+				ROS_DEBUG("Position desired: %f %f %f", ref.position.north, ref.position.east, ref.position.depth);
+				labust::tools::quaternionFromEulerZYX(
+						ref.orientation.roll,
+						ref.orientation.pitch,
+						ref.orientation.yaw, qr);
+				in<<ref.body_velocity.x,ref.body_velocity.y,ref.body_velocity.z;
+				out = qr.matrix()*in;
+				//Make step
+				PIFF_ffStep(&con[x], Ts, float(out(x)));
+				PIFF_ffStep(&con[y], Ts, float(out(y)));
+				PIFF_ffStep(&con[z], Ts, float(out(z)));
 
-				if (useIP)
-				{
-					IPFF_ffStep(&con[x],Ts, uff);
-					IPFF_ffStep(&con[y],Ts, vff);
-					IPFF_ffStep(&con[z],Ts, wff);
-
-				}
-				else
-				{
-					PIFF_ffStep(&con[x],Ts, uff);
-					PIFF_ffStep(&con[y],Ts, vff);
-					PIFF_ffStep(&con[z],Ts, wff);
-
-				}
-
+				//Publish commands
 				auv_msgs::BodyVelocityReqPtr nu(new auv_msgs::BodyVelocityReq());
 				nu->header.stamp = ros::Time::now();
 				nu->goal.requester = "fadp_3d_controller";
 				labust::tools::vectorToDisableAxis(disable_axis, nu->disable_axis);
-
-				//ROS_ERROR("Output %f %f %f %f",uff,vff,con[x].output, con[y].output);
-
 				in<<con[x].output,con[y].output,con[z].output;
-
-				//yaw = state.orientation.yaw;
-				//R<<cos(yaw),-sin(yaw),sin(yaw),cos(yaw);
-				out = R.transpose()*in;
-
-				nu->twist.linear.x = out[0];
-				nu->twist.linear.y = out[1];
-				nu->twist.linear.z = out[2];
+				out = qs.matrix()*in;
+				nu->twist.linear.x = out[x];
+				nu->twist.linear.y = out[y];
+				nu->twist.linear.z = out[z];
 
 				return nu;
 			}
@@ -224,7 +174,6 @@ namespace labust
 				Eigen::Vector3d closedLoopFreq(Eigen::Vector3d::Ones());
 				labust::tools::getMatrixParam(nh,"dp_controller/closed_loop_freq", closedLoopFreq);
 				nh.param("dp_controller/sampling",Ts,Ts);
-				nh.param("dp_controller/use_ip",useIP,useIP);
 
 				disable_axis[x] = 0;
 				disable_axis[y] = 0;
@@ -244,7 +193,6 @@ namespace labust
 		private:
 			PIDBase con[3];
 			double Ts;
-			bool useIP;
 		};
 	}}
 

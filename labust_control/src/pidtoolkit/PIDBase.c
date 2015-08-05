@@ -45,12 +45,13 @@ void PIDBase_init(PIDBase* self)
 	self->Kt = 0;
 	self->b = 1.0;
 
-	self->internalState = self->output = 0;
+	self->internalState = self->output = self->I = 0;
 	self->desired = self->state =0;
 	self->lastError = self->lastRef = 0;
 	self->lastFF = self->lastState = 0;
 	self->lastI = 0; self->track = 0;
 	self->llastError = self->llastState = 0;
+	self->lastPError = 0;
 
 	self->model.alpha = 0;
 	self->model.beta = 0;
