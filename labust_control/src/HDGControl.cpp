@@ -56,7 +56,7 @@ namespace labust
 		{
 			enum {N=5};
 
-			HDGControl():Ts(0.1),yawRefPast(0.0),manRefFlag(false){};
+			HDGControl():Ts(0.1),yawRefPast(0.0),manRefFlag(true){};
 
 			void init()
 			{
