@@ -200,6 +200,7 @@ namespace labust
 				ROS_ERROR("Preempted.");
 				if (!processNewGoal)
 				{
+					goal.reset();
 					ROS_ERROR("Stopping controllers.");
 					controllers.state.assign(numcnt, false);
 					this->updateControllers();
@@ -259,6 +260,9 @@ namespace labust
 						result.distance = distVictory;
 						result.bearing = bearing_to_endpoint.gamma();
 						aserver->setSucceeded(result);
+						ROS_INFO("Stopping controllers.");
+						controllers.state.assign(numcnt, false);
+						this->updateControllers();
 						return;
 					}
 

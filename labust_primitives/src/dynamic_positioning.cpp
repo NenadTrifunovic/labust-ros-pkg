@@ -126,9 +126,10 @@ namespace labust
 				ROS_ERROR("Preempted.");
 				if (!processNewGoal)
 				{
-					//ROS_ERROR("Stopping controllers.");
-					//controllers.state.assign(numcnt, false);
-					//this->updateControllers();
+					goal.reset();
+					ROS_INFO("Stopping controllers.");
+					controllers.state.assign(numcnt, false);
+					this->updateControllers();
 				}
 				else
 				{
