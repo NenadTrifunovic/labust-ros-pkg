@@ -167,11 +167,14 @@ using namespace labust::controller;
 			goal.speed = speed;
 			goal.victory_radius = radius;
 
+			LLcfg.LL_VELconfigure(true,2,2,0,0,0,2);
 			Go2Point.start(goal);
 		}
 		else
 		{
 			Go2Point.stop();
+			LLcfg.LL_VELconfigure(true,1,1,0,0,0,1);
+
 		}
 	}
 
@@ -205,7 +208,7 @@ using namespace labust::controller;
 		else
 		{
 			Go2Point.stop();
-			LLcfg.LL_VELconfigure(false,1,1,0,0,0,1);
+			LLcfg.LL_VELconfigure(true,1,1,0,0,0,1);
 
 		}
 	}
@@ -263,7 +266,7 @@ using namespace labust::controller;
 		{
 
 			DynamicPositioning.stop();
-			LLcfg.LL_VELconfigure(false,2,2,0,0,0,2);
+			LLcfg.LL_VELconfigure(true,1,1,0,0,0,1);
 
 		}
 	}
