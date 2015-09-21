@@ -82,7 +82,7 @@ namespace labust
   		void idle(const auv_msgs::NavSts& ref, const auv_msgs::NavSts& state,
   				const auv_msgs::BodyVelocityReq& track)
   		{
-  			//Tracking external commands while idle (bumpless)ž
+  			//Tracking external commands while idle (bumpless)
   			if (!underactuated)
   			{
   				try
@@ -93,14 +93,15 @@ namespace labust
   					labust::tools::eulerZYXFromQuaternion(dH.transform.rotation,
   							roll, pitch, gamma);
 
-  					con.desired = ref.position.east;
+  					con.desired = 0*ref.position.east;
   					con.state = dH.transform.translation.y;
   					Eigen::Vector2f out, in;
   					Eigen::Matrix2f R;
   					in<<state.body_velocity.x,state.body_velocity.y;
+  					R<<cos(gamma),-sin(gamma),sin(gamma),cos(gamma);
   					out = R*in;
   					con.track = out(1);
-  					PIFF_ffIdle(&con, Ts, 0);
+  					//PIFF_ffIdle(&con, Ts, 0);
   				}
   				catch (tf2::TransformException& ex)
   				{
