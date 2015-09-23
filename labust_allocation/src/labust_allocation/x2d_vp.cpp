@@ -88,7 +88,7 @@ const std::vector<double>& X2dVP::allocate(const Eigen::VectorXd& tau)
 	tauXY<<tau(X),tau(Y),0.0;
 	//Perform inverse allocation
 	Eigen::Vector4d tN, tXY;
-	tN = 0*thrusters.Binv()*tauN;
+	tN = thrusters.Binv()*tauN;
 	tXY = 0*thrusters.Binv()*tauXY;
 
 	std::ostringstream os;
@@ -102,6 +102,8 @@ const std::vector<double>& X2dVP::allocate(const Eigen::VectorXd& tau)
 		satN = satN || ((tN(i) > tnmax(i)) || (tN(i) < tnmin(i)));
 		satXY = satXY || ((tXY(i) > txymax(i)) || (tXY(i) < txymin(i)));
 	}
+
+	satN = false;
 
 	if (!satN && !satXY)
 	{
