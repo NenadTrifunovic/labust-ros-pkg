@@ -88,8 +88,8 @@ const std::vector<double>& X2dVP::allocate(const Eigen::VectorXd& tau)
 	tauXY<<tau(X),tau(Y),0.0;
 	//Perform inverse allocation
 	Eigen::Vector4d tN, tXY;
-	tN = thrusters.Binv()*tauN;
-	tXY = thrusters.Binv()*tauXY;
+	tN = 0*thrusters.Binv()*tauN;
+	tXY = 0*thrusters.Binv()*tauXY;
 
 	std::ostringstream os;
 
@@ -131,12 +131,20 @@ const std::vector<double>& X2dVP::allocate(const Eigen::VectorXd& tau)
 		satXY = saturate(tXY, txymin, txymax);
 	}
 	Eigen::VectorXd tT = tXY+tN;
-	os<<"Final:"<<tT<<std::endl;
 	Eigen::VectorXd tauA = thrusters.B()*tT;
+	os<<"Final:"<<tT<<std::endl;
+	os<<"tnmax:"<<tnmax<<std::endl;
+	os<<"tnmin:"<<tnmin<<std::endl;
+	os<<"tmax:"<<tmax<<std::endl;
+	os<<"tmin:"<<tmin<<std::endl;
+	os<<"txymax:"<<txymax<<std::endl;
+	os<<"txymin:"<<txymin<<std::endl;
+	os<<"tN:"<<tmin<<std::endl;
+	//ROS_ERROR("%s", os.str().c_str());
 	//ROS_ERROR("Stuff:%s",os.str().c_str());
 
 	//Make a second run if nothing was achieved
-	if (daisy_chain && (satXY || satN))
+	if (daisy_chain && (true || satXY || satN))
 	{
 		//ROS_ERROR("Second run.");
 		Eigen::VectorXd tauS(3);
@@ -162,7 +170,8 @@ const std::vector<double>& X2dVP::allocate(const Eigen::VectorXd& tau)
 	double l5(0.25),l6(0.55);
 	Bv<<1.0,1.0,
 			-l5,l6;
-	Eigen::Vector2d tauv(tau(Z), tau(M));
+	Eigen::Vector2d tauv;
+	tauv<<tau(Z), tau(M);
 	const Eigen::VectorXd& tmaxv(thrusters.maxF().segment(4,2));
 	const Eigen::VectorXd& tminv(thrusters.minF().segment(4,2));
 	Eigen::Vector2d tTV = Bv.inverse()*tauv;
@@ -190,6 +199,16 @@ const std::vector<double>& X2dVP::allocate(const Eigen::VectorXd& tau)
 	tTT<<tT,tTV;
 
 	//ROS_ERROR("Pint 5");
+	thrusters.pwm(tTT);
+	tTT = thrusters.Fa();
+	tT = tTT.segment(0,4);
+	Eigen::VectorXd tah = thrusters.B()*tT;
+	Eigen::VectorXd tav = Bv*tTT.segment(4,2);
+	tau_ach[X] = tah(0);
+	tau_ach[Y] = tah(1);
+	tau_ach[Z] = tav(0);
+	tau_ach[M] = tav(1);
+	tau_ach[N] = tah(2);
 
 	return thrusters.pwm(tTT);
 }
@@ -258,6 +277,8 @@ bool X2dVP::secondRun(const Eigen::VectorXd& tau,
 	while (do_loop)
 	{
 		Eigen::VectorXd tauR(tau - (*tauA));
+		int dof(0);
+		for (int i=0; i<tauR.size(); ++i) if (fabs(tauR(i)) > sm_th) ++dof;
 		//If the request is almost satisfied
 		if (tauR.norm() < sm_th)
 		{
@@ -300,7 +321,44 @@ bool X2dVP::secondRun(const Eigen::VectorXd& tau,
 			retVal = true;
 			break;
 		}
-		if (notsat.size() == 1) {retVal = true; break;};
+
+		ROS_ERROR("Dof:%d",dof);
+		enum {Xi=0,Yi=1,Ni=2};
+		if ((notsat.size() < (tT->size()-1)))
+		{
+			//Addendum
+			bool okX = fabs(tauR(Xi)) < sm_th;
+			bool okY = fabs(tauR(Yi)) < sm_th;
+			bool okN = fabs(tauR(Ni)) < sm_th;
+
+			bool stopAll = false;
+
+			bool tok[4] = {false, false, false, false};
+
+			for (int i=0; i<notsat.size(); ++i)	tok[notsat[i]] = true;
+
+			if (!okX)
+			{
+				//Check if there is enough thrusters to
+				//X is alocated by atleast 1,2 or 3,4
+				stopAll = !((tok[0] && tok[1]) || (tok[2] && tok[3]));
+			}
+
+			if (!okY)
+			{
+				//Check if there is enough thrusters to
+				//Y is alocated by 1,3 or 2,4
+				stopAll = stopAll || !((tok[0] && tok[2]) || (tok[1] && tok[3]));
+			}
+
+	  if (!okN)
+	  {
+	  	//N is allocated by any pair
+	  }
+		}
+
+	  if (notsat.size() == 1) {retVal = true; break;};
+		if (notsat.size() < dof) {retVal = true; break;};
 
 		//Assemble the reduced allocation matrix
 		Eigen::MatrixXd Bd(tau.size(), notsat.size());
@@ -353,14 +411,16 @@ bool X2dVP::secondRun(const Eigen::VectorXd& tau,
 		Eigen::VectorXd tauf = thrusters.B()*(tTn);
 		Eigen::VectorXd tauRf= tau - tauf;
 
-		enum {Xi=0,Yi=1,Ni=2};
+
 		//Test if we gained a monotonous increase (scaling will be perserved then)
-		//ROS_ERROR("X: %f, %f", fabs(tauR(Xi)), fabs(tauRf(Xi)));
-		//ROS_ERROR("Y: %f, %f", fabs(tauR(Yi)), fabs(tauRf(Yi)));
-		//ROS_ERROR("N: %f, %f", fabs(tauR(Ni)), fabs(tauRf(Ni)));
-		bool limit = fabs(tauR(Xi)) - fabs(tauRf(Xi)) < -sm_th;
-		limit = limit || (fabs(tauR(Yi)) - fabs(tauRf(Yi)) < -sm_th);
-		limit = limit || (fabs(tauR(Ni)) - fabs(tauRf(Ni)) < -sm_th);
+		ROS_ERROR("X: %f, %f", fabs(tauR(Xi)), fabs(tauRf(Xi)));
+		ROS_ERROR("Y: %f, %f", fabs(tauR(Yi)), fabs(tauRf(Yi)));
+		ROS_ERROR("N: %f, %f", fabs(tauR(Ni)), fabs(tauRf(Ni)));
+		bool limit1 = fabs(tauR(Xi)) - fabs(tauRf(Xi)) < -sm_th;
+		bool limit2 = (fabs(tauR(Yi)) - fabs(tauRf(Yi)) < -sm_th);
+	  bool limit3 = (fabs(tauR(Ni)) - fabs(tauRf(Ni)) < -sm_th);
+
+		bool limit = limit1 || limit2 || limit3;
 
 		if (limit)
 		{
