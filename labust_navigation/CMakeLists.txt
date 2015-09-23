@@ -100,7 +100,7 @@ add_executable(ltp_node src/latlon_node/ltp_node.cpp)
 add_executable(static_transform_publisher src/static_transform_publisher/static_transform_publisher.cpp)
 add_executable(ekf3d_node src/nav_node/EKF3D.cpp)
 add_executable(ekf_3d_usbl_node src/nav_node/EKF_3D_USBL.cpp)
-
+add_executable(pressure2depth src/test/pressure2depth.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
@@ -135,8 +135,7 @@ target_link_libraries(ltp_node ${catkin_LIBRARIES})
 target_link_libraries(static_transform_publisher ${catkin_LIBRARIES})
 target_link_libraries(ekf3d_node ${catkin_LIBRARIES} labust_navigation)
 target_link_libraries(ekf_3d_usbl_node ${catkin_LIBRARIES} labust_navigation)
-
-
+target_link_libraries(pressure2depth ${catkin_LIBRARIES})
 
 #############
 ## Install ##

@@ -31,7 +31,7 @@
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
-#include <labust/allocation/x2d_adaptive.h>
+#include <labust/allocation/x2d_vp.h>
 #include <labust/math/NumberManipulation.hpp>
 
 #include <pluginlib/class_list_macros.h>
@@ -46,14 +46,14 @@
 
 using namespace labust::allocation;
 
-X2dAdaptive::X2dAdaptive():
-		_windup(6,false),
-		minN(1),
-		daisy_chain(true),
-		multi_chain(true),
-		tau_ach(Eigen::VectorXd::Zero(6)){}
+X2dVP::X2dVP():
+				_windup(6,false),
+				minN(0.2),
+				daisy_chain(true),
+				multi_chain(true),
+				tau_ach(Eigen::VectorXd::Zero(6)){}
 
-bool X2dAdaptive::configure(ros::NodeHandle& nh, ros::NodeHandle& ph)
+bool X2dVP::configure(ros::NodeHandle& nh, ros::NodeHandle& ph)
 {
 	//Load the thruster configuration
 	bool valid = thrusters.configure(nh, ph);
@@ -69,7 +69,7 @@ bool X2dAdaptive::configure(ros::NodeHandle& nh, ros::NodeHandle& ph)
 	return valid;
 }
 
-const std::vector<double>& X2dAdaptive::allocate(const Eigen::VectorXd& tau)
+const std::vector<double>& X2dVP::allocate(const Eigen::VectorXd& tau)
 {
 	//ROS_ERROR("Pint 1");
 	//Get overall operational limits
@@ -100,35 +100,35 @@ const std::vector<double>& X2dAdaptive::allocate(const Eigen::VectorXd& tau)
 	for (int i=0; i<tN.size(); ++i)
 	{
 		satN = satN || ((tN(i) > tnmax(i)) || (tN(i) < tnmin(i)));
-	  satXY = satXY || ((tXY(i) > txymax(i)) || (tXY(i) < txymin(i)));
+		satXY = satXY || ((tXY(i) > txymax(i)) || (tXY(i) < txymin(i)));
 	}
 
 	if (!satN && !satXY)
 	{
-	    //Everything is within limits
-	    ROS_DEBUG("Everything allocated without saturation.");
+		//Everything is within limits
+		ROS_DEBUG("Everything allocated without saturation.");
 	}
 	else if (satN && !satXY)
 	{
-	    ROS_DEBUG("Yaw DoF is saturated.");
-	    this->recalcOpLimits(tXY,txymax,txymin,&tnmax,&tnmin);
-	    satN = saturate(tN, tnmin, tnmax);
+		ROS_DEBUG("Yaw DoF is saturated.");
+		this->recalcOpLimits(tXY,txymax,txymin,&tnmax,&tnmin);
+		satN = saturate(tN, tnmin, tnmax);
 	}
 	else if (satXY && !satN)
 	{
-	    ROS_DEBUG("XY DoF are saturated.");
-	    this->recalcOpLimits(tN,tnmax,tnmin,&txymax,&txymin);
-	    satXY = saturate(tXY, txymin, txymax);
-	    //os<<"tmin:"<<tmin<<std::endl;
-	    //os<<"tmax:"<<tmax<<std::endl;
-	    //os<<"tXY:"<<tXY<<std::endl;
-	    //os<<"tN:"<<tN<<std::endl;
+		ROS_DEBUG("XY DoF are saturated.");
+		this->recalcOpLimits(tN,tnmax,tnmin,&txymax,&txymin);
+		satXY = saturate(tXY, txymin, txymax);
+		//os<<"tmin:"<<tmin<<std::endl;
+		//os<<"tmax:"<<tmax<<std::endl;
+		//os<<"tXY:"<<tXY<<std::endl;
+		//os<<"tN:"<<tN<<std::endl;
 	}
 	else if (satXY && satN)
 	{
-	    ROS_DEBUG("All DoFs are saturated.");
-	    satN = saturate(tN, tnmin, tnmax);
-	    satXY = saturate(tXY, txymin, txymax);
+		ROS_DEBUG("All DoFs are saturated.");
+		satN = saturate(tN, tnmin, tnmax);
+		satXY = saturate(tXY, txymin, txymax);
 	}
 	Eigen::VectorXd tT = tXY+tN;
 	os<<"Final:"<<tT<<std::endl;
@@ -158,87 +158,94 @@ const std::vector<double>& X2dAdaptive::allocate(const Eigen::VectorXd& tau)
 	tau_ach(N) = tauA(Ni);
 
 	//The vertical patch
+	Eigen::Matrix2d Bv;
+	double l5(0.25),l6(0.55);
+	Bv<<1.0,1.0,
+			-l5,l6;
+	Eigen::Vector2d tauv(tau(Z), tau(M));
 	const Eigen::VectorXd& tmaxv(thrusters.maxF().segment(4,2));
 	const Eigen::VectorXd& tminv(thrusters.minF().segment(4,2));
-	Eigen::Vector2d tTV;
-	tTV<<tau(Z)/2,tau(Z)/2;
+	Eigen::Vector2d tTV = Bv.inverse()*tauv;
 	double scale=1.0;
 	double scalef=1.0;
-  	for (int i=0;i<tTV.size(); ++i)
-  	{
-     	 if (tTV(i) >= 0)
-          scale = tTV(i)/tmaxv(i);
-         else
-          scale = tTV(i)/tminv(i);
+	for (int i=0;i<tTV.size(); ++i)
+	{
+		if (tTV(i) >= 0)
+			scale = tTV(i)/tmaxv(i);
+		else
+			scale = tTV(i)/tminv(i);
 
-         if (scale > scalef) scalef=scale;
-        }
-      	tTV = tTV/scalef;
-       	_windup[Z] = scalef > 1.0;
-       	tau_ach(Z) = tTV.sum();
+		if (scale > scalef) scalef=scale;
+	}
+	tTV = tTV/scalef;
+	_windup[Z] = scalef > 1.0;
+	_windup[M] = scalef > 1.0;
+	tauv = Bv*tTV;
+	tau_ach[Z] = tauv(0);
+	tau_ach[M] = tauv(1);
 
-       	//ROS_ERROR("Pint 4");
+	//ROS_ERROR("Pint 4");
 
-       	Eigen::VectorXd tTT(6);
-       	tTT<<tT,tTV;
+	Eigen::VectorXd tTT(6);
+	tTT<<tT,tTV;
 
 	//ROS_ERROR("Pint 5");
 
 	return thrusters.pwm(tTT);
 }
 
-void X2dAdaptive::recalcOpLimits(Eigen::Vector4d& used, Eigen::Vector4d& pmax,
+void X2dVP::recalcOpLimits(Eigen::Vector4d& used, Eigen::Vector4d& pmax,
 		Eigen::Vector4d& pmin, Eigen::Vector4d* cmax, Eigen::Vector4d* cmin)
 {
-  for (int i=0; i<used.size(); ++i)
-  {
-      if (used(i) >= 0)
-      {
-          double delta = pmax(i) - used(i);
-          (*cmax)(i) += delta;
-          (*cmin)(i) += pmin(i);
-      }
-      else
-      {
-          double delta = pmin(i) - used(i);
-          (*cmin)(i) += delta;
-          (*cmax)(i) += pmax(i);
-      }
-  }
+	for (int i=0; i<used.size(); ++i)
+	{
+		if (used(i) >= 0)
+		{
+			double delta = pmax(i) - used(i);
+			(*cmax)(i) += delta;
+			(*cmin)(i) += pmin(i);
+		}
+		else
+		{
+			double delta = pmin(i) - used(i);
+			(*cmin)(i) += delta;
+			(*cmax)(i) += pmax(i);
+		}
+	}
 }
 
-bool X2dAdaptive::saturateN(Eigen::Vector4d& t,
+bool X2dVP::saturateN(Eigen::Vector4d& t,
 		const Eigen::Vector4d& pmin, const Eigen::Vector4d& pmax)
 {
 	bool retVal(false);
-  for (int i=0; i<t.size(); ++i)
-  {
-  	double tn = labust::math::coerce(t(i), pmin(i), pmax(i));
-  	if (tn != t(i)) retVal |= true;
-  	t(i) = tn;
-  }
-  return retVal;
+	for (int i=0; i<t.size(); ++i)
+	{
+		double tn = labust::math::coerce(t(i), pmin(i), pmax(i));
+		if (tn != t(i)) retVal |= true;
+		t(i) = tn;
+	}
+	return retVal;
 }
 
-bool X2dAdaptive::saturate(Eigen::Vector4d& t,
+bool X2dVP::saturate(Eigen::Vector4d& t,
 		const Eigen::Vector4d& pmin, const Eigen::Vector4d& pmax)
 {
 	double scalef(1.0), scale(0.0);
-  for (int i=0;i<t.size(); ++i)
-  {
-     if (t(i) >= 0)
-        scale = t(i)/pmax(i);
-     else
-        scale = t(i)/pmin(i);
+	for (int i=0;i<t.size(); ++i)
+	{
+		if (t(i) >= 0)
+			scale = t(i)/pmax(i);
+		else
+			scale = t(i)/pmin(i);
 
-     if (scale > scalef) scalef=scale;
-  }
-  t = t/scalef;
+		if (scale > scalef) scalef=scale;
+	}
+	t = t/scalef;
 
-  return (scalef > 1.0);
+	return (scalef > 1.0);
 }
 
-bool X2dAdaptive::secondRun(const Eigen::VectorXd& tau,
+bool X2dVP::secondRun(const Eigen::VectorXd& tau,
 		const Eigen::VectorXd& tmax, const Eigen::VectorXd& tmin,
 		Eigen::VectorXd* tauA, Eigen::VectorXd* tT)
 {
@@ -327,53 +334,53 @@ bool X2dAdaptive::secondRun(const Eigen::VectorXd& tau,
 		//ROS_ERROR("Td (%d): %s",tTd.size(),out.str().c_str());
 
 		double scalef(1.0),scale(0.0);
-    for (int i=0; i< tTd.size(); ++i)
-    {
-        if (tTd(i) >= 0)
-            scale = tTd(i)/tdmax[i];
-        else
-            scale = tTd(i)/tdmin[i];
+		for (int i=0; i< tTd.size(); ++i)
+		{
+			if (tTd(i) >= 0)
+				scale = tTd(i)/tdmax[i];
+			else
+				scale = tTd(i)/tdmin[i];
 
-        if (scale > scalef) scalef=scale;
-    }
-    tTd = tTd/scalef;
+			if (scale > scalef) scalef=scale;
+		}
+		tTd = tTd/scalef;
 
-    Eigen::VectorXd tTn(*tT);
-    for (int i=0; i< notsat.size(); ++i)
-    {
-    	tTn(notsat[i]) += tTd(i);
-    }
-    Eigen::VectorXd tauf = thrusters.B()*(tTn);
-    Eigen::VectorXd tauRf= tau - tauf;
+		Eigen::VectorXd tTn(*tT);
+		for (int i=0; i< notsat.size(); ++i)
+		{
+			tTn(notsat[i]) += tTd(i);
+		}
+		Eigen::VectorXd tauf = thrusters.B()*(tTn);
+		Eigen::VectorXd tauRf= tau - tauf;
 
-    enum {Xi=0,Yi=1,Ni=2};
-    //Test if we gained a monotonous increase (scaling will be perserved then)
-    //ROS_ERROR("X: %f, %f", fabs(tauR(Xi)), fabs(tauRf(Xi)));
-    //ROS_ERROR("Y: %f, %f", fabs(tauR(Yi)), fabs(tauRf(Yi)));
-    //ROS_ERROR("N: %f, %f", fabs(tauR(Ni)), fabs(tauRf(Ni)));
-    bool limit = fabs(tauR(Xi)) - fabs(tauRf(Xi)) < -sm_th;
-    limit = limit || (fabs(tauR(Yi)) - fabs(tauRf(Yi)) < -sm_th);
+		enum {Xi=0,Yi=1,Ni=2};
+		//Test if we gained a monotonous increase (scaling will be perserved then)
+		//ROS_ERROR("X: %f, %f", fabs(tauR(Xi)), fabs(tauRf(Xi)));
+		//ROS_ERROR("Y: %f, %f", fabs(tauR(Yi)), fabs(tauRf(Yi)));
+		//ROS_ERROR("N: %f, %f", fabs(tauR(Ni)), fabs(tauRf(Ni)));
+		bool limit = fabs(tauR(Xi)) - fabs(tauRf(Xi)) < -sm_th;
+		limit = limit || (fabs(tauR(Yi)) - fabs(tauRf(Yi)) < -sm_th);
 		limit = limit || (fabs(tauR(Ni)) - fabs(tauRf(Ni)) < -sm_th);
 
-    if (limit)
-    {
-    	ROS_DEBUG("Scaling or yaw contract broken. Skipping this contribution.");
-    	retVal = true;
-    	break;
-    }
+		if (limit)
+		{
+			ROS_DEBUG("Scaling or yaw contract broken. Skipping this contribution.");
+			retVal = true;
+			break;
+		}
 
-    if ((tTd.norm() < sm_th))
-    {
-    	ROS_DEBUG("The daisy chain allocation is not contributing any change.");
-    	retVal = true;
-    	break;
-    }
+		if ((tTd.norm() < sm_th))
+		{
+			ROS_DEBUG("The daisy chain allocation is not contributing any change.");
+			retVal = true;
+			break;
+		}
 
-    (*tT) = tTn;
-    (*tauA) = tauf;
+		(*tT) = tTn;
+		(*tauA) = tauf;
 	}
 
 	return retVal;
 }
 
-PLUGINLIB_EXPORT_CLASS(labust::allocation::X2dAdaptive, labust::allocation::AllocationInterface)
+PLUGINLIB_EXPORT_CLASS(labust::allocation::X2dVP, labust::allocation::AllocationInterface)

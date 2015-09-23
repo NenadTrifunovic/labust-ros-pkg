@@ -5,4 +5,11 @@
 			The X horizontal configuration allocator with daisy-chaining.
 		</description>
 	</class>
+
+    <class type="labust::allocation::X2dVP" 
+        base_class_type="labust::allocation::AllocationInterface">
+        <description>
+            The X horizontal with verticals for heave and pitch control. 
+        </description>
+    </class>
 </library>

@@ -63,6 +63,8 @@ bool X2dAdaptive::configure(ros::NodeHandle& nh, ros::NodeHandle& ph)
 	ph.param("daisy_chain", daisy_chain, daisy_chain);
 	ph.param("multi_chain", multi_chain, multi_chain);
 	Eigen::Vector3d tn(0,0,minN);
+
+	//TODO Add a sanity check on the maximum achievable N or recalculate on each iteration
 	tnmax = (thrusters.Binv()*tn).cwiseAbs();
 	tnmin = -tnmax;
 

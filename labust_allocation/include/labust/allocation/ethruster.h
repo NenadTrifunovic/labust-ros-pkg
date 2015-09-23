@@ -42,13 +42,14 @@ namespace labust
 		/**
 		 * The class implements a object representation of a single
 		 * electrical thruster with the standard quadratic
-		 * characteristics.
+		 * characteristics extended with the linear characteristics.
 		 *
-		 * F = K*Ua*|Ua| = Kn*Us^2*p|p|
+		 * F = K*Ua*|Ua| + Kl*Ua = K*Us^2*p|p| + Kl*Us*p
 		 * where:
 		 * Ua - general Ua voltage
 		 * Us - current supply voltage (Us>0)
 		 * K - the thruster gain (Kp for positive, Kn for negative); K,Kp,Kn>0
+		 * Kl - the thruster gain (Klp for positive, Kln for negative); K,Klp,Kln>0
 		 * p - PWM width [-1,1]
 		 * F - the supplied thruster force
 		 */
@@ -59,16 +60,20 @@ namespace labust
 			EThruster():
 				Kp(1),
 				Kn(1),
+				Klp(0),
+				Kln(0),
 				pwm_id(-1),
 				pwm_max(1.0),
 				pwm_min(-1.0),
 				pwm_dir(1){};
 
 			///Init constructor
-			EThruster(double Kp, double Kn, int pwm_id,
+			EThruster(double Kp, double Kn, double Klp, double Kln, int pwm_id,
 					double pwm_max, double pwm_min, double pwm_dir):
 				Kp(Kp),
 				Kn(Kn),
+				Klp(Klp),
+				Kln(Kln),
 				pwm_id(pwm_id),
 				pwm_max(pwm_max),
 				pwm_min(pwm_min),
@@ -79,7 +84,7 @@ namespace labust
 			 * @param Us - the supply voltage (default: 1)
 			 * @param p - the PWM values (default: 1)
 			 */
-			inline double F(double p = 1, double Us=1){return (p>=0)?Kp*Us*Us*p*p:-Kn*Us*Us*p*p;}
+			inline double F(double p = 1, double Us=1){return (p>=0)?Kp*Us*Us*p*p + Klp*Us*p:-Kn*Us*Us*p*p + Kln*Us*p;}
 			/**
 			 * Calculate the required pwm value given a desired force.
 			 * @param Us - the supply voltage (default: 1)
@@ -88,14 +93,17 @@ namespace labust
 			 */
 			inline double pwm(double F, double Us=1)
 			{
-				if ((Kp == 0) || (Kn == 0) || (Us == 0)) return 0.0;
-				return (F>=0)?sqrt(F/Kp)/Us:-std::sqrt(-F/Kn)/Us;
+				return (F>=0)?pwm_h(F, Us, Kp, Klp):pwm_h(F, Us, Kn, Kln);
 			}
 
-			///The Kn+ gain for positive voltages.
+			///The K+ gain for positive voltages.
 			double Kp;
-			///The Kn- gain for negative voltages.
+			///The K- gain for negative voltages.
 			double Kn;
+			///The Kl+ gain for positive voltages.
+			double Klp;
+			///The Kl- gain for negative voltages.
+			double Kln;
 			///The connected PWM id.
 			int pwm_id;
 			///The maximum pwm
@@ -104,6 +112,31 @@ namespace labust
 			double pwm_min;
 			///The pwm corrected direction
 			int pwm_dir;
+
+		private:
+			///Helper method for pwm calculation
+			double pwm_h(double F, double Us, double K, double Kl)
+			{
+				//Following options exist:
+				// Polynomial case: K,Kl!=0
+				// Quadratic case: K!=0,Kl=0
+				// Linear case: K=0, Kl!=0
+				// Faulty case: K,Kl=0
+
+				if (Us == 0) return 0.0;
+
+				if (K > 0)
+				{
+					//Handle normal and quadratic case
+					double f = (Kl + sqrt(Kl*Kl + 4*K*fabs(F)))/(2*K*Us);
+					return (F>=0)?f:-f;
+				}
+				else
+				{
+					//Handle linear and faulty case
+					return (Kl > 0)?F/(Kl*Us):0.0;
+				}
+			}
 		};
 	}
 }

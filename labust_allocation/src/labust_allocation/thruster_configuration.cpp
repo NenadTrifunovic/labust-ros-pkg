@@ -52,6 +52,12 @@ bool ThrusterConfiguration::configure(ros::NodeHandle& nh, ros::NodeHandle& ph)
 	ph.param("Un",Un,Un);
 	ph.param("adapt_pwm",adapt,adapt);
 
+	if ((Us <= 0) || (Un <= 0))
+	{
+		ROS_ERROR("Us, Un have to be greater than zero.");
+		return false;
+	}
+
 	//Read thruster gains
 	std::vector<double> Kp,Kn;
 	ph.param("K", Kp, Kp);
@@ -64,7 +70,6 @@ bool ThrusterConfiguration::configure(ros::NodeHandle& nh, ros::NodeHandle& ph)
 	int sz = Kp.size();
 	bool valid = (sz != 0);
 	valid = valid && (sz == Kn.size());
-	valid = valid && (sz == _B.cols());
 
 	if (!valid)
 	{
@@ -74,6 +79,12 @@ bool ThrusterConfiguration::configure(ros::NodeHandle& nh, ros::NodeHandle& ph)
 
 	//Calculate the inverse
 	_Binv = _B.transpose()*(_B*_B.transpose()).inverse();
+
+	//Retrieve the linear parts with defaults zero
+	std::vector<double> Klp(sz,0.0), Kln(sz,0.0);
+	ph.param("Kl", Klp, Klp);
+	ph.param("Klp", Klp, Klp);
+	ph.param("Kln", Kln, Klp);
 
 	//Set mapping defaults
 	std::vector<double> pwm_max(sz,1.0), pwm_direction(sz,1);
@@ -113,7 +124,7 @@ bool ThrusterConfiguration::configure(ros::NodeHandle& nh, ros::NodeHandle& ph)
 	{
 		//Substract -1 to start calculating from 0
 		thrusters.push_back(EThruster(
-				Kp[i], Kn[i], mapping[i]-1,
+				fabs(Kp[i]), fabs(Kn[i]), fabs(Klp[i]), fabs(Kln[i]), mapping[i]-1,
 				pwm_max[i], pwm_min[i], pwm_direction[i]));
 	}
 
@@ -168,7 +179,7 @@ const std::vector<double>& ThrusterConfiguration::pwm(const Eigen::VectorXd& F)
 		}
 	}
 
-	T_a = _B*F_a;
+	//T_a = _B*F_a;
 
 	return pwm_out;
 }
