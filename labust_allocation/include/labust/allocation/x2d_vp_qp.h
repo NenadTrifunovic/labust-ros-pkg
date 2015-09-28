@@ -31,16 +31,24 @@
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
-#ifndef ALLOCATION_X2D_VP_H
-#define ALLOCATION_X2D_VP_H
+#ifndef ALLOCATION_X2D_VP_QP_H
+#define ALLOCATION_X2D_VP_QP_H
 #include <labust/allocation/allocation_interface.h>
 #include <labust/allocation/thruster_configuration.h>
+#include <labust/allocation/xconfiguration.h>
 
 #include <std_msgs/Float32.h>
 #include <ros/ros.h>
 
 #include <boost/array.hpp>
+
 #include <Eigen/Dense>
+
+#include <CGAL/basic.h>
+#include <CGAL/QP_models.h>
+#include <CGAL/QP_functions.h>
+#include <CGAL/Gmpz.h>
+#include <CGAL/MP_Float.h>
 
 #include <cmath>
 #include <vector>
@@ -50,20 +58,27 @@ namespace labust
 	namespace allocation
 	{
 		/**
-		 * The class implements a adaptive scheme thruster allocation that
-		 * ensures a minimal achievable yaw torque and allows for thruster scaling.
-		 *
+		 * The class implements a qudratic programming approach to allocation.
 		 * The thruster number is assumed to be 6; 4 distributed in an X-configuration
 		 * and 2 in vertical, one on fore and one on aft.
 		 *
 		 * The number of DoF is assumed to be 5; X,Y,Z,M,N.
 		 * No assumption is made on thruster symmetry.
 		 */
-		class X2dVP : public virtual AllocationInterface
+		class X2dVPQP : public virtual AllocationInterface
 		{
+			//Easy type handling for CGAL
+			typedef CGAL::Gmpzf ET;
+			typedef CGAL::Quadratic_program<double> Program;
+			typedef CGAL::Quadratic_program_solution<ET> Solution;
+
+			enum {X=0, Y, Z, M=4, N};
+			enum {Xh=0,Yh,Nh};
+			enum {Zv=0,Mv};
+
 		public:
 			///Main constructor
-			X2dVP();
+			X2dVPQP();
 
 			/**
 			 * The main configuration method. The method load parameters
@@ -90,21 +105,14 @@ namespace labust
 			const std::vector<bool>& windup(){return _windup;};
 
 		private:
-			///Helper method for re-calculation of operational limits
-			void recalcOpLimits(Eigen::Vector4d& used, Eigen::Vector4d& pmax,
-					Eigen::Vector4d& pmin, Eigen::Vector4d* cmax,
-					Eigen::Vector4d* cmin);
-
 			///Helper function for coercing XY in-place
-			bool saturate(Eigen::Vector4d& t, const Eigen::Vector4d& pmin, const Eigen::Vector4d& pmax);
-			///Helper function for coercing N in-place
-			bool saturateN(Eigen::Vector4d& t, const Eigen::Vector4d& pmin, const Eigen::Vector4d& pmax);
+			template <class TypeV, class TypeMinMax>
+			bool saturate(TypeV& t, const TypeMinMax& pmin, const TypeMinMax& pmax);
 
-			///Helper function to calculate the daisy chain.
-			bool secondRun(const Eigen::VectorXd& tau, const Eigen::VectorXd& tmax,
-					const Eigen::VectorXd& tmin, Eigen::VectorXd* tauA,
-					Eigen::VectorXd* tT);
-
+			///Helper class for the X configuration
+			XConfiguration xconf;
+			///Quadratic Program solver
+			Program qp;
 
 			///The thruster configuration
 			ThrusterConfiguration thrusters;
@@ -114,19 +122,11 @@ namespace labust
 
 			///Minimum guaranteed yaw torque
 			double minN;
-			///Flag to control if the daisy chain step should be applied
-			bool daisy_chain;
-			///Flag to control multi-level daisy chain
-			bool multi_chain;
-			///Maximum thrust reserved for torque
-			Eigen::Vector4d tnmax;
-			///Minimum thrust reserved for torque
-			Eigen::Vector4d tnmin;
 			///The final achieved tau
 			Eigen::VectorXd tau_ach;
 		};
 	}
 }
 
-/* ALLOCATION_X2D_VP_H */
+/* ALLOCATION_X2D_VP_QP_H */
 #endif

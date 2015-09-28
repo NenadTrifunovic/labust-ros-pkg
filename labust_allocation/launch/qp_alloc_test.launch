@@ -1,0 +1,28 @@
+<launch>
+  <node pkg="labust_allocation" name="alloc" type="allocation_node">
+  	<rosparam command="load" 
+  	     file="$(find buddy)/data/allocation/xvconfig.yaml" />   
+    <!-- Allocator type -->
+    <param name="allocation_plugin" value="labust::allocation::X2dVPQP" />
+    <!-- Allocator parameter -->
+    <param name="min_torque" value="0.5" />
+    <param name="daisy_chain" value="true" />
+    <param name="multi_chain" value="true" />
+    <param name="adapt" value="true" />
+  </node>
+  
+  <node pkg="labust_allocation" name="alloc_nd" type="allocation_node">
+  	<rosparam command="load" 
+  	     file="$(find buddy)/data/allocation/xvconfig.yaml" />   
+    <!-- Allocator type -->
+    <param name="allocation_plugin" value="labust::allocation::X2dVP" />
+    <!-- Allocator parameter -->
+    <param name="min_torque" value="0.45" />
+    <param name="daisy_chain" value="true" />
+    <param name="multi_chain" value="true" />
+    <param name="adapt" value="true" />
+    <!-- Remap output -->
+    <remap from="pwm_out" to="pwm_out_nd" />
+    <remap from="tau_ach" to="tau_ach_nd" />
+  </node>
+</launch>

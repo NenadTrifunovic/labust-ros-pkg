@@ -46,9 +46,7 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
-## The main project 
-add_library(labust_allocation 
-   src/labust_allocation/thruster_configuration.cpp
+set(ALLOCATION_SRC src/labust_allocation/thruster_configuration.cpp
    src/labust_allocation/x2d_adaptive.cpp
    src/labust_allocation/x2d_vp.cpp)
 
@@ -57,12 +55,17 @@ add_executable(allocation_node src/allocation_node/allocation_node.cpp)
 if (${CGAL_FOUND})
 	include(${CGAL_USE_FILE})
 	include_directories(${CGAL_INCLUDE_DIR})
+ 	set(ALLOCATION_SRC ${ALLOCATION_SRC} src/labust_allocation/x2d_vp_qp.cpp)
 	add_executable(qp_solver_test src/test/qp_solver.cpp)
 	target_link_libraries(qp_solver_test
  	  ${catkin_LIBRARIES}
    	  ${CGAL_LIBRARIES}
 	)
 endif()
+
+## The main project 
+add_library(labust_allocation ${ALLOCATION_SRC})
+
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes

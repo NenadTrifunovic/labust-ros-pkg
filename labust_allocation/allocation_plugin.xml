@@ -12,4 +12,12 @@
             The X horizontal with verticals for heave and pitch control. 
         </description>
     </class>
+      
+    <class type="labust::allocation::X2dVPQP" 
+        base_class_type="labust::allocation::AllocationInterface">
+        <description>
+            The X horizontal with verticals for heave and pitch control.
+            The thruster forces are derived using the Quadratic Programming approach. 
+        </description>
+    </class>
 </library>
