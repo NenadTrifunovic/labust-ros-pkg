@@ -128,7 +128,7 @@ namespace labust
 				if (K > 0)
 				{
 					//Handle normal and quadratic case
-					double f = (Kl + sqrt(Kl*Kl + 4*K*fabs(F)))/(2*K*Us);
+					double f = (-Kl + sqrt(Kl*Kl + 4*K*fabs(F)))/(2*K*Us);
 					return (F>=0)?f:-f;
 				}
 				else

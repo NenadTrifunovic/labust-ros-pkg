@@ -88,7 +88,7 @@ const std::vector<double>& X2dVP::allocate(const Eigen::VectorXd& tau)
 	tauXY<<tau(X),tau(Y),0.0;
 	//Perform inverse allocation
 	Eigen::Vector4d tN, tXY;
-	tN = thrusters.Binv()*tauN;
+	tN = 0*thrusters.Binv()*tauN;
 	tXY = 0*thrusters.Binv()*tauXY;
 
 	std::ostringstream os;
@@ -104,6 +104,7 @@ const std::vector<double>& X2dVP::allocate(const Eigen::VectorXd& tau)
 	}
 
 	satN = false;
+	satXY = false;
 
 	if (!satN && !satXY)
 	{
@@ -121,10 +122,6 @@ const std::vector<double>& X2dVP::allocate(const Eigen::VectorXd& tau)
 		ROS_DEBUG("XY DoF are saturated.");
 		this->recalcOpLimits(tN,tnmax,tnmin,&txymax,&txymin);
 		satXY = saturate(tXY, txymin, txymax);
-		//os<<"tmin:"<<tmin<<std::endl;
-		//os<<"tmax:"<<tmax<<std::endl;
-		//os<<"tXY:"<<tXY<<std::endl;
-		//os<<"tN:"<<tN<<std::endl;
 	}
 	else if (satXY && satN)
 	{
@@ -153,7 +150,7 @@ const std::vector<double>& X2dVP::allocate(const Eigen::VectorXd& tau)
 		tauS<<tau(X),tau(Y),tau(N);
 		bool ssat = this->secondRun(tauS, tmax, tmin, &tauA, &tT);
 		Eigen::VectorXd arem = (tauS - tauA).cwiseAbs();
-		const double sm_th(0.001);
+		const double sm_th(0.01);
 		satXY = (arem(X) > sm_th) || (arem(Y) > sm_th);
 		satN = (arem(Z) > sm_th);
 	}
@@ -422,6 +419,15 @@ bool X2dVP::secondRun(const Eigen::VectorXd& tau,
 		bool limit2 = (fabs(tauR(Yi)) - fabs(tauRf(Yi)) < -sm_th);
 	  bool limit3 = (fabs(tauR(Ni)) - fabs(tauRf(Ni)) < -sm_th);
 
+		if ((tau(0)!=0) && (tau(1)!=0))
+		{
+		   if (fabs(fabs(tau(0)/tau(1))-fabs(tauf(0)/tauf(1))) > sm_th)
+		   {
+			retVal = true; 
+			break;
+		   }
+		}
+		
 		bool limit = limit1 || limit2 || limit3;
 
 		if (limit)
