@@ -123,7 +123,7 @@ namespace labust
 			labust::primitive::PrimitiveCallGo2Point Go2Point;
 			labust::primitive::PrimitiveCallCourseKeeping CourseKeeping;
 			labust::primitive::PrimitiveCallDynamicPositioning DynamicPositioning;
-			labust::primitive::PrimitiveCallDOFIdentification DOFIdentification;
+			//labust::primitive::PrimitiveCallDOFIdentification DOFIdentification;
 
 			labust::LowLevelConfigure LLcfg;
 
