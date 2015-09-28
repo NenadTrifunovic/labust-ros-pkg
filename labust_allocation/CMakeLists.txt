@@ -15,6 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 ## System dependencies are found with CMake's conventions
 find_package(Eigen REQUIRED)
+find_package(CGAL)
 # find_package(Boost REQUIRED COMPONENTS system)
 
 ###################################
@@ -53,6 +54,15 @@ add_library(labust_allocation
 
 ## Declare a cpp executable
 add_executable(allocation_node src/allocation_node/allocation_node.cpp)
+if (${CGAL_FOUND})
+	include(${CGAL_USE_FILE})
+	include_directories(${CGAL_INCLUDE_DIR})
+	add_executable(qp_solver_test src/test/qp_solver.cpp)
+	target_link_libraries(qp_solver_test
+ 	  ${catkin_LIBRARIES}
+   	  ${CGAL_LIBRARIES}
+	)
+endif()
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
