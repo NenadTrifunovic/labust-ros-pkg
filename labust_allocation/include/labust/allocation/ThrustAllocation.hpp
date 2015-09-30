@@ -55,8 +55,8 @@ namespace labust
 			///Main constructor initializes the values to a normalized differential surface robot configuration.
 			ThrustAllocation();
 
-		  ///Load and configure allocation parameters from the parameter server
-		  void configure(ros::NodeHandle& nh);
+			///Load and configure allocation parameters from the parameter server
+			void configure(ros::NodeHandle& nh);
 
 			///The allocation matrix.
 			Eigen::MatrixXd B;

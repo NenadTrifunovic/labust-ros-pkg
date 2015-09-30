@@ -67,7 +67,7 @@ namespace labust
 			inline const Eigen::MatrixXd& Binv() const {return _Binv;};
 
 			///The achieved tau with the current pwm output.
-			inline const Eigen::VectorXd& tauA() const {return T_a;};
+			//inline const Eigen::VectorXd& tauA() const {return T_a;};
 			///The pwm output calculation based on the supplied tau vector forces
 			inline const std::vector<double>& pwmFromTau(const Eigen::VectorXd& tau){return pwm(_Binv*tau);}
 
@@ -112,7 +112,7 @@ namespace labust
 			///The pwm output
 			std::vector<double> pwm_out;
 			///The achieved thrust forces after all coercions
-			Eigen::VectorXd T_a;
+			//Eigen::VectorXd T_a;
 			///The achieved thrust forces after all coercions
 			Eigen::VectorXd F_a;
 			///The maximum forces

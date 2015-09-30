@@ -40,6 +40,7 @@
 
 #include <string>
 #include <iosfwd>
+#include <iostream>
 
 namespace labust
 {

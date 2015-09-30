@@ -146,11 +146,10 @@ void DvlHandler::configure(ros::NodeHandle& nh)
 {
 	nu_dvl = nh.subscribe<geometry_msgs::TwistStamped>("dvl", 1,
 			&DvlHandler::onDvl, this);
-	nu_dvl = nh.subscribe<std_msgs::Bool>("dvl_bottom", 1,
+	dvl_bottom = nh.subscribe<std_msgs::Bool>("dvl_bottom", 1,
 			&DvlHandler::onBottomLock, this);
 
 	bottom_lock = false;
-
 
 	uvw[u] = uvw[v] = uvw[w] = 0;
 }
