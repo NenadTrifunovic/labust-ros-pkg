@@ -120,7 +120,6 @@ void Estimator3D::onInit()
 	ph.param("bearing", enableBearing, enableBearing);
 	ph.param("elevation", enableElevation, enableElevation);
 	//ph.param("delayTime", delayTime, delayTime);
-
 }
 
 void Estimator3D::onReset(const std_msgs::Bool::ConstPtr& reset)
@@ -319,26 +318,27 @@ void Estimator3D::processMeasurements()
 	meas->header.frame_id = "local";
 	pubLocalStateMeas.publish(meas);
 
+
 	/*** Publish second vehicle measurements ***/
-	meas.reset();
-	meas->body_velocity.x = measurements(KFNav::ub);
-	meas->body_velocity.z = measurements(KFNav::wb);
+	auv_msgs::NavSts::Ptr meas2(new auv_msgs::NavSts());
+	meas2->body_velocity.x = measurements(KFNav::ub);
+	meas2->body_velocity.z = measurements(KFNav::wb);
 
-	meas->position.north = measurements(KFNav::xb);
-	meas->position.east = measurements(KFNav::yb);
-	meas->position.depth = measurements(KFNav::zb);
+	meas2->position.north = measurements(KFNav::xb);
+	meas2->position.east = measurements(KFNav::yb);
+	meas2->position.depth = measurements(KFNav::zb);
 
-	meas->orientation.yaw = labust::math::wrapRad(measurements(KFNav::psib));
-	meas->orientation_rate.yaw = measurements(KFNav::rb);
+	meas2->orientation.yaw = labust::math::wrapRad(measurements(KFNav::psib));
+	meas2->orientation_rate.yaw = measurements(KFNav::rb);
 
-	/*meas->origin.latitude = gps.origin().first;
-	meas->origin.longitude = gps.origin().second;
-	meas->global_position.latitude = gps.latlon().first;
-	meas->global_position.longitude = gps.latlon().second;*/
+	/*meas2->origin.latitude = gps.origin().first;
+	meas2->origin.longitude = gps.origin().second;
+	meas2->global_position.latitude = gps.latlon().first;
+	meas2->global_position.longitude = gps.latlon().second;*/
 
-	meas->header.stamp = ros::Time::now();
-	meas->header.frame_id = "local";
-	pubSecondStateMeas.publish(meas);
+	meas2->header.stamp = ros::Time::now();
+	meas2->header.frame_id = "local";
+	pubSecondStateMeas.publish(meas2);
 }
 
 void Estimator3D::publishState()
@@ -376,39 +376,37 @@ void Estimator3D::publishState()
 	pubLocalStateHat.publish(state);
 
 	/*** Publish second vehicle states */
-	state.reset();
+	auv_msgs::NavSts::Ptr state2(new auv_msgs::NavSts());
 	//const KFNav::vector& estimate = nav.getState();
-	state->gbody_velocity.x = estimate(KFNav::ub);
-	state->gbody_velocity.z = estimate(KFNav::wb);
+	state2->gbody_velocity.x = estimate(KFNav::ub);
+	state2->gbody_velocity.z = estimate(KFNav::wb);
 
-	state->orientation.yaw = labust::math::wrapRad(estimate(KFNav::psib));
-	state->orientation_rate.yaw = estimate(KFNav::rb);
+	state2->orientation.yaw = labust::math::wrapRad(estimate(KFNav::psib));
+	state2->orientation_rate.yaw = estimate(KFNav::rb);
 
-	state->position.north = estimate(KFNav::xb);
-	state->position.east = estimate(KFNav::yb);
-	state->position.depth = estimate(KFNav::zb);
+	state2->position.north = estimate(KFNav::xb);
+	state2->position.east = estimate(KFNav::yb);
+	state2->position.depth = estimate(KFNav::zb);
 
 
-	/*state->origin.latitude = gps.origin().first;
-    state->origin.longitude = gps.origin().second;
-	std::pair<double, double> diffAngle = labust::tools::meter2deg(state->position.north,
-			state->position.east,
+	/*state2->origin.latitude = gps.origin().first;
+    state2->origin.longitude = gps.origin().second;
+	std::pair<double, double> diffAngle = labust::tools::meter2deg(state2->position.north,
+			state2->position.east,
 			//The latitude angle
-			state->origin.latitude);
-	state->global_position.latitude = state->origin.latitude + diffAngle.first;
-	state->global_position.longitude = state->origin.longitude + diffAngle.second;*/
+			state2->origin.latitude);
+	state2->global_position.latitude = state2->origin.latitude + diffAngle.first;
+	state2->global_position.longitude = state2->origin.longitude + diffAngle.second;*/
 
 	//const KFNav::matrix& covariance = nav.getStateCovariance();
-	state->position_variance.north = covariance(KFNav::xb, KFNav::xb);
-	state->position_variance.east = covariance(KFNav::yb, KFNav::yb);
-	state->position_variance.depth = covariance(KFNav::zb,KFNav::zb);
-	state->orientation_variance.yaw =  covariance(KFNav::psib, KFNav::psib);
+	state2->position_variance.north = covariance(KFNav::xb, KFNav::xb);
+	state2->position_variance.east = covariance(KFNav::yb, KFNav::yb);
+	state2->position_variance.depth = covariance(KFNav::zb,KFNav::zb);
+	state2->orientation_variance.yaw =  covariance(KFNav::psib, KFNav::psib);
 
-	state->header.stamp = ros::Time::now();
-	state->header.frame_id = "local";
-	pubLocalStateHat.publish(state);
-
-
+	state2->header.stamp = ros::Time::now();
+	state2->header.frame_id = "local";
+	pubSecondStateHat.publish(state2);
 }
 
 int Estimator3D::calculateDelaySteps(double measTime, double arrivalTime){
