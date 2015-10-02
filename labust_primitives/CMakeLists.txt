@@ -110,11 +110,13 @@ include_directories(
 add_executable(go2point src/go2point.cpp)
 add_executable(course_keeping src/course_keeping.cpp)
 add_executable(dynamic_positioning src/dynamic_positioning.cpp)
+add_executable(track_diver src/track_diver.cpp)
 
 if (DEFINED catkin_EXPORTED_TARGETS)
  add_dependencies(go2point ${catkin_EXPORTED_TARGETS})
  add_dependencies(course_keeping ${catkin_EXPORTED_TARGETS})
  add_dependencies(dynamic_positioning ${catkin_EXPORTED_TARGETS})
+ add_dependencies(track_diver ${catkin_EXPORTED_TARGETS})
 endif()
 
 ## Add cmake target dependencies of the executable/library
@@ -134,7 +136,9 @@ target_link_libraries(dynamic_positioning
    ${catkin_LIBRARIES}
 )
 
-
+target_link_libraries(track_diver
+   ${catkin_LIBRARIES}
+)
 
 
 #############

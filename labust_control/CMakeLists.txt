@@ -102,6 +102,7 @@ set_source_files_properties(
 
 add_executable(manual_control src/manual_control/manual_control.cpp)
  
+add_executable(vt_controller src/virtual_target/vt_control.cpp)
 add_executable(fadp_controller2 src/FADPControl.cpp)
 add_executable(fadp_3d_controller src/FADP_3DControl.cpp)
 add_executable(hdg_controller2 src/HDGControl.cpp)
@@ -142,6 +143,7 @@ if (DEFINED catkin_EXPORTED_TARGETS)
  add_dependencies(ref_manual ${catkin_EXPORTED_TARGETS})
  add_dependencies(async_merger ${catkin_EXPORTED_TARGETS})
  add_dependencies(velocity_control ${catkin_EXPORTED_TARGETS})
+ add_dependencies(vt_controller ${catkin_EXPORTED_TARGETS})
 
  add_dependencies(esc_uv ${catkin_EXPORTED_TARGETS})
  add_dependencies(esc_ekf_uv ${catkin_EXPORTED_TARGETS})
@@ -167,6 +169,11 @@ target_link_libraries(fadp_controller2
 )
 
 target_link_libraries(fadp_3d_controller
+  pidtoolkit2
+  ${catkin_LIBRARIES}
+)
+
+target_link_libraries(vt_controller
   pidtoolkit2
   ${catkin_LIBRARIES}
 )
