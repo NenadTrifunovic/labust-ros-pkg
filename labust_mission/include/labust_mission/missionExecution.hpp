@@ -220,11 +220,18 @@ namespace labust {
 			primitiveMap.insert(std::pair<string, double>("victory_radius", 0.0));
 			primitiveMap.insert(std::pair<string, double>("timeout", 0.0));
 
-			primitiveStringMap.insert(std::pair<string, string>("radius_topic", ""));
-			primitiveStringMap.insert(std::pair<string, string>("center_topic", ""));
-			primitiveStringMap.insert(std::pair<string, string>("target_topic", ""));
-			primitiveStringMap.insert(std::pair<string, string>("point", ""));
+			primitiveMap.insert(std::pair<string, double>("radius", 0.0));
+			primitiveMap.insert(std::pair<string, double>("vertical_offset", 0.0));
+			primitiveMap.insert(std::pair<string, double>("guidance_target_x", 0.0));
+			primitiveMap.insert(std::pair<string, double>("guidance_target_y", 0.0));
+			primitiveMap.insert(std::pair<string, double>("guidance_target_z", 0.0));
+			primitiveMap.insert(std::pair<string, double>("guidance_enable", 0.0));
+			primitiveMap.insert(std::pair<string, double>("wrapping_enable", 0.0));
+			primitiveMap.insert(std::pair<string, double>("streamline_orientation", 0.0));
+			primitiveMap.insert(std::pair<string, double>("wrapping_enable", 0.0));
 
+			primitiveStringMap.insert(std::pair<string, string>("radius_topic", ""));
+			primitiveStringMap.insert(std::pair<string, string>("guidance_topic", ""));
 		}
 
 	    void MissionExecution::evaluatePrimitive(string primitiveString){
@@ -360,18 +367,18 @@ namespace labust {
 //			CM.go2point_FA(true, oldPosition.north, oldPosition.east, primitiveMap["north"], primitiveMap["east"], primitiveMap["speed"], primitiveMap["heading"], primitiveMap["victory_radius"]);
 //			oldPosition.north = primitiveMap["north"];
 //			oldPosition.east = primitiveMap["east"];
-	    }
+	    }*/
 
 	    void MissionExecution::pointer_state(){
 
 			evaluatePrimitive(receivedPrimitive.primitiveString.data);
-	    	* Activate primitive timeout
+	    	/*** Activate primitive timeout */
 			if(!timeoutActive && primitiveMap["timeout"] > 0)
 				setTimeout(primitiveMap["timeout"]);
-//			CM.go2point_FA(true, oldPosition.north, oldPosition.east, primitiveMap["north"], primitiveMap["east"], primitiveMap["speed"], primitiveMap["heading"], primitiveMap["victory_radius"]);
+			CM.pointer(true, primitiveMap["radius"], primitiveMap["vertical_offset"], primitiveMap["guidance_target_x"], primitiveMap["guidance_target_y"], primitiveMap["guidance_target_z"], bool(primitiveMap["guidance_enable"]), bool(primitiveMap["wrapping_enable"]), bool(primitiveMap["streamline_orientation"]), primitiveStringMap["guidance_topic"], primitiveStringMap["radius_topic"]);
 //			oldPosition.north = primitiveMap["north"];
 //			oldPosition.east = primitiveMap["east"];
-	    }*/
+	    }
 
 		/*****************************************************************
 		 ***  ROS Subscriptions Callback

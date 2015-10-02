@@ -68,6 +68,7 @@
 #include <navcon_msgs/DynamicPositioningAction.h>
 #include <navcon_msgs/GoToPointAction.h>
 #include <navcon_msgs/DOFIdentificationAction.h>
+#include <navcon_msgs/TrackDiverAction.h>
 
 /*********************************************************************
  *** ControllerManager class definition
@@ -115,7 +116,7 @@ namespace labust
 			void ISOprimitive(bool enable, int dof, double command, double hysteresis, double reference, double sampling_rate);
 
 			/* Pointer primitive */
-			void pointer();
+			void pointer(bool enable, double radius, double vertical_offset, double guidance_target_x, double guidance_target_y, double guidance_target_z, bool guidance_enable, bool wrapping_enable, bool streamline_orientation, std::string guidance_topic, std::string radius_topic);
 
 			/*********************************************************
 			 *** Class variables
@@ -127,7 +128,7 @@ namespace labust
 			labust::primitive::PrimitiveCallCourseKeeping CourseKeeping;
 			labust::primitive::PrimitiveCallDynamicPositioning DynamicPositioning;
 			//labust::primitive::PrimitiveCallDOFIdentification DOFIdentification;
-			//labust::primitive::PrimitiveCallDOFIdentification Pointer;
+			labust::primitive::PrimitiveCallPointer Pointer;
 
 
 			labust::LowLevelConfigure LLcfg;
@@ -326,31 +327,35 @@ using namespace labust::controller;
 		}
 	}
 
-	void PrimitiveManager::pointer()
+	void PrimitiveManager::pointer(bool enable, double radius, double vertical_offset, double guidance_target_x, double guidance_target_y, double guidance_target_z, bool guidance_enable, bool wrapping_enable, bool streamline_orientation, std::string guidance_topic, std::string radius_topic)
 	{
-		typedef navcon_msgs::DynamicPositioningGoal Goal;
-		//if(enable)
-		//{
-			//Goal goal;
+		typedef navcon_msgs::TrackDiverGoal Goal;
+		if(enable)
+		{
+			Goal goal;
 
-			//goal.ref_type = Goal::CONSTANT;
-			//goal.subtype = Goal::GO2POINT_UA;
+			goal.radius = radius;
+			goal.vertical_offset = vertical_offset;
+			goal.guidance_target.x = guidance_target_x;
+			goal.guidance_target.y = guidance_target_y;
+			goal.guidance_target.z = guidance_target_z;
 
-			//goal.T1.point.x = north;
-			//goal.T1.point.y = east;
-			//goal.T1.point.z = 0;
-			//goal.yaw = heading;
+			goal.guidance_enable = guidance_enable;
+			goal.wrapping_enable = wrapping_enable;
+			goal.streamline_orientation = streamline_orientation;
+
+			goal.guidance_topic = guidance_topic;
+			goal.radius_topic = radius_topic;
 
 			LLcfg.LL_VELconfigure(true,2,2,0,0,0,2);
-			//DynamicPositioning.start(goal);
-		//}
-		//else
-		//{
-
-			//DynamicPositioning.stop();
+			Pointer.start(goal);
+		}
+		else
+		{
+			Pointer.stop();
 			LLcfg.LL_VELconfigure(true,1,1,0,0,0,1);
 
-		//}
+		}
 	}
 
 //	void PrimitiveManager::ISOprimitive(bool enable, int dof, double command, double hysteresis, double reference, double sampling_rate){

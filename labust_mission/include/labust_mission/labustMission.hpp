@@ -122,7 +122,7 @@ const char *pl_course_keeping_FA[] = {"course","speed","timeout","\0"};
 const char *pl_course_keeping_FA_hdg[] = {"course","speed","heading","timeout","\0"};
 const char *pl_iso[] = {"dof","command","hysteresis","reference","sampling_rate","\0"};
 const char *pl_path_following[] = {"point","\0"};
-const char *pl_pointer[] = {"radius_topic","center_topic","target_topic","\0"};
+const char *pl_pointer[] = {"radius","vertical_offset","guidance_target_x","guidance_target_y","guidance_target_z","guidance_enable","wrapping_enable","streamline_orientation","guidance_topic","radius_topic","\0"};
 const char *pl_course_keeping_UA[] = {"course","speed","timeout","\0"};
 
 struct PrimitiveParams{

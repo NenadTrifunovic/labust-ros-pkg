@@ -86,7 +86,7 @@ MainEventQueue(){ mainEventQueue = new RosEventQueue(); }
 			course_keeping_state,
 			//iso_state,
 			//path_following_state,
-			//pointer_state
+			pointer_state
 		}
 		FSM_START(Wait_state);
 		FSM_BGN
@@ -245,7 +245,7 @@ MainEventQueue(){ mainEventQueue = new RosEventQueue(); }
 					FSM_ON_EVENT("/PRIMITIVE_FINISHED", FSM_NEXT(Dispatcher_state));
 					FSM_ON_EVENT("/TIMEOUT", FSM_NEXT(Dispatcher_state));
 				}
-			}
+			}*/
 			FSM_STATE(pointer_state)
 			{
 				ROS_ERROR("pointer primitive active");
@@ -253,9 +253,11 @@ MainEventQueue(){ mainEventQueue = new RosEventQueue(); }
 				ME->pointer_state();
 
 
-				FSM_ON_STATE_EXIT_BGN{
-
-				}FSM_ON_STATE_EXIT_END
+				FSM_ON_STATE_EXIT_BGN
+				{
+					ME->CM.pointer(false,0,0,0,0,0,0,0,0,"","");
+				}
+				FSM_ON_STATE_EXIT_END
 
 				FSM_TRANSITIONS
 				{
@@ -263,7 +265,7 @@ MainEventQueue(){ mainEventQueue = new RosEventQueue(); }
 					FSM_ON_EVENT("/PRIMITIVE_FINISHED", FSM_NEXT(Dispatcher_state));
 					FSM_ON_EVENT("/TIMEOUT", FSM_NEXT(Dispatcher_state));
 				}
-			}*/
+			}
 		}
 		FSM_END
 	}

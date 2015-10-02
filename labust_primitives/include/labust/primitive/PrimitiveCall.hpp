@@ -49,6 +49,7 @@
 #include <navcon_msgs/CourseKeepingAction.h>
 #include <navcon_msgs/DynamicPositioningAction.h>
 #include <navcon_msgs/DOFIdentificationAction.h>
+#include <navcon_msgs/TrackDiverAction.h>
 
 #include <ros/ros.h>
 
@@ -204,6 +205,43 @@ namespace labust
 			void feedbackCb(const Feedback::ConstPtr& feedback)
 			{
 				   ROS_ERROR("Feedback - dof: %d, error: %f, oscilation_num: %d", feedback->dof, feedback->error, feedback->oscillation_num);
+			}
+		};
+
+		class PrimitiveCallPointer : public PrimitiveCallBase<navcon_msgs::TrackDiverAction,
+																		 navcon_msgs::TrackDiverGoal,
+																		 navcon_msgs::TrackDiverResult,
+																		 navcon_msgs::TrackDiverFeedback>
+		{
+		public:
+			PrimitiveCallPointer():PrimitiveCallBase("pointer")
+			{
+
+			}
+
+			~PrimitiveCallPointer(){};
+
+		protected:
+			/***  Callback called once when the goal completes ***/
+			void doneCb(const actionlib::SimpleClientGoalState& state, const Result::ConstPtr& result)
+			{
+				if (state == actionlib::SimpleClientGoalState::SUCCEEDED)
+				{
+					ROS_ERROR("Pointer - Finished in state [%s]", state.toString().c_str());
+					publishEventString("/PRIMITIVE_FINISHED");
+				}
+			}
+
+			/*** Callback called once when the goal becomes active ***/
+			void activeCb()
+			{
+			ROS_ERROR("Goal just went active Pointer");
+			}
+
+			/*** Callback called every time feedback is received for the goal ***/
+			void feedbackCb(const Feedback::ConstPtr& feedback)
+			{
+				   ROS_ERROR("Feedback - Pointer - Tracking error: [%f %f %f]", feedback->ned_tracking_error.x, feedback->ned_tracking_error.y, feedback->ned_tracking_error.z);
 			}
 		};
 	}
