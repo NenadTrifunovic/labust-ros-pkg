@@ -117,29 +117,25 @@ namespace labust
 			 */
 			void configureNav(KFNav& nav, ros::NodeHandle& nh);
 			/**
-			 * On model updates.
-			 */
-			void onModelUpdate(const navcon_msgs::ModelParamsUpdate::ConstPtr& update);
-			/**
-			 * Handle input forces and torques.
-			 */
-			void onTau(const auv_msgs::BodyForceReq::ConstPtr& tau);
-			/**
 			 * Handle the local stateHat measurement.
 			 */
 			void onLocalStateHat(const auv_msgs::NavSts::ConstPtr& data);
 			/**
-			 * Handle the depth measurement.
+			 * Handle the second vehicle heading measurement.
 			 */
-			void onDepth(const std_msgs::Float32::ConstPtr& data);
+			void onSecond_heading(const std_msgs::Float32::ConstPtr& data);
 			/**
-			 * Handle the altitude measurement.
+			 * Handle the second vehicle position measurement.
 			 */
-			void onAltitude(const std_msgs::Float32::ConstPtr& data);
+			void onSecond_position(const geometry_msgs::Point::ConstPtr& data);
+			/**
+			 * Handle the second vehicle speed measurement.
+			 */
+			void onSecond_speed(const std_msgs::Float32::ConstPtr& data);
 			/**
 			 * Handle the USBL measurement.
 			 */
-			void onUSBLfix(const underwater_msgs::USBLFix::ConstPtr& data);
+			void onSecond_usbl_fix(const underwater_msgs::USBLFix::ConstPtr& data);
 			/**
 			 * Helper method to process measurements.
 			 */
@@ -152,10 +148,6 @@ namespace labust
 			 * Handle the state reset.
 			 */
 			void onReset(const std_msgs::Bool::ConstPtr& reset);
-			/**
-			 * Handle the gyro/compass switch.
-			 */
-			void onUseGyro(const std_msgs::Bool::ConstPtr& use_gyro);
 			/**
 			 * Calculate measurement delay in time steps
 			 */
@@ -179,23 +171,13 @@ namespace labust
 			/**
 			 * Estimated and measured state publisher.
 			 */
-			ros::Publisher pubLocalStateHat, pubSecondStateHat, pubLocalStateMeas, pubSecondStateMeas, pubRange, pubRangeFiltered, pubwk;
+			ros::Publisher pubLocalStateHat, pubSecondStateHat, pubLocalStateMeas, pubSecondStateMeas;
+			ros::Publisher pubRange, pubBearing, pubRangeFiltered, pubwk;
 			/**
 			 * Sensors and input subscribers.
 			 */
-			ros::Subscriber subLocalStateHat, subUSBL, resetTopic;
-			/**
-			 * The GPS handler.
-			 */
-			GPSHandler gps;
-			/**
-			 * The Imu handler.
-			 */
-			ImuHandler imu;
-			/**
-			 * The DVL handler.
-			 */
-			DvlHandler dvl;
+			ros::Subscriber subLocalStateHat, resetTopic;
+			ros::Subscriber subSecond_heading, subSecond_position, subSecond_speed, subSecond_usbl_fix;
 			/**
 			 * The transform broadcaster.
 			 */
@@ -217,15 +199,9 @@ namespace labust
 			 */
 			int dvl_model;
 			/**
-			 * The compass and gyro variance.
-			 */
-			double compassVariance, gyroVariance;
-
-			/**
 			 *  Current time in seconds
 			 */
 			double currentTime;
-			double delayTime;
 			/**
 			 *  Fixed time delay for USBL navigation
 			 */
@@ -234,15 +210,6 @@ namespace labust
 			 *  USBL measurements enable flags
 			 */
 			bool enableDelay, enableRange, enableBearing, enableElevation;
-
-			/**
-			 * Callbacks for relative/absolute mode switching
-			 */
-			void deltaPosCallback(const auv_msgs::NED::ConstPtr& msg);
-
-			void KFmodeCallback(const std_msgs::Bool::ConstPtr& msg);
-
-			float deltaXpos, deltaYpos;
 
 			KFNav::matrix Pstart, Rstart;
 

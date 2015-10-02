@@ -114,6 +114,9 @@ namespace labust
 			/* Self-oscillations identification */
 			void ISOprimitive(bool enable, int dof, double command, double hysteresis, double reference, double sampling_rate);
 
+			/* Pointer primitive */
+			void pointer();
+
 			/*********************************************************
 			 *** Class variables
 			 ********************************************************/
@@ -124,6 +127,8 @@ namespace labust
 			labust::primitive::PrimitiveCallCourseKeeping CourseKeeping;
 			labust::primitive::PrimitiveCallDynamicPositioning DynamicPositioning;
 			//labust::primitive::PrimitiveCallDOFIdentification DOFIdentification;
+			//labust::primitive::PrimitiveCallDOFIdentification Pointer;
+
 
 			labust::LowLevelConfigure LLcfg;
 
@@ -319,6 +324,33 @@ using namespace labust::controller;
 		{
 			CourseKeeping.stop();
 		}
+	}
+
+	void PrimitiveManager::pointer()
+	{
+		typedef navcon_msgs::DynamicPositioningGoal Goal;
+		//if(enable)
+		//{
+			//Goal goal;
+
+			//goal.ref_type = Goal::CONSTANT;
+			//goal.subtype = Goal::GO2POINT_UA;
+
+			//goal.T1.point.x = north;
+			//goal.T1.point.y = east;
+			//goal.T1.point.z = 0;
+			//goal.yaw = heading;
+
+			LLcfg.LL_VELconfigure(true,2,2,0,0,0,2);
+			//DynamicPositioning.start(goal);
+		//}
+		//else
+		//{
+
+			//DynamicPositioning.stop();
+			LLcfg.LL_VELconfigure(true,1,1,0,0,0,1);
+
+		//}
 	}
 
 //	void PrimitiveManager::ISOprimitive(bool enable, int dof, double command, double hysteresis, double reference, double sampling_rate){

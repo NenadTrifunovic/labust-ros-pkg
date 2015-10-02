@@ -62,6 +62,7 @@
 #include <auv_msgs/BodyForceReq.h>
 #include <geometry_msgs/TwistStamped.h>
 #include <geometry_msgs/TransformStamped.h>
+#include <geometry_msgs/Point.h>
 #include <std_msgs/Float32.h>
 #include <std_msgs/Bool.h>
 #include <underwater_msgs/USBLFix.h>
@@ -85,7 +86,6 @@ Estimator3D::Estimator3D():
 		enableRange(true),
 		enableBearing(true),
 		enableElevation(false),
-		delayTime(0.0),
 		delay_time(0.0),
 		dvl_model(1),
 		OR(3,0.95){this->onInit();};
@@ -104,13 +104,20 @@ void Estimator3D::onInit()
 	pubLocalStateMeas = nh.advertise<auv_msgs::NavSts>("localMesurement",1);
 	pubSecondStateMeas = nh.advertise<auv_msgs::NavSts>("secondMesurement",1);
 
-	pubRange = nh.advertise<std_msgs::Float32>("range",1);
+	pubRange = nh.advertise<std_msgs::Float32>("range_meas",1);
+	pubBearing = nh.advertise<std_msgs::Float32>("bearing_meas",1);
+
 	//pubRangeFiltered = nh.advertise<std_msgs::Float32>("range_filtered",1);
 	//pubwk = nh.advertise<std_msgs::Float32>("w_limit",1);
 
 	/*** Subscribers ***/
 	subLocalStateHat = nh.subscribe<auv_msgs::NavSts>("stateHat", 1, &Estimator3D::onLocalStateHat,this);
-	subUSBL = nh.subscribe<underwater_msgs::USBLFix>("usbl_fix", 1, &Estimator3D::onUSBLfix,this);
+
+	subSecond_heading = nh.subscribe<std_msgs::Float32>("out_acoustic_heading", 1, &Estimator3D::onSecond_heading,this);
+	subSecond_position = nh.subscribe<geometry_msgs::Point>("out_acoustic_position", 1, &Estimator3D::onSecond_position,this);
+	subSecond_speed = nh.subscribe<std_msgs::Float32>("out_acoustic_speed", 1, &Estimator3D::onSecond_speed,this);
+	subSecond_usbl_fix = nh.subscribe<underwater_msgs::USBLFix>("usbl_fix", 1, &Estimator3D::onSecond_usbl_fix,this);
+
 	resetTopic = nh.subscribe<std_msgs::Bool>("reset_nav_covariance", 1, &Estimator3D::onReset,this);
 
 	/*** Enable USBL measurements ***/
@@ -119,8 +126,6 @@ void Estimator3D::onInit()
 	ph.param("range", enableRange, enableRange);
 	ph.param("bearing", enableBearing, enableBearing);
 	ph.param("elevation", enableElevation, enableElevation);
-	//ph.param("delayTime", delayTime, delayTime);
-
 }
 
 void Estimator3D::onReset(const std_msgs::Bool::ConstPtr& reset)
@@ -203,11 +208,36 @@ void Estimator3D::onLocalStateHat(const auv_msgs::NavSts::ConstPtr& data)
 };
 
 
+void Estimator3D::onSecond_heading(const std_msgs::Float32::ConstPtr& data)
+{
+	measurements(KFNav::psib) = data->data;
+	newMeas(KFNav::psib) = 1;
+}
 
-void Estimator3D::onUSBLfix(const underwater_msgs::USBLFix::ConstPtr& data){
+void Estimator3D::onSecond_position(const geometry_msgs::Point::ConstPtr& data)
+{
+	/*measurements(KFNav::xb) = data->x;
+	newMeas(KFNav::xb) = 1;
+
+	measurements(KFNav::yb) = data->y;
+	newMeas(KFNav::yb) = 1;*/
+
+	measurements(KFNav::zb) = data->z;
+	newMeas(KFNav::zb) = 1;
+}
+
+void Estimator3D::onSecond_speed(const std_msgs::Float32::ConstPtr& data)
+{
+	measurements(KFNav::ub) = data->data;
+	newMeas(KFNav::ub) = 1;
+}
+
+void Estimator3D::onSecond_usbl_fix(const underwater_msgs::USBLFix::ConstPtr& data)
+{
 
 	/*** Calculate measurement delay ***/
 	//double delay = calculateDelaySteps(data->header.stamp.toSec(), currentTime);
+	// Totalno nepotrebno
 	double delay = double(calculateDelaySteps(currentTime-delay_time, currentTime));
 
 	double bear = 360 - data->bearing;
@@ -223,33 +253,6 @@ void Estimator3D::onUSBLfix(const underwater_msgs::USBLFix::ConstPtr& data){
 	newMeas(KFNav::range) = enableRange;
 	measDelay(KFNav::range) = delay;
 
-	/*Eigen::VectorXd input(Eigen::VectorXd::Zero(3));
-	//Eigen::VectorXd output(Eigen::VectorXd::Zero(1));
-
-
-	input << x(KFNav::xp)-x(KFNav::xb), x(KFNav::yp)-x(KFNav::yb), x(KFNav::zp)-x(KFNav::zb);
-	//output << measurements(KFNav::range);
-	double y_filt, sigma, w;
-	OR.step(input, measurements(KFNav::range), &y_filt, &sigma, &w);
-	ROS_INFO("Finished outlier rejection");
-
-	std_msgs::Float32 rng_msg;
-	ROS_ERROR("w: %f",w);
-
-	double w_limit =  0.25*std::sqrt(float(sigma));
-	w_limit = (w_limit>1.0)?1.0:w_limit;
-	if(w>w_limit)
-	{
-		rng_msg.data = data->range;
-		pubRangeFiltered.publish(rng_msg);
-	}
-	//std_msgs::Float32 rng_msg;
-
-	rng_msg.data = w_limit;
-	pubwk.publish(rng_msg);
-
-	rng_msg.data = data->range;
-	pubRange.publish(rng_msg);*/
 
 	//measurements(KFNav::bearing) = labust::math::wrapRad(bear*M_PI/180+x(KFNav::psi));
 	measurements(KFNav::bearing) = labust::math::wrapRad(bear*M_PI/180);
@@ -260,8 +263,10 @@ void Estimator3D::onUSBLfix(const underwater_msgs::USBLFix::ConstPtr& data){
 	newMeas(KFNav::elevation) = enableElevation;
 	measDelay(KFNav::elevation) = delay;
 
-	/*** Get beacon position ***/
-	measurements(KFNav::xb) =-1.25;
+}
+
+	/*** Static beacon ***/
+	/*measurements(KFNav::xb) =-1.25;
 	newMeas(KFNav::xb) = 1;
 	measDelay(KFNav::xb) = delay;
 
@@ -271,7 +276,7 @@ void Estimator3D::onUSBLfix(const underwater_msgs::USBLFix::ConstPtr& data){
 
 	measurements(KFNav::zb) = 2.6;
 	newMeas(KFNav::zb) = 1;
-	measDelay(KFNav::zb) = delay;
+	measDelay(KFNav::zb) = delay;/*
 
 	// Debug print
 	//ROS_ERROR("Delay: %f", delay);
@@ -283,13 +288,15 @@ void Estimator3D::onUSBLfix(const underwater_msgs::USBLFix::ConstPtr& data){
 
 	//measurements(KFNav::xb) = x(KFNav::xp) - data->relative_position.x;
 	//newMeas(KFNav::xb) = 1;
-
 	//measurements(KFNav::yb) = x(KFNav::yp) - data->relative_position.y;
 	//newMeas(KFNav::yb) = 1;
-
 	//measurements(KFNav::zb) = x(KFNav::zp) - data->relative_position.z;
 	//newMeas(KFNav::zb) = 1;
-}
+
+
+
+
+
 
 
 /*********************************************************************
@@ -579,19 +586,15 @@ void Estimator3D::start()
 		//ROS_ERROR_STREAM(nav.getStateCovariance());
 
 		/*** Send the base-link transform ***/
-		geometry_msgs::TransformStamped transform;
+		/*geometry_msgs::TransformStamped transform;
 		transform.transform.translation.x = nav.getState()(KFNav::xp);
 		transform.transform.translation.y = nav.getState()(KFNav::yp);
 		transform.transform.translation.z = nav.getState()(KFNav::zp);
 		labust::tools::quaternionFromEulerZYX(0, 0, nav.getState()(KFNav::psi), transform.transform.rotation);
-		//if(absoluteEKF){
-			transform.child_frame_id = "base_link";
-		//} else{
-		//  transform.child_frame_id = "base_link";
-		//}
+		transform.child_frame_id = "base_link";
 		transform.header.frame_id = "local";
 		transform.header.stamp = ros::Time::now();
-		broadcaster.sendTransform(transform);
+		broadcaster.sendTransform(transform);*/
 
 		rate.sleep();
 		/*** Get current time (for delay calculation) ***/
