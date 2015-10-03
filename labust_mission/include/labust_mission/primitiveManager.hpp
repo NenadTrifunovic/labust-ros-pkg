@@ -173,13 +173,13 @@ using namespace labust::controller;
 			goal.speed = speed;
 			goal.victory_radius = radius;
 
-			LLcfg.LL_VELconfigure(true,2,2,0,0,0,2);
+			LLcfg.LL_VELconfigure(true,2,2,1,1,1,2);
 			Go2Point.start(goal);
 		}
 		else
 		{
 			Go2Point.stop();
-			LLcfg.LL_VELconfigure(true,1,1,0,0,0,1);
+			LLcfg.LL_VELconfigure(true,1,1,1,1,1,1);
 
 		}
 	}
@@ -208,13 +208,13 @@ using namespace labust::controller;
 			goal.victory_radius = radius;
 
 
-			LLcfg.LL_VELconfigure(true,2,2,0,0,0,2);
+			LLcfg.LL_VELconfigure(true,2,2,1,1,1,2);
 			Go2Point.start(goal);
 		}
 		else
 		{
 			Go2Point.stop();
-			LLcfg.LL_VELconfigure(true,1,1,0,0,0,1);
+			LLcfg.LL_VELconfigure(true,1,1,1,1,1,1);
 
 		}
 	}
@@ -265,14 +265,14 @@ using namespace labust::controller;
 			goal.T1.point.z = 0;
 			goal.yaw = heading;
 
-			LLcfg.LL_VELconfigure(true,2,2,0,0,0,2);
+			LLcfg.LL_VELconfigure(true,2,2,1,1,1,2);
 			DynamicPositioning.start(goal);
 		}
 		else
 		{
 
 			DynamicPositioning.stop();
-			LLcfg.LL_VELconfigure(true,1,1,0,0,0,1);
+			LLcfg.LL_VELconfigure(true,1,1,1,1,1,1);
 
 		}
 	}
@@ -347,13 +347,13 @@ using namespace labust::controller;
 			goal.guidance_topic = guidance_topic;
 			goal.radius_topic = radius_topic;
 
-			LLcfg.LL_VELconfigure(true,2,2,0,0,0,2);
+			LLcfg.LL_VELconfigure(true,2,2,2,1,1,2);
 			Pointer.start(goal);
 		}
 		else
 		{
 			Pointer.stop();
-			LLcfg.LL_VELconfigure(true,1,1,0,0,0,1);
+			LLcfg.LL_VELconfigure(true,1,1,1,1,1,1);
 
 		}
 	}
