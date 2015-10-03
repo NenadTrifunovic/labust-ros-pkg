@@ -188,7 +188,7 @@ struct PrimitiveParams{
 		primitive_params.insert(std::pair<int,std::vector<std::string> >(path_following,tmp));
 
 		tmp.clear();
-		 for(i = 0; strcmp(pl_iso[i],"\0") != 0; i++){
+		 for(i = 0; strcmp(pl_pointer[i],"\0") != 0; i++){
 			 tmp_str.assign(pl_pointer[i]);
 			 tmp.push_back(tmp_str);
 		 }

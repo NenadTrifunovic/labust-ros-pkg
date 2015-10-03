@@ -214,7 +214,7 @@ namespace labust
 																		 navcon_msgs::TrackDiverFeedback>
 		{
 		public:
-			PrimitiveCallPointer():PrimitiveCallBase("pointer")
+			PrimitiveCallPointer():PrimitiveCallBase("track_diver")
 			{
 
 			}

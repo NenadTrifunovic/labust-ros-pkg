@@ -128,7 +128,7 @@ MainEventQueue(){ mainEventQueue = new RosEventQueue(); }
 					//FSM_ON_EVENT("/COURSE_KEEPING", FSM_NEXT(course_keeping_state));
 					//FSM_ON_EVENT("/ISO", FSM_NEXT(iso_state));
 					//FSM_ON_EVENT("/PATH_FOLLOWING", FSM_NEXT(path_following_state));
-					//FSM_ON_EVENT("/POINTER", FSM_NEXT(pointer_state));
+					FSM_ON_EVENT("/POINTER", FSM_NEXT(pointer_state));
 				}
 			}
 			FSM_STATE(placeholder_state)
