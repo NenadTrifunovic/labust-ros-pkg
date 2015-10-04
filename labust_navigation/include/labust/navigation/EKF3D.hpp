@@ -1,9 +1,9 @@
 /*********************************************************************
  * EKF3D.cpp
  *
- *  Created on: 
+ *  Created on:
  *      Author: Dula Nad
- *      
+ *
  *  Modified by: Filip Mandic
  *
  ********************************************************************/
@@ -55,6 +55,7 @@
 
 #include <auv_msgs/NED.h> // Dodano
 #include <std_msgs/Bool.h>
+#include <std_msgs/Int32.h>
 
 namespace labust
 {
@@ -121,7 +122,14 @@ namespace labust
 			 * Handle the gyro/compass switch.
 			 */
 			void onUseGyro(const std_msgs::Bool::ConstPtr& use_gyro);
-
+			/**
+			* Handle the altitude sampler.
+			*/
+			void onAltSampling(const std_msgs::Bool::ConstPtr& flag);
+			/**
+			 * Handle the safety filter sample size.
+			*/
+			void onAltNSamples(const std_msgs::Int32::ConstPtr& samples);
 			/**
 			 * The navigation filter.
 			 */
@@ -141,13 +149,13 @@ namespace labust
 			/**
 			 * Estimated and measured state publisher.
 			 */
-			ros::Publisher stateMeas, stateHat, currentsHat, buoyancyHat, unsafe_dvl;
+			ros::Publisher stateMeas, stateHat, currentsHat, buoyancyHat, unsafe_dvl, altitude_cov;
 			///Turn count publisher
 			ros::Publisher turns_pub;
 			/**
 			 * Sensors and input subscribers.
 			 */
-			ros::Subscriber tauAch, depth, altitude, modelUpdate, resetTopic, useGyro, sub, subKFmode;
+			ros::Subscriber tauAch, depth, altitude, altNSample, modelUpdate, resetTopic, useGyro, useAltSampling, sub, subKFmode;
 			/**
 			 * The GPS handler.
 			 */
@@ -194,6 +202,10 @@ namespace labust
 			double compassVariance, gyroVariance;
 			///Mutex for data protection
 			boost::mutex meas_mux;
+			///Last altitude measurement
+			ros::Time last_alt;
+			///The altitude covariance Timeout
+			double altitude_timeout;
 
 			/**
 			 * Callbacks for relative/absolute mode switching
@@ -211,6 +223,14 @@ namespace labust
 
 			KFNav::matrix Pstart, Rstart;
 
+			//Flag for the altitude sampler
+			bool alt_sample;
+			//The altitude sample buffer
+			std::vector<double> altbuf;
+			//Maximum number of samples to take
+			int nsamples_alt;
+			//The accepted variance for altimeter
+			double altok_var;
 		};
 	}
 }
