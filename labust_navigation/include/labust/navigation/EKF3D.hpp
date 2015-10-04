@@ -231,6 +231,9 @@ namespace labust
 			int nsamples_alt;
 			//The accepted variance for altimeter
 			double altok_var;
+
+			//DVL filter params
+			double dvl_fp;
 		};
 	}
 }

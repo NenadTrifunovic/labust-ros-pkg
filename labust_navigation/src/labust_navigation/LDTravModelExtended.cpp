@@ -46,7 +46,11 @@ LDTravModel::LDTravModel():
 		xdot(0),
 		ydot(0),
 		trustf(0),
-		kvr(0)
+		use_sc(false),
+		acc_port(0.3),
+		acc_starboard(0.3),
+		vec_port(0.07),
+		vec_starboard(0.07)
 {
 	this->initModel();
 };
@@ -80,7 +84,7 @@ double LDTravModel::calculateAltInovationVariance(const LDTravModel::matrix& P)
 
 void LDTravModel::calculateUVInovationVariance(const LDTravModel::matrix& P, double& uin,double &vin)
 {
-	uin = sqrt(P(u,u)) + sqrt(R0(v,v));
+	uin = sqrt(P(u,u)) + sqrt(R0(u,u));
 	vin = sqrt(P(v,v)) + sqrt(R0(v,v));
 }
 
@@ -92,17 +96,8 @@ void LDTravModel::step(const input_type& input)
   x(w) += Ts*(-heave.Beta(x(w))/heave.alpha*x(w) + 1/heave.alpha * (input(Z) + x(buoyancy)));
   //x(p) += Ts*(-roll.Beta(x(p))/roll.alpha*x(p) + 1/roll.alpha * (input(Kroll) + x(roll_restore)));
   x(q) += Ts*(-pitch.Beta(x(p))/pitch.alpha*x(q) + 1/pitch.alpha * (input(M) + x(pitch_restore)));
-
-  double use_sc(1);
-  double acc_port = 0.3;
-  double acc_starboard = 0.3;
-  double vec_port = 0.07;
-  double vec_starboard = 0.07;
-
   double acc = (x(v)>0)?acc_starboard:acc_port;
   double vec = (x(v)>0)?vec_starboard:vec_port;
-  //if (fabs(x(v)) < 0.15) use_sc=0;
-
   x(r) += Ts*(-yaw.Beta(x(r))/yaw.alpha*x(r) + 1/yaw.alpha * input(N) + 0*x(b) - use_sc*vec*x(v) - acc*use_sc*vd);
 
   xdot = x(u)*cos(x(psi)) - x(v)*sin(x(psi)) + x(xc);
@@ -170,10 +165,10 @@ const LDTravModel::output_type& LDTravModel::update(vector& measurements, vector
 	{
 		if (newMeas(i))
 		{
-			ROS_INFO("New meas: %d", i);
+			ROS_DEBUG("New meas: %d", i);
 			if (i == u)
 			{
-				ROS_INFO("Trust factor:%f",cosh(trustf*x(r)));
+				ROS_DEBUG("Trust factor:%f",cosh(trustf*x(r)));
 				R0(u,u) = cosh(trustf*x(r))*r0u;
 				R0(v,v) = cosh(trustf*x(r))*r0u;
 				R0(xc,xc) = cosh(trustf*x(r))*r0xc;

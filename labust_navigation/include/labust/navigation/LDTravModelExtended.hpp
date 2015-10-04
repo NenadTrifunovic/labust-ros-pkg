@@ -148,7 +148,16 @@ namespace labust
 
       inline void setDVLRotationTrustFactor(double trustf){this->trustf = trustf;};
 
-      inline void setSwayCorrection(double kvr){this->kvr = kvr;};
+      inline void setSwayCorrection(bool use_sc,
+      		double acc_port, double acc_starboard,
+					double vec_port, double vec_starboard)
+      {
+      	this->use_sc = use_sc;
+      	this->acc_port = acc_port;
+      	this->acc_starboard = acc_starboard;
+      	this->vec_port = vec_port;
+      	this->vec_starboard = vec_starboard;
+      };
 
     protected:
      /**
@@ -177,8 +186,9 @@ namespace labust
       double xdot,ydot;
       ///DVL rotation trust factor
       double trustf;
-      ///The sway correction factor
-      double kvr;
+      ///The sway correction factors
+      double use_sc, acc_port, acc_starboard,
+			vec_port, vec_starboard;
       /**
        * The DVL linear/nonlinear flag.
        */

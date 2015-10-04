@@ -55,6 +55,7 @@
 #include <ros/ros.h>
 
 #include <boost/bind.hpp>
+#include <algorithm>
 
 using namespace labust::navigation;
 
@@ -75,7 +76,8 @@ Estimator3D::Estimator3D():
 		dvl_time(ros::Time::now()),
 		alt_sample(true),
 		nsamples_alt(10),
-		altok_var(2){this->onInit();};
+		altok_var(2),
+		dvl_fp(0.1){this->onInit();};
 
 void Estimator3D::onInit()
 {
@@ -116,7 +118,6 @@ void Estimator3D::onInit()
 	double trustf(0);
 	ph.param("dvl_rot_trust_factor", trustf, trustf);
 	double sway_corr(0);
-	ph.param("sway_corr", sway_corr, sway_corr);
 	ph.param("absoluteEKF", absoluteEKF,absoluteEKF);
 	ph.param("altitude_cov_timeout",altitude_timeout, altitude_timeout);
 	ph.param("altitude_sampling",alt_sample, alt_sample);
@@ -129,10 +130,21 @@ void Estimator3D::onInit()
 
   Pstart = nav.getStateCovariance();
   nav.setDVLRotationTrustFactor(trustf);
-  nav.setSwayCorrection(sway_corr);
-//Rstart = nav.R;
- // ROS_ERROR("NAVIGATION");
 
+  //Setup sway correction
+  bool use_sc(false);
+  double acc_port(0.3), acc_starboard(0.3),
+	vec_port(0.07), vec_starboard(0.07);
+  ph.param("use_sc",use_sc, use_sc);
+  ph.param("acc_port",acc_port, acc_port);
+  ph.param("acc_starboard",acc_starboard, acc_starboard);
+  ph.param("vec_port",vec_port, vec_port);
+  ph.param("vec_starboard",vec_starboard, vec_starboard);
+  nav.setSwayCorrection(use_sc, acc_port, acc_starboard,
+  		vec_port, vec_starboard);
+  //Rstart = nav.R;
+  //ROS_ERROR("NAVIGATION");
+  ph.param("dvl_fp",dvl_fp, dvl_fp);
 }
 
 void Estimator3D::onReset(const std_msgs::Bool::ConstPtr& reset)
@@ -243,7 +255,7 @@ void Estimator3D::onDepth(const std_msgs::Float32::ConstPtr& data)
 	boost::mutex::scoped_lock l(meas_mux);
 	measurements(KFNav::zp) = data->data;
 	newMeas(KFNav::zp) = 1;
-	ROS_INFO("Depth measurement received: %f", newMeas(KFNav::zp));
+	//ROS_INFO("Depth measurement received: %f", newMeas(KFNav::zp));
 };
 
 void Estimator3D::onAltitude(const std_msgs::Float32::ConstPtr& data)
@@ -256,7 +268,6 @@ void Estimator3D::onAltitude(const std_msgs::Float32::ConstPtr& data)
 	if (fabs(data->data-nav.getState()(KFNav::altitude)) < 3*nav.calculateAltInovationVariance(nav.getStateCovariance()))
 	{
 		double malt = data->data;
-
 		bool old = (ros::Time::now() - last_alt).toSec() > altitude_timeout;
 		//In case no measurements were received for a long time
 		if (old && alt_sample)
@@ -271,7 +282,7 @@ void Estimator3D::onAltitude(const std_msgs::Float32::ConstPtr& data)
 			//Calculate variance
 			double var = pow(labust::math::std2(altbuf),2);
 			malt = labust::math::mean(altbuf);
-			ROS_ERROR("Var: %f, mean: %f", var, malt);
+			ROS_INFO("Var: %f, mean: %f", var, malt);
 			if (var > altok_var) return;
 			altbuf.clear();
 		}
@@ -412,10 +423,10 @@ void Estimator3D::processMeasurements()
 		default: break;
 		}
 
-		if ((fabs((vx - vxe)) > fabs(rvx)) || (fabs((vy - vye)) > fabs(rvy)))
+		if ((fabs((vx - vxe)) > dvl_fp*fabs(rvx)) || (fabs((vy - vye)) > dvl_fp*fabs(rvy)))
 		{
-			ROS_INFO("Outlier rejected: meas=%f, est=%f, tolerance=%f", vx, nav.getState()(KFNav::u), fabs(rvx));
-			ROS_INFO("Outlier rejected: meas=%f, est=%f, tolerance=%f", vy, nav.getState()(KFNav::v), fabs(rvy));
+			ROS_INFO("Outlier rejected: meas=%f, est=%f, tolerance=%f", vx, vxe, dvl_fp*fabs(rvx));
+			ROS_INFO("Outlier rejected: meas=%f, est=%f, tolerance=%f", vy, vye, dvl_fp*fabs(rvy));
 			newMeas(KFNav::u) = false;
 			newMeas(KFNav::v) = false;
 		}
@@ -570,7 +581,7 @@ void Estimator3D::start()
 
 		std::ostringstream out;
 		out<<newMeas;
-		ROS_INFO("Measurements %d:%s",KFNav::psi, out.str().c_str());
+		ROS_DEBUG("Measurements %d:%s",KFNav::psi, out.str().c_str());
 
 		if (newArrived)	nav.correct(nav.update(measurements, newMeas));
 		KFNav::vector tcstate = nav.getState();
