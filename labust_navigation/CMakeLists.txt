@@ -104,6 +104,7 @@ add_executable(ekf3d_node src/nav_node/EKF3D.cpp)
 add_executable(ekf_3d_usbl_node src/nav_node/EKF_3D_USBL.cpp)
 add_executable(ekf_two_vehicle_localization_node src/nav_node/EKF_TwoVehicleLocalization.cpp)
 add_executable(pressure2depth src/test/pressure2depth.cpp)
+add_executable(navsatfix_vector3 src/latlon_node/navsatfix_vector3.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
@@ -142,6 +143,8 @@ target_link_libraries(ekf3d_node ${catkin_LIBRARIES} labust_navigation)
 target_link_libraries(ekf_3d_usbl_node ${catkin_LIBRARIES} labust_navigation)
 target_link_libraries(ekf_two_vehicle_localization_node ${catkin_LIBRARIES} labust_navigation)
 target_link_libraries(pressure2depth ${catkin_LIBRARIES})
+target_link_libraries(pressure2depth ${catkin_LIBRARIES})
+target_link_libraries(navsatfix_vector3 ${catkin_LIBRARIES})
 
 #############
 ## Install ##
