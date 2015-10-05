@@ -253,7 +253,7 @@ namespace labust
 																				 caddy_msgs::follow_sectionFeedback>
 				{
 				public:
-					PrimitiveCallFollow():PrimitiveCallBase("follow_section")
+					PrimitiveCallFollow():PrimitiveCallBase("follow")
 					{
 
 					}
