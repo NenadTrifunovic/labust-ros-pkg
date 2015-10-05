@@ -50,7 +50,6 @@
 
 #include <cmath>
 
-//#include <auv_msgs/NavSts.h>
 #include <auv_msgs/Bool6Axis.h>
 #include <navcon_msgs/EnableControl.h>
 #include <navcon_msgs/ConfigureAxes.h>
@@ -61,14 +60,12 @@
 #include <labust/primitive/PrimitiveCall.hpp>
 #include <labust_mission/utils.hpp>
 
-//#include <actionlib/client/simple_action_client.h>
-//#include <actionlib/client/terminal_state.h>
-
 #include <navcon_msgs/CourseKeepingAction.h>
 #include <navcon_msgs/DynamicPositioningAction.h>
 #include <navcon_msgs/GoToPointAction.h>
 #include <navcon_msgs/DOFIdentificationAction.h>
 #include <navcon_msgs/TrackDiverAction.h>
+#include <caddy_msgs/follow_sectionAction.h>
 
 /*********************************************************************
  *** ControllerManager class definition
@@ -118,6 +115,9 @@ namespace labust
 			/* Pointer primitive */
 			void pointer(bool enable, double radius, double vertical_offset, double guidance_target_x, double guidance_target_y, double guidance_target_z, bool guidance_enable, bool wrapping_enable, bool streamline_orientation, std::string guidance_topic, std::string radius_topic);
 
+			/* Follow primitive */
+			void follow(bool enable, double xrefpoint, double yrefpoint, double xs, double ys, double xc, double yc, double xe, double ye, double Vl, double direction, double R0);
+
 			/*********************************************************
 			 *** Class variables
 			 ********************************************************/
@@ -129,6 +129,7 @@ namespace labust
 			labust::primitive::PrimitiveCallDynamicPositioning DynamicPositioning;
 			//labust::primitive::PrimitiveCallDOFIdentification DOFIdentification;
 			labust::primitive::PrimitiveCallPointer Pointer;
+			labust::primitive::PrimitiveCallFollow Follow;
 
 
 			labust::LowLevelConfigure LLcfg;
@@ -353,6 +354,66 @@ using namespace labust::controller;
 		else
 		{
 			Pointer.stop();
+			LLcfg.LL_VELconfigure(true,1,1,1,1,1,1);
+
+		}
+	}
+
+
+	void PrimitiveManager::follow(bool enable, double xrefpoint, double yrefpoint, double xs, double ys, double xc, double yc, double xe, double ye, double Vl, double direction, double R0)
+	{
+		typedef caddy_msgs::follow_sectionGoal Goal;
+		if(enable)
+		{
+			Goal goal;
+
+		    goal.follow_section.xrefpoint = xrefpoint;
+		    goal.follow_section.yrefpoint = yrefpoint;
+		    goal.follow_section.xs = xs;
+		    goal.follow_section.ys = ys;
+		    goal.follow_section.xc = xc;
+		    goal.follow_section.yc = yc;
+		    goal.follow_section.xe = xe;
+		    goal.follow_section.ye = ye;
+		    goal.follow_section.Vl = Vl;
+		    goal.follow_section.direction = direction;
+		    goal.follow_section.R0 = R0;
+
+			LLcfg.LL_VELconfigure(true,2,2,1,1,1,2);
+
+			ros::NodeHandle nh;
+			ros::ServiceClient cl;
+
+			navcon_msgs::EnableControl a;
+			/*** Enable or disable hdg controller ***/
+			cl = nh.serviceClient<navcon_msgs::EnableControl>("HDG_enable");
+			a.request.enable = true;
+			cl.call(a);
+
+			cl = nh.serviceClient<navcon_msgs::EnableControl>("ALT_enable");
+			a.request.enable = true;
+			cl.call(a);
+
+
+			Follow.start(goal);
+		}
+		else
+		{
+			Follow.stop();
+
+			ros::NodeHandle nh;
+			ros::ServiceClient cl;
+
+			navcon_msgs::EnableControl a;
+			/*** Enable or disable hdg controller ***/
+			cl = nh.serviceClient<navcon_msgs::EnableControl>("HDG_enable");
+			a.request.enable = false;
+			cl.call(a);
+
+			cl = nh.serviceClient<navcon_msgs::EnableControl>("ALT_enable");
+			a.request.enable = false;
+			cl.call(a);
+
 			LLcfg.LL_VELconfigure(true,1,1,1,1,1,1);
 
 		}
