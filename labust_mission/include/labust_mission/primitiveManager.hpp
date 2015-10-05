@@ -380,11 +380,40 @@ using namespace labust::controller;
 		    goal.follow_section.R0 = R0;
 
 			LLcfg.LL_VELconfigure(true,2,2,1,1,1,2);
+
+			ros::NodeHandle nh;
+			ros::ServiceClient cl;
+
+			navcon_msgs::EnableControl a;
+			/*** Enable or disable hdg controller ***/
+			cl = nh.serviceClient<navcon_msgs::EnableControl>("HDG_enable");
+			a.request.enable = true;
+			cl.call(a);
+
+			cl = nh.serviceClient<navcon_msgs::EnableControl>("ALT_enable");
+			a.request.enable = true;
+			cl.call(a);
+
+
 			Follow.start(goal);
 		}
 		else
 		{
 			Follow.stop();
+
+			ros::NodeHandle nh;
+			ros::ServiceClient cl;
+
+			navcon_msgs::EnableControl a;
+			/*** Enable or disable hdg controller ***/
+			cl = nh.serviceClient<navcon_msgs::EnableControl>("HDG_enable");
+			a.request.enable = false;
+			cl.call(a);
+
+			cl = nh.serviceClient<navcon_msgs::EnableControl>("ALT_enable");
+			a.request.enable = false;
+			cl.call(a);
+
 			LLcfg.LL_VELconfigure(true,1,1,1,1,1,1);
 
 		}
