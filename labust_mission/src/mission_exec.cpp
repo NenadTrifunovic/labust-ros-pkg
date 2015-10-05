@@ -85,7 +85,7 @@ MainEventQueue(){ mainEventQueue = new RosEventQueue(); }
 			dynamic_positioning_state,
 			course_keeping_state,
 			//iso_state,
-			//path_following_state,
+			follow_state,
 			pointer_state
 		}
 		FSM_START(Wait_state);
@@ -127,7 +127,7 @@ MainEventQueue(){ mainEventQueue = new RosEventQueue(); }
 					FSM_ON_EVENT("/DYNAMIC_POSITIONING", FSM_NEXT(dynamic_positioning_state));
 					//FSM_ON_EVENT("/COURSE_KEEPING", FSM_NEXT(course_keeping_state));
 					//FSM_ON_EVENT("/ISO", FSM_NEXT(iso_state));
-					//FSM_ON_EVENT("/PATH_FOLLOWING", FSM_NEXT(path_following_state));
+					FSM_ON_EVENT("/FOLLOW", FSM_NEXT(follow_state));
 					FSM_ON_EVENT("/POINTER", FSM_NEXT(pointer_state));
 				}
 			}
@@ -227,17 +227,19 @@ MainEventQueue(){ mainEventQueue = new RosEventQueue(); }
 					FSM_ON_EVENT("/PRIMITIVE_FINISHED", FSM_NEXT(Dispatcher_state));
 					FSM_ON_EVENT("/TIMEOUT", FSM_NEXT(Dispatcher_state));
 				}
-			}
-			FSM_STATE(path_following_state)
+			}*/
+			FSM_STATE(follow_state)
 			{
-				ROS_ERROR("path_following primitive active");
+				ROS_ERROR("follow primitive active");
 
-				ME->path_following_state();
+				ME->follow_state();
 
 
-				FSM_ON_STATE_EXIT_BGN{
-
-				}FSM_ON_STATE_EXIT_END
+				FSM_ON_STATE_EXIT_BGN
+				{
+					ME->CM.follow(false,0,0,0,0,0,0,0,0,0,0,0);
+				}
+				FSM_ON_STATE_EXIT_END
 
 				FSM_TRANSITIONS
 				{
@@ -245,7 +247,7 @@ MainEventQueue(){ mainEventQueue = new RosEventQueue(); }
 					FSM_ON_EVENT("/PRIMITIVE_FINISHED", FSM_NEXT(Dispatcher_state));
 					FSM_ON_EVENT("/TIMEOUT", FSM_NEXT(Dispatcher_state));
 				}
-			}*/
+			}
 			FSM_STATE(pointer_state)
 			{
 				ROS_ERROR("pointer primitive active");

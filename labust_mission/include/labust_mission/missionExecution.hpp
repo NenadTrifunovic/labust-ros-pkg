@@ -100,7 +100,7 @@ namespace labust {
 
 		    void iso_state();
 
-		    void path_following_state();
+		    void follow_state();
 
 		    void pointer_state();
 
@@ -230,6 +230,18 @@ namespace labust {
 			primitiveMap.insert(std::pair<string, double>("streamline_orientation", 0.0));
 			primitiveMap.insert(std::pair<string, double>("wrapping_enable", 0.0));
 
+			primitiveMap.insert(std::pair<string, double>("xrefpont", 0.0));
+			primitiveMap.insert(std::pair<string, double>("yrefpoint", 0.0));
+			primitiveMap.insert(std::pair<string, double>("xs", 0.0));
+			primitiveMap.insert(std::pair<string, double>("ys", 0.0));
+			primitiveMap.insert(std::pair<string, double>("xc", 0.0));
+			primitiveMap.insert(std::pair<string, double>("yc", 0.0));
+			primitiveMap.insert(std::pair<string, double>("xe", 0.0));
+			primitiveMap.insert(std::pair<string, double>("ye", 0.0));
+			primitiveMap.insert(std::pair<string, double>("Vl", 0.0));
+			primitiveMap.insert(std::pair<string, double>("direction", 0.0));
+			primitiveMap.insert(std::pair<string, double>("R0", 0.0));
+
 			primitiveStringMap.insert(std::pair<string, string>("radius_topic", ""));
 			primitiveStringMap.insert(std::pair<string, string>("guidance_topic", ""));
 		}
@@ -356,28 +368,24 @@ namespace labust {
 				setTimeout(primitiveMap["timeout"]);
 			* Activate primitive
 			CM.ISOprimitive(true, primitiveMap["dof"], primitiveMap["command"], primitiveMap["hysteresis"], primitiveMap["reference"], primitiveMap["sampling_rate"]);
-	    }
-
-	    void MissionExecution::path_following_state(){
-//
-			evaluatePrimitive(receivedPrimitive.primitiveString.data);
-	    	* Activate primitive timeout
-			if(!timeoutActive && primitiveMap["timeout"] > 0)
-				setTimeout(primitiveMap["timeout"]);
-//			CM.go2point_FA(true, oldPosition.north, oldPosition.east, primitiveMap["north"], primitiveMap["east"], primitiveMap["speed"], primitiveMap["heading"], primitiveMap["victory_radius"]);
-//			oldPosition.north = primitiveMap["north"];
-//			oldPosition.east = primitiveMap["east"];
 	    }*/
 
-	    void MissionExecution::pointer_state(){
+	    void MissionExecution::follow_state()
+	    {
+			evaluatePrimitive(receivedPrimitive.primitiveString.data);
+	    	/* Activate primitive timeout */
+			if(!timeoutActive && primitiveMap["timeout"] > 0)
+				setTimeout(primitiveMap["timeout"]);
+			CM.follow(true, primitiveMap["xrefpoint"], primitiveMap["yrefpoint"], primitiveMap["xs"], primitiveMap["ys"], primitiveMap["xc"], primitiveMap["yc"], primitiveMap["xe"], primitiveMap["ye"], primitiveMap["Vl"], primitiveMap["direction"], primitiveMap["R0"]);
 
+	    }
+
+	    void MissionExecution::pointer_state()
+	    {
 			evaluatePrimitive(receivedPrimitive.primitiveString.data);
 	    	/*** Activate primitive timeout */
 			if(!timeoutActive && primitiveMap["timeout"] > 0)
 				setTimeout(primitiveMap["timeout"]);
-			CM.pointer(true, primitiveMap["radius"], primitiveMap["vertical_offset"], primitiveMap["guidance_target_x"], primitiveMap["guidance_target_y"], primitiveMap["guidance_target_z"], bool(primitiveMap["guidance_enable"]), bool(primitiveMap["wrapping_enable"]), bool(primitiveMap["streamline_orientation"]), primitiveStringMap["guidance_topic"], primitiveStringMap["radius_topic"]);
-//			oldPosition.north = primitiveMap["north"];
-//			oldPosition.east = primitiveMap["east"];
 	    }
 
 		/*****************************************************************

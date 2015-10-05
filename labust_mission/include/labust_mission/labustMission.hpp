@@ -93,7 +93,7 @@ enum {none = 0,
 		course_keeping_UA,
 		course_keeping_FA_hdg,
 		iso,
-		path_following,
+		follow,
 		pointer,
 		primitiveNum};
 
@@ -107,7 +107,7 @@ const char *PRIMITIVES[] = {"none",
 								"course_keeping_UA",
 								"course_keeping_FA_hdg",
 								"iso",
-								"path_following",
+								"follow",
 								"pointer"};
 
 enum {u=0, v, w, r, x, y, z, psi, x_var, y_var, z_var, psi_var, alt, stateHatNum}; /* Enumeration used for DataManager */
@@ -121,7 +121,7 @@ const char *pl_dynamic_positioning[] = {"north","east","heading","timeout","\0"}
 const char *pl_course_keeping_FA[] = {"course","speed","timeout","\0"};
 const char *pl_course_keeping_FA_hdg[] = {"course","speed","heading","timeout","\0"};
 const char *pl_iso[] = {"dof","command","hysteresis","reference","sampling_rate","\0"};
-const char *pl_path_following[] = {"point","\0"};
+const char *pl_follow[] = {"xrefpoint","yrefpoint","xs","ys","xc","yc","xe","ye","Vl","direction","R0","\0"};
 const char *pl_pointer[] = {"radius","vertical_offset","guidance_target_x","guidance_target_y","guidance_target_z","guidance_enable","wrapping_enable","streamline_orientation","guidance_topic","radius_topic","\0"};
 const char *pl_course_keeping_UA[] = {"course","speed","timeout","\0"};
 
@@ -181,11 +181,11 @@ struct PrimitiveParams{
 		 primitive_params.insert(std::pair<int,std::vector<std::string> >(iso,tmp));
 
 		tmp.clear();
-		 for(i = 0; strcmp(pl_path_following[i],"\0") != 0; i++){
-			 tmp_str.assign(pl_path_following[i]);
+		 for(i = 0; strcmp(pl_follow[i],"\0") != 0; i++){
+			 tmp_str.assign(pl_follow[i]);
 			 tmp.push_back(tmp_str);
 		 }
-		primitive_params.insert(std::pair<int,std::vector<std::string> >(path_following,tmp));
+		primitive_params.insert(std::pair<int,std::vector<std::string> >(follow,tmp));
 
 		tmp.clear();
 		 for(i = 0; strcmp(pl_pointer[i],"\0") != 0; i++){
