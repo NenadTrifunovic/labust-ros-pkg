@@ -51,6 +51,8 @@
 #include <misc_msgs/StartParser.h>
 #include <misc_msgs/EvaluateExpression.h>
 
+#include <boost/thread.hpp>
+
 #include <tinyxml2.h>
 
 using namespace tinyxml2;
@@ -124,6 +126,10 @@ namespace labust
 			PrimitiveParams PP;
 
 			XMLDocument xmlDoc;
+
+			bool missionActive;
+
+			//boost::mutex missionActive;
 		};
 
 
@@ -136,7 +142,8 @@ namespace labust
 										   newTimeout(0),
 										   eventID(0),
 										   breakpoint(1),
-										   missionEvents("")
+										   missionEvents(""),
+										   missionActive(false)
 		{
 			ros::NodeHandle nh;
 
@@ -346,6 +353,7 @@ namespace labust
 			missionParams.clear();
 			missionEvents.clear();
 			xmlDoc.Clear();
+			missionActive = false;
 		}
 
 		/*************************************************************
@@ -375,6 +383,9 @@ namespace labust
 
 		void MissionParser::onReceiveMission(const misc_msgs::StartParser::ConstPtr& msg)
 		{
+			if(missionActive)
+				resetParser();
+
 			XMLError err_status;
 
 			if(msg->method == misc_msgs::StartParser::FILENAME)
