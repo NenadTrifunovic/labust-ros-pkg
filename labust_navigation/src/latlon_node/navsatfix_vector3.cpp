@@ -8,7 +8,6 @@
 #include <Eigen/Dense>
 
 tf2_ros::Buffer buffer;
-tf2_ros::TransformListener listener(buffer);
 
 ros::Publisher out_pub;
 geometry_msgs::Vector3Stamped msg_out;
@@ -48,6 +47,8 @@ catch(tf2::TransformException& ex)
 int main(int argc, char **argv){
     ros::init(argc, argv, "navstsfix_vector3");
     ros::NodeHandle n, nh("~");
+
+    tf2_ros::TransformListener listener(buffer);
 
     std::string gps_topic, out_topic;
     //Parameters
