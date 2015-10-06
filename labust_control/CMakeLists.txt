@@ -115,6 +115,7 @@ add_executable(nu_manual src/NuManual.cpp)
 add_executable(ref_manual src/RefManual.cpp)
 add_executable(async_merger src/AsyncMerger.cpp)
 add_executable(velocity_control	src/VelocityControl.cpp)
+add_executable(navstsreq_navsts	src/navstsreq_navsts.cpp)
 
 # ESC executables
 add_executable(esc_uv src/esc/ESCControlClassic_UV.cpp src/esctoolkit/esc_classic.cpp)
@@ -185,6 +186,10 @@ target_link_libraries(alt_controller2
 
 target_link_libraries(depth_controller2
   pidtoolkit2
+  ${catkin_LIBRARIES}
+)
+
+target_link_libraries(navstsreq_navsts
   ${catkin_LIBRARIES}
 )
 
