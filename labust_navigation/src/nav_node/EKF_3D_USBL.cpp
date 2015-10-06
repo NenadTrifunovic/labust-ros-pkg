@@ -107,11 +107,13 @@ void Estimator3D::onInit()
 	stateMeas = nh.advertise<auv_msgs::NavSts>("meas",1);
 	currentsHat = nh.advertise<geometry_msgs::TwistStamped>("currentsHat",1);
 	buoyancyHat = nh.advertise<std_msgs::Float32>("buoyancy",1);
+
 	pubRange = nh.advertise<std_msgs::Float32>("range",1);
 	pubRangeFiltered = nh.advertise<std_msgs::Float32>("range_filtered",1);
 	pubwk = nh.advertise<std_msgs::Float32>("w_limit",1);
-
-
+	pubCondP = nh.advertise<std_msgs::Float32>("condP",1);
+	pubCondPxy = nh.advertise<std_msgs::Float32>("condPxy",1);
+	pubCost = nh.advertise<std_msgs::Float32>("cost",1);
 
 	/*** Subscribers ***/
 	tauAch = nh.subscribe<auv_msgs::BodyForceReq>("tauAch", 1, &Estimator3D::onTau,this);
@@ -123,6 +125,11 @@ void Estimator3D::onInit()
 	subUSBL = nh.subscribe<underwater_msgs::USBLFix>("usbl_fix", 1, &Estimator3D::onUSBLfix,this);
 	sub = nh.subscribe<auv_msgs::NED>("quad_delta_pos", 1, &Estimator3D::deltaPosCallback,this);
 	subKFmode = nh.subscribe<std_msgs::Bool>("KFmode", 1, &Estimator3D::KFmodeCallback, this);
+
+	//subSecond_heading = nh.subscribe<std_msgs::Float32>("out_acoustic_heading", 1, &Estimator3D::onSecond_heading,this);
+	subSecond_position = nh.subscribe<geometry_msgs::Point>("out_acoustic_position", 1, &Estimator3D::onSecond_position,this);
+	//subSecond_speed = nh.subscribe<std_msgs::Float32>("out_acoustic_speed", 1, &Estimator3D::onSecond_speed,this);
+	//subSecond_usbl_fix = nh.subscribe<underwater_msgs::USBLFix>("usbl_fix", 1, &Estimator3D::onSecond_usbl_fix,this);
 
 	KFmode = quadMeasAvailable = false;
 
@@ -329,7 +336,7 @@ void Estimator3D::onUSBLfix(const underwater_msgs::USBLFix::ConstPtr& data){
 	measDelay(KFNav::elevation) = delay;
 
 	/*** Get beacon position ***/
-	measurements(KFNav::xb) =-1.25;
+	/*measurements(KFNav::xb) =-1.25;
 	newMeas(KFNav::xb) = 1;
 	measDelay(KFNav::xb) = delay;
 
@@ -339,7 +346,7 @@ void Estimator3D::onUSBLfix(const underwater_msgs::USBLFix::ConstPtr& data){
 
 	measurements(KFNav::zb) = 2.6;
 	newMeas(KFNav::zb) = 1;
-	measDelay(KFNav::zb) = delay;
+	measDelay(KFNav::zb) = delay;*/
 
 	// Debug print
 	//ROS_ERROR("Delay: %f", delay);
@@ -357,6 +364,18 @@ void Estimator3D::onUSBLfix(const underwater_msgs::USBLFix::ConstPtr& data){
 
 	//measurements(KFNav::zb) = x(KFNav::zp) - data->relative_position.z;
 	//newMeas(KFNav::zb) = 1;
+}
+
+void Estimator3D::onSecond_position(const geometry_msgs::Point::ConstPtr& data)
+{
+	measurements(KFNav::xb) = data->x;
+	newMeas(KFNav::xb) = 1;
+
+	measurements(KFNav::yb) = data->y;
+	newMeas(KFNav::yb) = 1;
+
+	measurements(KFNav::zb) = data->z;
+	newMeas(KFNav::zb) = 1;
 }
 
 void Estimator3D::deltaPosCallback(const auv_msgs::NED::ConstPtr& msg){

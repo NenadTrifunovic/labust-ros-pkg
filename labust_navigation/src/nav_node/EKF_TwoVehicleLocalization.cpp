@@ -107,6 +107,10 @@ void Estimator3D::onInit()
 	pubRange = nh.advertise<std_msgs::Float32>("range_meas",1);
 	pubBearing = nh.advertise<std_msgs::Float32>("bearing_meas",1);
 
+	pubCondP = nh.advertise<std_msgs::Float32>("condP",1);
+	pubCondPxy = nh.advertise<std_msgs::Float32>("condPxy",1);
+	pubCost = nh.advertise<std_msgs::Float32>("cost",1);
+
 	//pubRangeFiltered = nh.advertise<std_msgs::Float32>("range_filtered",1);
 	//pubwk = nh.advertise<std_msgs::Float32>("w_limit",1);
 

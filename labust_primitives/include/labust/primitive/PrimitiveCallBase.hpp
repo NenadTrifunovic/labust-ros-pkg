@@ -79,10 +79,13 @@ namespace labust
 				/*** Publishers */
 				pubEventString = nh.advertise<std_msgs::String>("eventString",1);
 
-				//TODO Throw exception
 				ROS_INFO("Waiting for action server to start.");
-				ac.waitForServer(); //will wait for infinite time
-				ROS_INFO("Action server started, sending goal.");
+				if(!ac.waitForServer(ros::Duration(5)))
+				{
+					ROS_FATAL("Cannot establish connection to action server: %s", primitiveName.c_str());
+					return;
+				}
+				ROS_INFO("Action server % started", primitiveName.c_str());
 			}
 
 			virtual ~PrimitiveCallBase(){}
@@ -96,13 +99,8 @@ namespace labust
 
 			virtual void stop()
 			{
-				//boost::this_thread::sleep(boost::posix_time::milliseconds(200));
 				ros::Duration(0.2).sleep();
 				ac.cancelGoalsAtAndBeforeTime(ros::Time::now());
-
-				//enableController("UALF_enable",false);
-				//enableController("HDG_enable",false);
-				//LLcfg.LL_VELconfigure(false,1,1,0,0,0,1);
 			}
 
 		protected:
