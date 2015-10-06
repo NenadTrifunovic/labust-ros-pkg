@@ -63,6 +63,8 @@ public:
 
 		/** Publishers */
 		pubDataEventsContainer = nh.advertise<misc_msgs::DataEventsContainer>("dataEventsContainer",1);
+		pubEventString = nh.advertise<std_msgs::String>("eventString",1);
+
 
 		/** Services */
 		srvEvaluateExpression = nh.advertiseService("evaluate_expression", &DataEventManager::expressionEvaluationService,this);
@@ -111,8 +113,13 @@ public:
 		/** Initialize symbol table */
 		EE.initializeSymbolTable(DM.getStateVar(), DM.getMissionVar(), DM.getMissionVarNames());
 
-		ROS_ERROR("Mission successfully loaded");
+		ROS_INFO("Mission successfully loaded");
 		missionLoaded = true;
+
+		/** Publish start dispatcher request */
+		std_msgs::String tmp;
+		tmp.data = "/START_DISPATCHER";
+		pubEventString.publish(tmp);
 	}
 
 	void onEventString(const std_msgs::String::ConstPtr& msg){
@@ -178,7 +185,7 @@ private:
 	ros::Subscriber subStateHatAbs, subMissionSetup, subExternalEvents, subEventString;
 
 	/** Publishers */
-	ros::Publisher pubDataEvent, pubDataEventsContainer;
+	ros::Publisher pubDataEvent, pubDataEventsContainer, pubEventString;
 
 	/** Services */
 	ros::ServiceServer srvEvaluateExpression;

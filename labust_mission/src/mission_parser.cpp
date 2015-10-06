@@ -409,10 +409,6 @@ namespace labust
 				missionSetup.missionParams = missionParams;
 				missionSetup.missionOffset = offset;
 				pubMissionSetup.publish(missionSetup);
-
-				std_msgs::String tmp;
-				tmp.data = "/START_DISPATCHER"; //TODO vidi da li to prebaciti sve na mission setup
-				pubRiseEvent.publish(tmp);
 			}
 			else
 			{
