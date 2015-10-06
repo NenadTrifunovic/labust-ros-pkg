@@ -3,7 +3,12 @@
 #include <geometry_msgs/Vector3Stamped.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <sensor_msgs/NavSatFix.h>
-#include <labust/tools/conversions.hpp>
+#include <labust/tools/GeoUtilities.hpp>
+#include <tf2_ros/transform_listener.h>
+#include <Eigen/Dense>
+
+tf2_ros::Buffer buffer;
+tf2_ros::TransformListener listener(buffer);
 
 ros::Publisher out_pub;
 geometry_msgs::Vector3Stamped msg_out;
@@ -12,12 +17,17 @@ void GPSCallback(const sensor_msgs::NavSatFix& msg)
 try
 {
     msg_out.header.stamp = msg.header.stamp;
+    geometry_msgs::TransformStamped transformLocal, transformGPS, transformDeg;
     transformLocal = buffer.lookupTransform("local", "gps_frame", ros::Time(0));
     transformGPS = buffer.lookupTransform("base_link", "gps_frame", ros::Time(0));
     transformDeg = buffer.lookupTransform("worldLatLon", "local", ros::Time(0));
-    std::pair<double, double> posxy = labust::tools::deg2meter(data->latitude - transformDeg.transform.translation.y,
-		data->longitude - transformDeg.transform.translation.x,
+    std::pair<double, double> posxy = labust::tools::deg2meter(msg.latitude - transformDeg.transform.translation.y,
+		msg.longitude - transformDeg.transform.translation.x,
 		transformDeg.transform.translation.y);
+  	Eigen::Quaternion<double> rot(transformLocal.transform.rotation.w,
+  				transformLocal.transform.rotation.x,
+  				transformLocal.transform.rotation.y,
+  				transformLocal.transform.rotation.z);
     Eigen::Vector3d offset(transformGPS.transform.translation.x,
  			transformGPS.transform.translation.y,
 			transformGPS.transform.translation.z);

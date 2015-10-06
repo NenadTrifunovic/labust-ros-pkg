@@ -39,6 +39,7 @@
 #include <nav_msgs/Odometry.h>
 #include <geometry_msgs/TwistStamped.h>
 #include <std_msgs/Float32.h>
+#include <std_msgs/Bool.h>
 #include <ros/ros.h>
 
 #include <Eigen/Dense>
@@ -60,6 +61,7 @@ struct DvlSim
 		dvl_nu = nh.advertise<geometry_msgs::TwistStamped>("dvl",1);
 		dvl_ned = nh.advertise<geometry_msgs::TwistStamped>("dvl_ned",1);
 		altitude_pub = nh.advertise<std_msgs::Float32>("altitude",1);
+		dvl_bottom = nh.advertise<std_msgs::Bool>("dvl_bottom",1);
 
 		last_pos[0] = last_pos[1] = last_pos[2] = 0;
 	}
@@ -105,13 +107,22 @@ struct DvlSim
 				std_msgs::Float32::Ptr altitude(new std_msgs::Float32());
 				altitude->data = maxDepth - msg->pose.pose.position.z;
 				altitude_pub.publish(altitude);
+				std_msgs::Bool bl;
+				bl.data = true;
+				dvl_bottom.publish(bl);
+			}
+			else
+			{
+				std_msgs::Bool bl;
+				bl.data = false;
+				dvl_bottom.publish(bl);
 			}
 		}
 	}
 
 private:
 	ros::Subscriber odom;
-	ros::Publisher dvl_nu, altitude_pub, dvl_ned;
+	ros::Publisher dvl_nu, altitude_pub, dvl_ned, dvl_bottom;
 	ros::Time lastTime;
 	double last_pos[3];
 	int dvl_pub;

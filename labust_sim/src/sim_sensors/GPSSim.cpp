@@ -90,7 +90,7 @@ struct GPSSim
 			double originLat = transformDeg.transform.translation.y;
     	double originLon = transformDeg.transform.translation.x;
 
-			fix->altitude = -transformDeg.transform.translation.z;
+			fix->altitude = -transformLocal.transform.translation.z;
 			std::pair<double, double> diffAngle =
 					labust::tools::meter2deg(msg->pose.pose.position.x,
 					msg->pose.pose.position.y,

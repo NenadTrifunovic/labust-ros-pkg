@@ -162,11 +162,7 @@ void DvlHandler::onBottomLock(const std_msgs::Bool::ConstPtr& data)
 void DvlHandler::onDvl(const geometry_msgs::TwistStamped::ConstPtr& data)
 {
 	//Ignore water lock data (?)
-	if (!bottom_lock)
-	{
-		ROS_ERROR("No bottom lock."); 
-		return;
-    }
+	if (!bottom_lock)	ROS_WARN("No bottom lock.");
 
 	if (data->header.frame_id == "dvl_frame")
 	{
