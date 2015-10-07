@@ -361,14 +361,15 @@ void Estimator3D::onUSBLfix(const underwater_msgs::USBLFix::ConstPtr& data){
 	//double delay = calculateDelaySteps(data->header.stamp.toSec(), currentTime);
 	double delay = double(calculateDelaySteps(currentTime-delay_time, currentTime));
 
-	double bear = 360 - data->bearing;
-	double elev = 180 - data->elevation;
+//	double bear = 360 - data->bearing;
+//	double elev = 180 - data->elevation;
+	double bear = data->bearing;
+	double elev = data->elevation;
 
 	const KFNav::vector& x = nav.getState();
-
 	//labust::math::wrapRad(measurements(KFNav::psi));
 
-	ROS_ERROR("RANGE: %f, BEARING: %f deg %f rad", data->range, labust::math::wrapRad(bear*M_PI/180), labust::math::wrapRad(bear*M_PI/180+x(KFNav::psi)));
+	ROS_ERROR("RANGE: %f, BEARING: %f deg %f rad", data->range,bear, labust::math::wrapRad(bear*M_PI/180+x(KFNav::psi)));
 	/*** Get USBL measurements ***/
 	measurements(KFNav::range) = (data->range > 0.1)?data->range:0.1;
 	newMeas(KFNav::range) = enableRange;
@@ -403,7 +404,8 @@ void Estimator3D::onUSBLfix(const underwater_msgs::USBLFix::ConstPtr& data){
 	pubRange.publish(rng_msg);*/
 
 	//measurements(KFNav::bearing) = labust::math::wrapRad(bear*M_PI/180+x(KFNav::psi));
-	measurements(KFNav::bearing) = labust::math::wrapRad(bear*M_PI/180);
+//	measurements(KFNav::bearing) = labust::math::wrapRad(bear*M_PI/180);
+	measurements(KFNav::bearing) = bear;
 	newMeas(KFNav::bearing) = enableBearing;
 	measDelay(KFNav::bearing) = delay;
 
@@ -412,17 +414,17 @@ void Estimator3D::onUSBLfix(const underwater_msgs::USBLFix::ConstPtr& data){
 	measDelay(KFNav::elevation) = delay;
 
 	/*** Get beacon position ***/
-	/*measurements(KFNav::xb) =-1.25;
+	measurements(KFNav::xb) = 0;
 	newMeas(KFNav::xb) = 1;
 	measDelay(KFNav::xb) = delay;
 
-	measurements(KFNav::yb) = 0.5;
+	measurements(KFNav::yb) = 0;
 	newMeas(KFNav::yb) = 1;
 	measDelay(KFNav::yb) = delay;
 
-	measurements(KFNav::zb) = 2.6;
+	measurements(KFNav::zb) = 0;
 	newMeas(KFNav::zb) = 1;
-	measDelay(KFNav::zb) = delay;*/
+	measDelay(KFNav::zb) = delay;
 
 	// Debug print
 	//ROS_ERROR("Delay: %f", delay);
@@ -944,9 +946,9 @@ void Estimator3D::start()
 				cstate(KFNav::psi),
 				transform.transform.rotation);
 		if(absoluteEKF){
-			transform.child_frame_id = "base_link_abs";
+			transform.child_frame_id = "base_link_usbl_abs";
 		} else{
-			transform.child_frame_id = "base_link";
+			transform.child_frame_id = "base_link_usbl";
 		}
 		transform.header.frame_id = "local";
 		transform.header.stamp = ros::Time::now();
