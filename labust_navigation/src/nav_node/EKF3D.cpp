@@ -397,11 +397,12 @@ void Estimator3D::processMeasurements()
 		}
 	}
 	//DVL measurements
-	//if ((newMeas(KFNav::u) = newMeas(KFNav::v) = newMeas(KFNav::w) = dvl.NewArrived()))
-	if ((newMeas(KFNav::u) = newMeas(KFNav::v) = dvl.newArrived()))
+	if ((newMeas(KFNav::u) = newMeas(KFNav::v) = newMeas(KFNav::w) = dvl.newArrived()))
+	//if ((newMeas(KFNav::u) = newMeas(KFNav::v) = dvl.newArrived()))
 	{
 		double vx = dvl.body_speeds()[DvlHandler::u];
 		double vy = dvl.body_speeds()[DvlHandler::v];
+		double vz = dvl.body_speeds()[DvlHandler::w];
 		double vxe = nav.getState()(KFNav::u);
 		double vye = nav.getState()(KFNav::v);
 
@@ -429,19 +430,22 @@ void Estimator3D::processMeasurements()
 			ROS_INFO("Outlier rejected: meas=%f, est=%f, tolerance=%f", vy, vye, dvl_fp*fabs(rvy));
 			newMeas(KFNav::u) = false;
 			newMeas(KFNav::v) = false;
+			newMeas(KFNav::w) = false;
 		}
 		measurements(KFNav::u) = vx;
 		measurements(KFNav::v) = vy;
+		measurements(KFNav::w) = vz;
 
 		//Sanity check
-		if ((fabs(vx) > max_dvl) || (fabs(vy) > max_dvl))
+		if ((fabs(vx) > max_dvl) || (fabs(vy) > max_dvl) || (fabs(vz) > max_dvl))
 		{
 			ROS_INFO("DVL measurement failed sanity check for maximum speed %f. Got: vx=%f, vy=%f.",max_dvl, vx, vy);
 			newMeas(KFNav::u) = false;
 			newMeas(KFNav::v) = false;
+			newMeas(KFNav::w) = false;
 		}
 
-		if (newMeas(KFNav::u) || newMeas(KFNav::v))
+		if (newMeas(KFNav::u) || newMeas(KFNav::v) || newMeas(KFNav::w))
 		{
 			dvl_time = ros::Time::now();
 			std_msgs::Bool data;
