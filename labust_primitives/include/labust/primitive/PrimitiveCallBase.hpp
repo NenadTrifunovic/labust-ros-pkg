@@ -99,7 +99,7 @@ namespace labust
 
 			virtual void stop()
 			{
-				ros::Duration(0.2).sleep();
+				/** ros::Duration(0.01).sleep(); */
 				ac.cancelGoalsAtAndBeforeTime(ros::Time::now());
 			}
 
