@@ -94,13 +94,9 @@ namespace labust
 
 			struct FilterState{
 
-				FilterState(){
+				FilterState(){}
 
-				}
-
-				~FilterState(){
-
-				}
+				~FilterState(){}
 
 				KFNav::vector input;
 				KFNav::vector meas;
@@ -108,7 +104,6 @@ namespace labust
 				KFNav::vector state;
 				KFNav::matrix Pcov;
 				KFNav::matrix Rcov;
-
 			};
 
 		private:
@@ -149,6 +144,10 @@ namespace labust
 			 */
 			void onReset(const std_msgs::Bool::ConstPtr& reset);
 			/**
+			 * Calculate covariance matrix condition number
+			 */
+			void calculateConditionNumber();
+			/**
 			 * Calculate measurement delay in time steps
 			 */
 			int calculateDelaySteps(double measTime, double arrivalTime);
@@ -185,17 +184,9 @@ namespace labust
 			 */
 			tf2_ros::TransformBroadcaster broadcaster;
 			/**
-			 * Temporary altitude storage.
-			 */
-			double alt;
-			/**
 			 * Model parameters
 			 */
 			KFNav::ModelParams params[DoF];
-			/**
-			 * The flag to indicate existing yaw-rate measurements.
-			 */
-			bool useYawRate;
 			/**
 			 * The DVL model selector.
 			 */
@@ -211,44 +202,13 @@ namespace labust
 			/**
 			 *  USBL measurements enable flags
 			 */
-			bool enableDelay, enableRange, enableBearing, enableElevation;
+			bool enableDelay, enableRange, enableBearing, enableElevation, enableRejection;
 
 			KFNav::matrix Pstart, Rstart;
 
 			std::deque<FilterState> pastStates;
 
 			labust::tools::OutlierRejection OR;
-
-			void calculateConditionNumber(){
-
-				KFNav::matrix P = nav.getStateCovariance();
-
-				Eigen::JacobiSVD<Eigen::MatrixXd> svd(P);
-				double cond1 = svd.singularValues()(0) / svd.singularValues()(svd.singularValues().size()-1);
-
-				Eigen::Matrix2d Pxy;
-				Pxy << P(KFNav::xp,KFNav::xp), P(KFNav::xp,KFNav::yp),
-					   P(KFNav::yp,KFNav::xp), P(KFNav::yp,KFNav::yp);
-
-				Eigen::JacobiSVD<Eigen::MatrixXd> svd2(P);
-				double cond2 = svd2.singularValues()(0) / svd2.singularValues()(svd2.singularValues().size()-1);
-
-				double traceP = Pxy.trace();
-				double detP = Pxy.determinant();
-
-				double condCost = std::sqrt(traceP*traceP-4*detP);
-
-				std_msgs::Float32::Ptr data(new std_msgs::Float32);
-
-				data->data = cond1;
-				pubCondP.publish(data);
-				data->data = cond2;
-				pubCondPxy.publish(data);
-				data->data = condCost;
-				pubCost.publish(data);
-
-			}
-
 		};
 	}
 }
