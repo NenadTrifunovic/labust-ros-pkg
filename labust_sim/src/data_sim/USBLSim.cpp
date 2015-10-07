@@ -76,12 +76,15 @@ public:
 		while (ros::ok()){
 
 
-			if(i++==0) continue;
 			range = (vehPos-tarPos).norm();
-			bearing = labust::math::wrapRad(std::atan2(double(vehPos(1)-tarPos(1)),double(vehPos(0)-tarPos(0)))-0*vehYaw);
+
+			if(range>0.1)
+			{
+
+              		i++;
+			bearing = labust::math::wrapRad(std::atan2(double(tarPos(1)-vehPos(1)),double(tarPos(0)-vehPos(0)))-0*vehYaw);
 			elevation = std::asin((double(vehPos(2)-tarPos(2)))/range);
-
-
+			
 			usbl.header.stamp = ros::Time::now();
 			usbl.range = range;
 			usbl.bearing = bearing;
@@ -91,10 +94,11 @@ public:
 			range.data = usbl_past.range;
 			pubRange.publish(range);
 
-			pubUSBLFix.publish(usbl_past);
+			if(usbl_past.range>0.1)		
+				pubUSBLFix.publish(usbl_past);
 
 			usbl_past = usbl;
-
+			}
 
 			rate.sleep();
 			ros::spinOnce();
@@ -109,7 +113,8 @@ public:
 
 	void onTargetPos(const auv_msgs::NavSts::ConstPtr& data){
 
-		tarPos << data->position.north, data->position.east, data->position.depth;
+		//tarPos << data->position.north, data->position.east, data->position.depth;
+		tarPos << 0, 0, 0;
 	}
 
 	/*
