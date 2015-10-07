@@ -473,6 +473,8 @@ namespace labust {
 			if(strcmp(msg->data.c_str(),"/STOP") == 0){
 				onPrimitiveEndReset();
 				nextPrimitive = 1;
+			} else if(strcmp(msg->data.c_str(),"/MANUAL_ENABLE") == 0) {
+				CM.enableManual();
 			}
 		}
 

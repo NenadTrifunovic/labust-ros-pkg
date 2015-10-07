@@ -84,38 +84,41 @@ namespace labust
 			 *** Class functions
 			 ********************************************************/
 
-			/* Constructor */
+			/** Constructor */
 			PrimitiveManager();
+
+			/** Enable manual control */
+			void enableManual();
 
 			/*********************************************************
 			 *** Primitive function calls
 			 ********************************************************/
 
-			/* Go to point fully actuated primitive */
+			/** Go to point fully actuated primitive */
 			void go2point_FA_hdg(bool enable, double north1, double east1, double north2, double east2, double speed, double heading, double radius);
 
-			/* Go to point fully actuated primitive */
+			/** Go to point fully actuated primitive */
 			void go2point_FA(bool enable, double north1, double east1, double north2, double east2, double speed, double radius);
 
-			/* Go to point underactuated primitive */
+			/** Go to point underactuated primitive */
 			void go2point_UA(bool enable, double north1, double east1, double north2, double east2, double speed, double radius);
 
-			/* Dynamic positioning primitive */
+			/** Dynamic positioning primitive */
 			void dynamic_positioning(bool enable, double north, double east, double heading);
 
-			/* Course keeping fully actuated  primitive */
+			/** Course keeping fully actuated  primitive */
 			void course_keeping_FA(bool enable, double course, double speed, double heading);
 
-			/* Course keeping underactuated  primitive */
+			/** Course keeping underactuated  primitive */
 			void course_keeping_UA(bool enable, double course, double speed);
 
-			/* Self-oscillations identification */
+			/** Self-oscillations identification */
 			void ISOprimitive(bool enable, int dof, double command, double hysteresis, double reference, double sampling_rate);
 
-			/* Pointer primitive */
+			/** Pointer primitive */
 			void pointer(bool enable, double radius, double vertical_offset, double guidance_target_x, double guidance_target_y, double guidance_target_z, bool guidance_enable, bool wrapping_enable, bool streamline_orientation, std::string guidance_topic, std::string radius_topic);
 
-			/* Follow primitive */
+			/** Follow primitive */
 			void follow(bool enable, double xrefpoint, double yrefpoint, double xs, double ys, double xc, double yc, double xe, double ye, double Vl, double direction, double R0);
 
 			/*********************************************************
@@ -146,6 +149,11 @@ using namespace labust::controller;
 	PrimitiveManager::PrimitiveManager()
 	{
 
+	}
+
+	void PrimitiveManager::enableManual()
+	{
+		LLcfg.LL_VELconfigure(true,1,1,1,1,1,1);
 	}
 
 	/*********************************************************
