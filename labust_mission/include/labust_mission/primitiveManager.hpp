@@ -88,7 +88,7 @@ namespace labust
 			PrimitiveManager();
 
 			/** Enable manual control */
-			void enableManual();
+			void enableManual(bool flag);
 
 			/*********************************************************
 			 *** Primitive function calls
@@ -151,9 +151,9 @@ using namespace labust::controller;
 
 	}
 
-	void PrimitiveManager::enableManual()
+	void PrimitiveManager::enableManual(bool flag)
 	{
-		LLcfg.LL_VELconfigure(true,1,1,1,1,1,1);
+		LLcfg.LL_VELconfigure(flag,1,1,1,1,1,1);
 	}
 
 	/*********************************************************
