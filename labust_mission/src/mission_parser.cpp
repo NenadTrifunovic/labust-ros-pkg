@@ -420,6 +420,7 @@ namespace labust
 				missionSetup.missionParams = missionParams;
 				missionSetup.missionOffset = offset;
 				pubMissionSetup.publish(missionSetup);
+				missionActive = true;
 			}
 			else
 			{
