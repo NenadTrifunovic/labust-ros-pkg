@@ -59,6 +59,7 @@
 
 #include <auv_msgs/NED.h>
 #include <std_msgs/Bool.h>
+#include <std_msgs/Int32.h>
 
 #include <stack>
 #include <deque>
@@ -153,6 +154,14 @@ namespace labust
 			 */
 			void onUseGyro(const std_msgs::Bool::ConstPtr& use_gyro);
 			/**
+			* Handle the altitude sampler.
+			*/
+			void onAltSampling(const std_msgs::Bool::ConstPtr& flag);
+			/**
+			 * Handle the safety filter sample size.
+			*/
+			void onAltNSamples(const std_msgs::Int32::ConstPtr& samples);
+			/**
 			 * Handle the second vehicle position measurement.
 			 */
 			void onSecond_position(const geometry_msgs::Point::ConstPtr& data);
@@ -181,11 +190,13 @@ namespace labust
 			 */
 			ros::Publisher stateMeas, stateHat, currentsHat, buoyancyHat, pubRange, pubRangeFiltered, pubwk;
 			ros::Publisher pubCondP, pubCondPxy, pubCost;
+			ros::Publisher turns_pub, unsafe_dvl, altitude_cov;
 			/**
 			 * Sensors and input subscribers.
 			 */
 			ros::Subscriber tauAch, depth, altitude, modelUpdate, resetTopic, useGyro, sub, subKFmode, subUSBL;
 			ros::Subscriber subSecond_heading, subSecond_position, subSecond_speed, subSecond_usbl_fix;
+			ros::Subscriber altNSample, useAltSampling;
 			/**
 			 * The GPS handler.
 			 */
@@ -198,6 +209,14 @@ namespace labust
 			 * The DVL handler.
 			 */
 			DvlHandler dvl;
+			/// Maximum dvl speed for sanity checks
+			double max_dvl;
+			/// Minimum safe altitude that is accepted as measurement
+			double min_altitude;
+			/// Last DVL measurement received time
+			ros::Time dvl_time;
+			/// Timeout value for the DVL
+			double dvl_timeout;
 			/**
 			 * The transform broadcaster.
 			 */
@@ -222,6 +241,12 @@ namespace labust
 			 * The compass and gyro variance.
 			 */
 			double compassVariance, gyroVariance;
+			///Mutex for data protection
+			boost::mutex meas_mux;
+			///Last altitude measurement
+			ros::Time last_alt;
+			///The altitude covariance Timeout
+			double altitude_timeout;
 
 			/**
 			 *  Current time in seconds
@@ -253,40 +278,23 @@ namespace labust
 
 			KFNav::matrix Pstart, Rstart;
 
+			//Flag for the altitude sampler
+			bool alt_sample;
+			//The altitude sample buffer
+			std::vector<double> altbuf;
+			//Maximum number of samples to take
+			int nsamples_alt;
+			//The accepted variance for altimeter
+			double altok_var;
+
+			//DVL filter params
+			double dvl_fp;
+
 			std::deque<FilterState> pastStates;
 
 			labust::tools::OutlierRejection OR;
 
-			void calculateConditionNumber(){
-
-				KFNav::matrix P = nav.getStateCovariance();
-
-				Eigen::JacobiSVD<Eigen::MatrixXd> svd(P);
-				double cond1 = svd.singularValues()(0) / svd.singularValues()(svd.singularValues().size()-1);
-
-				Eigen::Matrix2d Pxy;
-				Pxy << P(KFNav::xp,KFNav::xp), P(KFNav::xp,KFNav::yp),
-					   P(KFNav::yp,KFNav::xp), P(KFNav::yp,KFNav::yp);
-
-				Eigen::JacobiSVD<Eigen::MatrixXd> svd2(P);
-				double cond2 = svd2.singularValues()(0) / svd2.singularValues()(svd2.singularValues().size()-1);
-
-				double traceP = Pxy.trace();
-				double detP = Pxy.determinant();
-
-				double condCost = std::sqrt(traceP*traceP-4*detP);
-
-				std_msgs::Float32::Ptr data(new std_msgs::Float32);
-
-				data->data = cond1;
-				pubCondP.publish(data);
-				data->data = cond2;
-				pubCondPxy.publish(data);
-				data->data = condCost;
-				pubCost.publish(data);
-
-			}
-
+			void calculateConditionNumber();
 		};
 	}
 }

@@ -93,7 +93,15 @@ Estimator3D::Estimator3D():
 		compassVariance(0.3),
 		gyroVariance(0.003),
 		OR(3,0.95),
-		absoluteEKF(false){this->onInit();};
+		absoluteEKF(false),
+		max_dvl(2.0),
+		min_altitude(0.5),
+		dvl_timeout(5),
+		dvl_time(ros::Time::now()),
+		alt_sample(true),
+		nsamples_alt(10),
+		altok_var(2),
+		dvl_fp(0.1){this->onInit();};
 
 void Estimator3D::onInit()
 {
@@ -107,6 +115,10 @@ void Estimator3D::onInit()
 	stateMeas = nh.advertise<auv_msgs::NavSts>("meas",1);
 	currentsHat = nh.advertise<geometry_msgs::TwistStamped>("currentsHat",1);
 	buoyancyHat = nh.advertise<std_msgs::Float32>("buoyancy",1);
+
+	turns_pub = nh.advertise<std_msgs::Float32>("turns",1);
+	unsafe_dvl = nh.advertise<std_msgs::Bool>("unsafe_dvl",1);
+	altitude_cov = nh.advertise<std_msgs::Float32>("altitude_cov",1);
 
 	pubRange = nh.advertise<std_msgs::Float32>("range",1);
 	pubRangeFiltered = nh.advertise<std_msgs::Float32>("range_filtered",1);
@@ -126,6 +138,10 @@ void Estimator3D::onInit()
 	sub = nh.subscribe<auv_msgs::NED>("quad_delta_pos", 1, &Estimator3D::deltaPosCallback,this);
 	subKFmode = nh.subscribe<std_msgs::Bool>("KFmode", 1, &Estimator3D::KFmodeCallback, this);
 
+	useAltSampling = nh.subscribe<std_msgs::Bool>("use_alt_sampling", 1, &Estimator3D::onAltSampling,this);
+    altNSample = nh.subscribe<std_msgs::Int32>("alt_n_samples", 1, &Estimator3D::onAltNSamples,this);
+
+
 	//subSecond_heading = nh.subscribe<std_msgs::Float32>("out_acoustic_heading", 1, &Estimator3D::onSecond_heading,this);
 	subSecond_position = nh.subscribe<geometry_msgs::Point>("out_acoustic_position", 1, &Estimator3D::onSecond_position,this);
 	//subSecond_speed = nh.subscribe<std_msgs::Float32>("out_acoustic_speed", 1, &Estimator3D::onSecond_speed,this);
@@ -140,7 +156,15 @@ void Estimator3D::onInit()
 	ph.param("compass_variance",compassVariance,compassVariance);
 	ph.param("gyro_variance",gyroVariance,gyroVariance);
 
-	ph.param("absoluteEKF", absoluteEKF, absoluteEKF);
+	ph.param("max_dvl",max_dvl,max_dvl);
+	ph.param("min_altitude", min_altitude, min_altitude);
+	ph.param("dvl_timeout", dvl_timeout, dvl_timeout);
+	double trustf(0);
+	ph.param("dvl_rot_trust_factor", trustf, trustf);
+	double sway_corr(0);
+	ph.param("absoluteEKF", absoluteEKF,absoluteEKF);
+	ph.param("altitude_cov_timeout",altitude_timeout, altitude_timeout);
+	ph.param("altitude_sampling",alt_sample, alt_sample);
 
 	/*** Enable USBL measurements ***/
 	ph.param("delay", enableDelay, enableDelay);
@@ -157,6 +181,23 @@ void Estimator3D::onInit()
 
 	/*** Get initial error covariance. ***/
     Pstart = nav.getStateCovariance();
+
+    nav.setDVLRotationTrustFactor(trustf);
+
+    //Setup sway correction
+    bool use_sc(false);
+    double acc_port(0.3), acc_starboard(0.3),
+  	vec_port(0.07), vec_starboard(0.07);
+    ph.param("use_sc",use_sc, use_sc);
+    ph.param("acc_port",acc_port, acc_port);
+    ph.param("acc_starboard",acc_starboard, acc_starboard);
+    ph.param("vec_port",vec_port, vec_port);
+    ph.param("vec_starboard",vec_starboard, vec_starboard);
+    nav.setSwayCorrection(use_sc, acc_port, acc_starboard,
+    		vec_port, vec_starboard);
+    //Rstart = nav.R;
+    //ROS_ERROR("NAVIGATION");
+    ph.param("dvl_fp",dvl_fp, dvl_fp);
 }
 
 void Estimator3D::onReset(const std_msgs::Bool::ConstPtr& reset)
@@ -179,6 +220,16 @@ void Estimator3D::onUseGyro(const std_msgs::Bool::ConstPtr& use_gyro)
       nav.R0(KFNav::psi, KFNav::psi) = compassVariance;
       ROS_INFO("Switch to using compass measurements.");
    }
+}
+
+void Estimator3D::onAltSampling(const std_msgs::Bool::ConstPtr& flag)
+{
+	alt_sample = flag->data;
+}
+
+void Estimator3D::onAltNSamples(const std_msgs::Int32::ConstPtr& samples)
+{
+	nsamples_alt = samples->data;
 }
 
 void Estimator3D::configureNav(KFNav& nav, ros::NodeHandle& nh)
@@ -257,25 +308,50 @@ void Estimator3D::onTau(const auv_msgs::BodyForceReq::ConstPtr& tau)
 
 void Estimator3D::onDepth(const std_msgs::Float32::ConstPtr& data)
 {
+	boost::mutex::scoped_lock l(meas_mux);
 	measurements(KFNav::zp) = data->data;
 	newMeas(KFNav::zp) = 1;
 };
 
 void Estimator3D::onAltitude(const std_msgs::Float32::ConstPtr& data)
 {
+	boost::mutex::scoped_lock l(meas_mux);
 	measurements(KFNav::altitude) = data->data;
+	//Skip measurement if minimum altitude is encountered
+	if (data->data <= min_altitude) return;
 	//Dismiss false altitude
-	if (fabs(data->data-nav.getState()(KFNav::altitude)) < 10*nav.calculateAltInovationVariance(nav.getStateCovariance())) 
+	if (fabs(data->data-nav.getState()(KFNav::altitude)) < 3*nav.calculateAltInovationVariance(nav.getStateCovariance()))
 	{
+		double malt = data->data;
+		bool old = (ros::Time::now() - last_alt).toSec() > altitude_timeout;
+		//In case no measurements were received for a long time
+		if (old && alt_sample)
+		{
+			//Add to buffer
+			altbuf.push_back(malt);
+			//Keep n samples
+			if (altbuf.size() > nsamples_alt) altbuf.erase(altbuf.begin());
+			//Do not accept the measurement before the sample container is full.
+			if (altbuf.size() < nsamples_alt) return;
+
+			//Calculate variance
+			double var = pow(labust::math::std2(altbuf),2);
+			malt = labust::math::mean(altbuf);
+			ROS_INFO("Var: %f, mean: %f", var, malt);
+			if (var > altok_var) return;
+			altbuf.clear();
+		}
+
+		last_alt = ros::Time::now();
 		newMeas(KFNav::altitude) = 1;
-		alt = data->data;
+		alt = malt;
 		ROS_DEBUG("Accepted altitude: meas=%f, estimate=%f, variance=%f",
-			data->data, nav.getState()(KFNav::altitude), 10* nav.calculateAltInovationVariance(nav.getStateCovariance()));
+			data->data, nav.getState()(KFNav::altitude), 3*nav.calculateAltInovationVariance(nav.getStateCovariance()));
 	}
 	else
 	{
 		ROS_INFO("Dissmissed altitude: meas=%f, estimate=%f, variance=%f",
-			data->data, nav.getState()(KFNav::altitude), 10* nav.calculateAltInovationVariance(nav.getStateCovariance()));
+			data->data, nav.getState()(KFNav::altitude), 10*nav.calculateAltInovationVariance(nav.getStateCovariance()));
 	}
 };
 
@@ -424,13 +500,7 @@ void Estimator3D::KFmodeCallback(const std_msgs::Bool::ConstPtr& msg){
 
 void Estimator3D::processMeasurements()
 {
-
-	//////////////// PRIVREMENO RJESENJE ZA TEST
-
-	measurements(KFNav::zp) = 0.07;
-	newMeas(KFNav::zp) = 1;
-
-
+	boost::mutex::scoped_lock l(meas_mux);
 	if(KFmode == true && absoluteEKF == false)
 		{
 			if ((newMeas(KFNav::xp) = newMeas(KFNav::yp) = quadMeasAvailable)){
@@ -449,12 +519,22 @@ void Estimator3D::processMeasurements()
 			}
 		}
 
-		//ROS_ERROR("xp: %4.2f, yp: %4.2f, MODE: %d",measurements(KFNav::xp),measurements(KFNav::yp),KFmode );
+	//Altitude measurement check
+	if ((ros::Time::now() - last_alt).toSec() > altitude_timeout)
+	{
+		//Reset estimate to Zero
+		//KFNav::vector cstate = nav.getState();
+		//cstate(KFNav::altitude) = 2*min_altitude;
+		KFNav::matrix ccov = nav.getStateCovariance();
+		ccov(KFNav::altitude, KFNav::altitude) = 10000;
+		nav.setStateCovariance(ccov);
+	}
+
+	//ROS_ERROR("xp: %4.2f, yp: %4.2f, MODE: %d",measurements(KFNav::xp),measurements(KFNav::yp),KFmode );
 
 	//Imu measurements
 	if ((newMeas(KFNav::phi) = newMeas(KFNav::theta) = newMeas(KFNav::psi) = imu.newArrived()))
 	{
-
 		measurements(KFNav::phi) = imu.orientation()[ImuHandler::roll];
 		measurements(KFNav::theta) = imu.orientation()[ImuHandler::pitch];
 		measurements(KFNav::psi) = imu.orientation()[ImuHandler::yaw];
@@ -467,6 +547,8 @@ void Estimator3D::processMeasurements()
 		if ((newMeas(KFNav::r) = useYawRate))
 		{
 			measurements(KFNav::r) = imu.rate()[ImuHandler::r];
+			//Combine measurement with DVL
+			dvl.current_r(measurements(KFNav::r));
 		}
 	}
 	//DVL measurements
@@ -475,8 +557,8 @@ void Estimator3D::processMeasurements()
 	{
 		double vx = dvl.body_speeds()[DvlHandler::u];
 		double vy = dvl.body_speeds()[DvlHandler::v];
-		double vxe = nav.getState()(KFNav::u); 
-		double vye = nav.getState()(KFNav::v); 
+		double vxe = nav.getState()(KFNav::u);
+		double vye = nav.getState()(KFNav::v);
 
 		double rvx(10),rvy(10);
 		//Calculate the measured value
@@ -496,25 +578,45 @@ void Estimator3D::processMeasurements()
 		default: break;
 		}
 
-		if (fabs((vx - vxe)) > fabs(rvx))
+		if ((fabs((vx - vxe)) > dvl_fp*fabs(rvx)) || (fabs((vy - vye)) > dvl_fp*fabs(rvy)))
 		{
-			ROS_INFO("Outlier rejected: meas=%f, est=%f, tolerance=%f", vx, nav.getState()(KFNav::u), fabs(rvx));
+			ROS_INFO("Outlier rejected: meas=%f, est=%f, tolerance=%f", vx, vxe, dvl_fp*fabs(rvx));
+			ROS_INFO("Outlier rejected: meas=%f, est=%f, tolerance=%f", vy, vye, dvl_fp*fabs(rvy));
 			newMeas(KFNav::u) = false;
-		}
-		measurements(KFNav::u) = vx;
-
-
-		if (fabs((vy - vye)) > fabs(rvy))
-		{
-			ROS_INFO("Outlier rejected: meas=%f, est=%f, tolerance=%f", vy, nav.getState()(KFNav::v), fabs(rvy));
 			newMeas(KFNav::v) = false;
 		}
+		measurements(KFNav::u) = vx;
 		measurements(KFNav::v) = vy;
 
+		//Sanity check
+		if ((fabs(vx) > max_dvl) || (fabs(vy) > max_dvl))
+		{
+			ROS_INFO("DVL measurement failed sanity check for maximum speed %f. Got: vx=%f, vy=%f.",max_dvl, vx, vy);
+			newMeas(KFNav::u) = false;
+			newMeas(KFNav::v) = false;
+		}
+
+		if (newMeas(KFNav::u) || newMeas(KFNav::v))
+		{
+			dvl_time = ros::Time::now();
+			std_msgs::Bool data;
+			data.data = false;
+			unsafe_dvl.publish(data);
+		}
 		//measurements(KFNav::w) = dvl.body_speeds()[DvlHandler::w];
 	}
+	else
+	{
+		if ((ros::Time::now() - dvl_time).toSec() > dvl_timeout)
+		{
+			std_msgs::Bool data;
+			data.data = true;
+			unsafe_dvl.publish(data);
+		}
+	}
+	l.unlock();
 
-	/*** Publish measurements ***/
+	//Publish measurements
 	auv_msgs::NavSts::Ptr meas(new auv_msgs::NavSts());
 	meas->body_velocity.x = measurements(KFNav::u);
 	meas->body_velocity.y = measurements(KFNav::v);
@@ -603,8 +705,45 @@ void Estimator3D::publishState()
 	std_msgs::Float32::Ptr buoyancy(new std_msgs::Float32());
 	buoyancy->data = estimate(KFNav::buoyancy);
 	buoyancyHat.publish(buoyancy);
+
+	std_msgs::Float32::Ptr turns(new std_msgs::Float32());
+	turns->data = estimate(KFNav::psi)/(2*M_PI);
+	turns_pub.publish(turns);
+
+	std_msgs::Float32::Ptr altcov(new std_msgs::Float32());
+	altcov->data = covariance(KFNav::altitude, KFNav::altitude);
+	altitude_cov.publish(altcov);
 }
 
+void Estimator3D::calculateConditionNumber(){
+
+	KFNav::matrix P = nav.getStateCovariance();
+
+	Eigen::JacobiSVD<Eigen::MatrixXd> svd(P);
+	double cond1 = svd.singularValues()(0) / svd.singularValues()(svd.singularValues().size()-1);
+
+	Eigen::Matrix2d Pxy;
+	Pxy << P(KFNav::xp,KFNav::xp), P(KFNav::xp,KFNav::yp),
+		   P(KFNav::yp,KFNav::xp), P(KFNav::yp,KFNav::yp);
+
+	Eigen::JacobiSVD<Eigen::MatrixXd> svd2(P);
+	double cond2 = svd2.singularValues()(0) / svd2.singularValues()(svd2.singularValues().size()-1);
+
+	double traceP = Pxy.trace();
+	double detP = Pxy.determinant();
+
+	double condCost = std::sqrt(traceP*traceP-4*detP);
+
+	std_msgs::Float32::Ptr data(new std_msgs::Float32);
+
+	data->data = cond1;
+	pubCondP.publish(data);
+	data->data = cond2;
+	pubCondPxy.publish(data);
+	data->data = condCost;
+	pubCost.publish(data);
+
+}
 
 int Estimator3D::calculateDelaySteps(double measTime, double arrivalTime){
 				return floor((arrivalTime-measTime)/nav.Ts);
@@ -626,6 +765,7 @@ void Estimator3D::start()
 
 	while (ros::ok()){
 
+		bool updateDVL;
 		/*** Process measurements ***/
 		processMeasurements();
 
@@ -730,9 +870,6 @@ void Estimator3D::start()
 
 							}
 
-
-
-
 							//////////////////////////////////////////
 
 							//ROS_ERROR("Dodano mjerenje. Delay:%d",i);
@@ -766,8 +903,23 @@ void Estimator3D::start()
 			/*** Estimation ***/
 			nav.predict(tauIn);
 			bool newArrived(false);
+			boost::mutex::scoped_lock l(meas_mux);
 			for(size_t i=0; i<newMeas.size(); ++i)	if ((newArrived = newMeas(i))) break;
+
+			//Update sensor flag
+			updateDVL = !newMeas(KFNav::r);
+
+			std::ostringstream out;
+			out<<newMeas;
+			ROS_DEBUG("Measurements %d:%s",KFNav::psi, out.str().c_str());
+
 			if (newArrived)	nav.correct(nav.update(measurements, newMeas));
+			KFNav::vector tcstate = nav.getState();
+			if (tcstate(KFNav::buoyancy) < -30) tcstate(KFNav::buoyancy) = -10;
+			if (tcstate(KFNav::buoyancy) > 0) tcstate(KFNav::buoyancy) = 0;
+			if (tcstate(KFNav::altitude) < 0) tcstate(KFNav::altitude) = 0;
+			nav.setState(tcstate);
+			l.unlock();
 		}
 
 		newMeas.setZero(); // razmisli kako ovo srediti
@@ -776,17 +928,23 @@ void Estimator3D::start()
 
 		//ROS_ERROR_STREAM(nav.getStateCovariance());
 
-		/*** Send the base-link transform ***/
+		//Send the base-link transform
 		geometry_msgs::TransformStamped transform;
-		transform.transform.translation.x = nav.getState()(KFNav::xp);
-		transform.transform.translation.y = nav.getState()(KFNav::yp);
-		transform.transform.translation.z = nav.getState()(KFNav::zp);
-		labust::tools::quaternionFromEulerZYX(nav.getState()(KFNav::phi),
-				nav.getState()(KFNav::theta),
-				nav.getState()(KFNav::psi),
+		KFNav::vectorref cstate = nav.getState();
+		//Update DVL sensor
+		if (updateDVL) dvl.current_r(cstate(KFNav::r));
+
+		transform.transform.translation.x = cstate(KFNav::xp);
+		transform.transform.translation.y = cstate(KFNav::yp);
+		transform.transform.translation.z = cstate(KFNav::zp);
+
+
+		labust::tools::quaternionFromEulerZYX(cstate(KFNav::phi),
+				cstate(KFNav::theta),
+				cstate(KFNav::psi),
 				transform.transform.rotation);
 		if(absoluteEKF){
-			transform.child_frame_id = "base_link";
+			transform.child_frame_id = "base_link_abs";
 		} else{
 			transform.child_frame_id = "base_link";
 		}

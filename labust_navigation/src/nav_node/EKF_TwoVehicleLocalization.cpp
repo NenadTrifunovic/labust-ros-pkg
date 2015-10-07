@@ -60,12 +60,12 @@
 
 #include <auv_msgs/NavSts.h>
 #include <auv_msgs/BodyForceReq.h>
+#include <underwater_msgs/USBLFix.h>
 #include <geometry_msgs/TwistStamped.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <geometry_msgs/Point.h>
 #include <std_msgs/Float32.h>
 #include <std_msgs/Bool.h>
-#include <underwater_msgs/USBLFix.h>
 
 #include <ros/ros.h>
 
@@ -86,6 +86,7 @@ Estimator3D::Estimator3D():
 		enableRange(true),
 		enableBearing(true),
 		enableElevation(false),
+		enableRejection(false),
 		delay_time(0.0),
 		dvl_model(1),
 		OR(3,0.95){this->onInit();};
@@ -94,10 +95,10 @@ void Estimator3D::onInit()
 {
 	ros::NodeHandle nh, ph("~");
 
-	/*** Configure the navigation ***/
+	/** Configure the navigation */
 	configureNav(nav,nh);
 
-	/*** Publishers ***/
+	/** Publishers */
 	pubLocalStateHat = nh.advertise<auv_msgs::NavSts>("localStateHat",1);
 	pubSecondStateHat = nh.advertise<auv_msgs::NavSts>("secondStateHat",1);
 
@@ -114,7 +115,7 @@ void Estimator3D::onInit()
 	//pubRangeFiltered = nh.advertise<std_msgs::Float32>("range_filtered",1);
 	//pubwk = nh.advertise<std_msgs::Float32>("w_limit",1);
 
-	/*** Subscribers ***/
+	/** Subscribers */
 	subLocalStateHat = nh.subscribe<auv_msgs::NavSts>("stateHat", 1, &Estimator3D::onLocalStateHat,this);
 
 	subSecond_heading = nh.subscribe<std_msgs::Float32>("out_acoustic_heading", 1, &Estimator3D::onSecond_heading,this);
@@ -124,60 +125,28 @@ void Estimator3D::onInit()
 
 	resetTopic = nh.subscribe<std_msgs::Bool>("reset_nav_covariance", 1, &Estimator3D::onReset,this);
 
-	/*** Enable USBL measurements ***/
+	/** Enable USBL measurements */
 	ph.param("delay", enableDelay, enableDelay);
 	ph.param("delay_time", delay_time, delay_time);
 	ph.param("range", enableRange, enableRange);
 	ph.param("bearing", enableBearing, enableBearing);
 	ph.param("elevation", enableElevation, enableElevation);
+
+	/** Enable outlier rejection */
+	ph.param("meas_outlier_rejection", enableRejection, enableRejection);
 }
 
 void Estimator3D::onReset(const std_msgs::Bool::ConstPtr& reset)
 {
    if (reset->data)
-   {
       nav.setStateCovariance(10000*KFNav::matrix::Identity(KFNav::stateNum, KFNav::stateNum));
-   }
 }
-
-
 
 void Estimator3D::configureNav(KFNav& nav, ros::NodeHandle& nh)
 {
 	ROS_INFO("Configure navigation.");
 
-	/*labust::simulation::DynamicsParams params;
-	labust::tools::loadDynamicsParams(nh, params);
-
-	ROS_INFO("Loaded dynamics params.");
-
-	this->params[X].alpha = params.m + params.Ma(0,0);
-	this->params[X].beta = params.Dlin(0,0);
-	this->params[X].betaa = params.Dquad(0,0);
-
-	this->params[Y].alpha = params.m + params.Ma(1,1);
-	this->params[Y].beta = params.Dlin(1,1);
-	this->params[Y].betaa = params.Dquad(1,1);
-
-	this->params[Z].alpha = params.m + params.Ma(2,2);
-	this->params[Z].beta = params.Dlin(2,2);
-	this->params[Z].betaa = params.Dquad(2,2);
-
-	this->params[K].alpha = params.Io(0,0) + params.Ma(3,3);
-	this->params[K].beta = params.Dlin(3,3);
-	this->params[K].betaa = params.Dquad(3,3);
-
-	this->params[M].alpha = params.Io(1,1) + params.Ma(4,4);
-	this->params[M].beta = params.Dlin(4,4);
-	this->params[M].betaa = params.Dquad(4,4);
-
-	this->params[N].alpha = params.Io(2,2) + params.Ma(5,5);
-	this->params[N].beta = params.Dlin(5,5);
-	this->params[N].betaa = params.Dquad(5,5);
-
-	nav.setParameters(this->params[X], this->params[Y],
-			this->params[Z], this->params[K],
-			this->params[M], this->params[N]);*/
+	/** No dynamic params initialization */
 
 	nav.initModel();
 	labust::navigation::kfModelLoader(nav, nh, "ekfnav_twl");
@@ -267,41 +236,16 @@ void Estimator3D::onSecond_usbl_fix(const underwater_msgs::USBLFix::ConstPtr& da
 	newMeas(KFNav::elevation) = enableElevation;
 	measDelay(KFNav::elevation) = delay;
 
-}
+	/** Relative distance measurements */
 
-	/*** Static beacon ***/
-	/*measurements(KFNav::xb) =-1.25;
+	/*measurements(KFNav::xb) = x(KFNav::xp) - data->relative_position.x;
 	newMeas(KFNav::xb) = 1;
-	measDelay(KFNav::xb) = delay;
-
-	measurements(KFNav::yb) = 0.5;
+	measurements(KFNav::yb) = x(KFNav::yp) - data->relative_position.y;
 	newMeas(KFNav::yb) = 1;
-	measDelay(KFNav::yb) = delay;
+	measurements(KFNav::zb) = x(KFNav::zp) - data->relative_position.z;
+	newMeas(KFNav::zb) = 1; */
 
-	measurements(KFNav::zb) = 2.6;
-	newMeas(KFNav::zb) = 1;
-	measDelay(KFNav::zb) = delay;/*
-
-	// Debug print
-	//ROS_ERROR("Delay: %f", delay);
-	//ROS_ERROR("Range: %f, bearing: %f, elevation: %f", measurements(KFNav::range), measurements(KFNav::bearing), measurements(KFNav::elevation));
-	//ROS_ERROR("ENABLED Range: %d, bearing: %d, elevation: %d", enableRange, enableBearing, enableElevation);
-
-
-	// Relativna mjerenja ukljuciti u model mjerenja...
-
-	//measurements(KFNav::xb) = x(KFNav::xp) - data->relative_position.x;
-	//newMeas(KFNav::xb) = 1;
-	//measurements(KFNav::yb) = x(KFNav::yp) - data->relative_position.y;
-	//newMeas(KFNav::yb) = 1;
-	//measurements(KFNav::zb) = x(KFNav::zp) - data->relative_position.z;
-	//newMeas(KFNav::zb) = 1;
-
-
-
-
-
-
+}
 
 /*********************************************************************
  *** Helper functions
@@ -321,15 +265,9 @@ void Estimator3D::processMeasurements()
 	meas->orientation.yaw = labust::math::wrapRad(measurements(KFNav::psi));
 	meas->orientation_rate.yaw = measurements(KFNav::r);
 
-	/*meas->origin.latitude = gps.origin().first;
-	meas->origin.longitude = gps.origin().second;
-	meas->global_position.latitude = gps.latlon().first;
-	meas->global_position.longitude = gps.latlon().second;*/
-
 	meas->header.stamp = ros::Time::now();
 	meas->header.frame_id = "local";
 	pubLocalStateMeas.publish(meas);
-
 
 	/*** Publish second vehicle measurements ***/
 	auv_msgs::NavSts::Ptr meas2(new auv_msgs::NavSts());
@@ -342,11 +280,6 @@ void Estimator3D::processMeasurements()
 
 	meas2->orientation.yaw = labust::math::wrapRad(measurements(KFNav::psib));
 	meas2->orientation_rate.yaw = measurements(KFNav::rb);
-
-	/*meas2->origin.latitude = gps.origin().first;
-	meas2->origin.longitude = gps.origin().second;
-	meas2->global_position.latitude = gps.latlon().first;
-	meas2->global_position.longitude = gps.latlon().second;*/
 
 	meas2->header.stamp = ros::Time::now();
 	meas2->header.frame_id = "local";
@@ -367,16 +300,6 @@ void Estimator3D::publishState()
 	state->position.east = estimate(KFNav::yp);
 	state->position.depth = estimate(KFNav::zp);
 
-
-	/*state->origin.latitude = gps.origin().first;
-    state->origin.longitude = gps.origin().second;
-	std::pair<double, double> diffAngle = labust::tools::meter2deg(state->position.north,
-			state->position.east,
-			//The latitude angle
-			state->origin.latitude);
-	state->global_position.latitude = state->origin.latitude + diffAngle.first;
-	state->global_position.longitude = state->origin.longitude + diffAngle.second;*/
-
 	const KFNav::matrix& covariance = nav.getStateCovariance();
 	state->position_variance.north = covariance(KFNav::xp, KFNav::xp);
 	state->position_variance.east = covariance(KFNav::yp, KFNav::yp);
@@ -389,7 +312,6 @@ void Estimator3D::publishState()
 
 	/*** Publish second vehicle states */
 	auv_msgs::NavSts::Ptr state2(new auv_msgs::NavSts());
-	//const KFNav::vector& estimate = nav.getState();
 	state2->gbody_velocity.x = estimate(KFNav::ub);
 	state2->gbody_velocity.z = estimate(KFNav::wb);
 
@@ -400,17 +322,6 @@ void Estimator3D::publishState()
 	state2->position.east = estimate(KFNav::yb);
 	state2->position.depth = estimate(KFNav::zb);
 
-
-	/*state2->origin.latitude = gps.origin().first;
-    state2->origin.longitude = gps.origin().second;
-	std::pair<double, double> diffAngle = labust::tools::meter2deg(state2->position.north,
-			state2->position.east,
-			//The latitude angle
-			state2->origin.latitude);
-	state2->global_position.latitude = state2->origin.latitude + diffAngle.first;
-	state2->global_position.longitude = state2->origin.longitude + diffAngle.second;*/
-
-	//const KFNav::matrix& covariance = nav.getStateCovariance();
 	state2->position_variance.north = covariance(KFNav::xb, KFNav::xb);
 	state2->position_variance.east = covariance(KFNav::yb, KFNav::yb);
 	state2->position_variance.depth = covariance(KFNav::zb,KFNav::zb);
@@ -419,6 +330,36 @@ void Estimator3D::publishState()
 	state2->header.stamp = ros::Time::now();
 	state2->header.frame_id = "local";
 	pubSecondStateHat.publish(state2);
+}
+
+void Estimator3D::calculateConditionNumber(){
+
+	KFNav::matrix P = nav.getStateCovariance();
+
+	Eigen::JacobiSVD<Eigen::MatrixXd> svd(P);
+	double cond1 = svd.singularValues()(0) / svd.singularValues()(svd.singularValues().size()-1);
+
+	Eigen::Matrix2d Pxy;
+	Pxy << P(KFNav::xp,KFNav::xp), P(KFNav::xp,KFNav::yp),
+		   P(KFNav::yp,KFNav::xp), P(KFNav::yp,KFNav::yp);
+
+	Eigen::JacobiSVD<Eigen::MatrixXd> svd2(P);
+	double cond2 = svd2.singularValues()(0) / svd2.singularValues()(svd2.singularValues().size()-1);
+
+	double traceP = Pxy.trace();
+	double detP = Pxy.determinant();
+
+	double condCost = std::sqrt(traceP*traceP-4*detP);
+
+	std_msgs::Float32::Ptr data(new std_msgs::Float32);
+
+	data->data = cond1;
+	pubCondP.publish(data);
+	data->data = cond2;
+	pubCondPxy.publish(data);
+	data->data = condCost;
+	pubCost.publish(data);
+
 }
 
 int Estimator3D::calculateDelaySteps(double measTime, double arrivalTime){
@@ -466,7 +407,7 @@ void Estimator3D::start()
 
 		//ROS_ERROR_STREAM(state.Pcov);
 		/*** Limit queue size ***/
-		if(pastStates.size()>1000){
+		if(pastStates.size()>100){
 			pastStates.pop_front();
 			//ROS_ERROR("Pop front");
 		}
@@ -495,54 +436,57 @@ void Estimator3D::start()
 							tmp_state.newMeas(j) = 1;
 							tmp_state.meas(j) = measurements(j);
 
-							/////////////////////////////////////////
-							/// Outlier test
-							/////////////////////////////////////////
-							if(j == KFNav::range)
+							if(enableRejection)
 							{
-								const KFNav::vector& x = tmp_state.state; ///// Treba li jos predikciju napravit?
-								double range = measurements(j);
-
-								Eigen::VectorXd input(Eigen::VectorXd::Zero(3));
-									//Eigen::VectorXd output(Eigen::VectorXd::Zero(1));
-
-
-								input << x(KFNav::xp)-x(KFNav::xb), x(KFNav::yp)-x(KFNav::yb), x(KFNav::zp)-x(KFNav::zb);
-								//input << x(KFNav::u), x(KFNav::yp)-x(KFNav::yb), x(KFNav::zp)-x(KFNav::zb);
-
-								//output << measurements(KFNav::range);
-								double y_filt, sigma, w;
-								OR.step(input, measurements(KFNav::range), &y_filt, &sigma, &w);
-								//ROS_INFO("Finished outlier rejection");
-
-								std_msgs::Float32 rng_msg;
-								//ROS_ERROR("w: %f",w);
-
-								double w_limit =  0.3*std::sqrt(float(sigma));
-								w_limit = (w_limit>1.0)?1.0:w_limit;
-								if(w>w_limit)
+								/////////////////////////////////////////
+								/// Outlier test
+								/////////////////////////////////////////
+								if(j == KFNav::range)
 								{
+									const KFNav::vector& x = tmp_state.state; ///// Treba li jos predikciju napravit?
+									double range = measurements(j);
+
+									Eigen::VectorXd input(Eigen::VectorXd::Zero(3));
+										//Eigen::VectorXd output(Eigen::VectorXd::Zero(1));
+
+
+									input << x(KFNav::xp)-x(KFNav::xb), x(KFNav::yp)-x(KFNav::yb), x(KFNav::zp)-x(KFNav::zb);
+									//input << x(KFNav::u), x(KFNav::yp)-x(KFNav::yb), x(KFNav::zp)-x(KFNav::zb);
+
+									//output << measurements(KFNav::range);
+									double y_filt, sigma, w;
+									OR.step(input, measurements(KFNav::range), &y_filt, &sigma, &w);
+									//ROS_INFO("Finished outlier rejection");
+
+									std_msgs::Float32 rng_msg;
+									//ROS_ERROR("w: %f",w);
+
+									double w_limit =  0.3*std::sqrt(float(sigma));
+									w_limit = (w_limit>1.0)?1.0:w_limit;
+									if(w>w_limit)
+									{
+										rng_msg.data = range;
+										pubRangeFiltered.publish(rng_msg);
+										//pubRangeFiltered.publish(rng_msg);
+
+									} else {
+										tmp_state.newMeas(j) = 0;
+									}
+									//std_msgs::Float32 rng_msg;
+
+									rng_msg.data = w_limit;
+									pubwk.publish(rng_msg);
+
 									rng_msg.data = range;
-									pubRangeFiltered.publish(rng_msg);
-									//pubRangeFiltered.publish(rng_msg);
+									pubRange.publish(rng_msg);
 
-								} else {
-									tmp_state.newMeas(j) = 0;
 								}
-								//std_msgs::Float32 rng_msg;
 
-								rng_msg.data = w_limit;
-								pubwk.publish(rng_msg);
+								if(j == KFNav::bearing && tmp_state.newMeas(j-1) == 0)
+								{
+									tmp_state.newMeas(j) = 0;
 
-								rng_msg.data = range;
-								pubRange.publish(rng_msg);
-
-							}
-
-							if(j == KFNav::bearing && tmp_state.newMeas(j-1) == 0)
-							{
-								tmp_state.newMeas(j) = 0;
-
+								}
 							}
 
 							//////////////////////////////////////////
