@@ -474,11 +474,11 @@ namespace labust {
 				onPrimitiveEndReset();
 				nextPrimitive = 1;
 			}
-			else if(strcmp(msg->data.c_str(),"/MANUAL_ENABLE") == 0)
+			else if(strcmp(msg->data.c_str(),"/MANUAL_ENABLE") == 0 && !missionActive)
 			{
 				CM.enableManual(true);
 			}
-			else if(strcmp(msg->data.c_str(),"/MANUAL_DISABLE") == 0)
+			else if(strcmp(msg->data.c_str(),"/MANUAL_DISABLE") == 0 && !missionActive)
 			{
 				CM.enableManual(false);
 			}
