@@ -491,10 +491,10 @@ int main(int argc, char* argv[]) {
 
 	double Xamp = 2;
 	double Yamp = 2;
-	double Namp = 1.2;
+	double Namp = 0;
 	double Xstep = 0.01;
 	double Ystep = 0.01;
-	double Nstep = 0.01;
+	double Nstep = 0.1;
 
 	std::ofstream taur("taur.csv");
 	std::ofstream taua("taua.csv");
@@ -505,6 +505,7 @@ int main(int argc, char* argv[]) {
 
 	Eigen::Vector4d fmax, fmin;
 	XConfiguration x;
+	double avg_time=0;
 	ros::Time tstart = ros::Time::now();
 	for (double tauX=-Xamp; tauX<=Xamp; tauX+=Xstep)
 		for (double tauY=-Yamp; tauY<=Yamp; tauY+=Ystep)
@@ -512,8 +513,8 @@ int main(int argc, char* argv[]) {
 			{
 				if (!ros::ok()) break;
 				ros::Time t0 = ros::Time::now();
-				double tau[]={tauX,tauY,tauN};
-				//double tau[]={get_rand(1000*Xamp),get_rand(1000*Yamp),get_rand(1000*Namp)};
+				//double tau[]={tauX,tauY,tauN};
+				double tau[]={get_rand(Xamp),get_rand(Yamp),get_rand(Namp)};
 				fmax<<0.9855, 0.9844, 0.9979, 1.0000;
 				fmin<<-0.1283, -0.1283, -0.4104, -0.4104;
 				x.updateLimits(fmin, fmax);

@@ -379,7 +379,7 @@ using namespace labust::controller;
 		    goal.follow_section.direction = direction;
 		    goal.follow_section.R0 = R0;
 
-			LLcfg.LL_VELconfigure(true,2,2,1,1,1,2);
+			LLcfg.LL_VELconfigure(true,2,1,1,1,1,2);
 
 			ros::NodeHandle nh;
 			ros::ServiceClient cl;
