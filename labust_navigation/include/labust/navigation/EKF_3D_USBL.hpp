@@ -260,7 +260,7 @@ namespace labust
 			/**
 			 *  USBL measurements enable flags
 			 */
-			bool enableDelay, enableRange, enableBearing, enableElevation;
+			bool enableDelay, enableRange, enableBearing, enableElevation, enableRejection;
 
 			/**
 			 * Callbacks for relative/absolute mode switching

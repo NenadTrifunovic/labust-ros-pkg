@@ -90,6 +90,7 @@ Estimator3D::Estimator3D():
 		delayTime(0.0),
 		delay_time(0.0),
 		dvl_model(0),
+		enableRejection(false),
 		compassVariance(0.3),
 		gyroVariance(0.003),
 		OR(3,0.95),
@@ -173,6 +174,9 @@ void Estimator3D::onInit()
 	ph.param("bearing", enableBearing, enableBearing);
 	ph.param("elevation", enableElevation, enableElevation);
 	//ph.param("delayTime", delayTime, delayTime);
+
+	/** Enable outlier rejection */
+	ph.param("meas_outlier_rejection", enableRejection, enableRejection);
 
 	/*** Configure handlers. ***/
 	gps.configure(nh);
@@ -822,6 +826,8 @@ void Estimator3D::start()
 							tmp_state.newMeas(j) = 1;
 							tmp_state.meas(j) = measurements(j);
 
+							if(enableRejection)
+							{
 							/////////////////////////////////////////
 							/// Outlier test
 							/////////////////////////////////////////
@@ -870,6 +876,7 @@ void Estimator3D::start()
 							{
 								tmp_state.newMeas(j) = 0;
 
+							}
 							}
 
 							//////////////////////////////////////////
