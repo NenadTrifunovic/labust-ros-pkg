@@ -167,10 +167,18 @@ void Estimator3D::onLocalStateHat(const auv_msgs::NavSts::ConstPtr& data)
 	measurements(KFNav::zp) = data->position.depth;
 	newMeas(KFNav::zp) = 1;
 
-	measurements(KFNav::psi) = std::atan2(data->gbody_velocity.y,data->gbody_velocity.x);
+	Eigen::Matrix2d R;
+	double yaw = labust::math::wrapRad(data->orientation.yaw);
+	R<<cos(yaw),-sin(yaw),sin(yaw),cos(yaw);
+	Eigen::Vector2d in, out;
+	in << data->gbody_velocity.x, data->gbody_velocity.y;
+	out = R*in;
+
+
+	measurements(KFNav::psi) = std::atan2(out(1),out(0));
 	newMeas(KFNav::psi) = 1;
 
-	measurements(KFNav::u) = std::sqrt(std::pow(data->gbody_velocity.x,2)+std::pow(data->gbody_velocity.y,2));
+	measurements(KFNav::u) = std::sqrt(std::pow(out(0),2)+std::pow(out(1),2));
 	newMeas(KFNav::u) = 1;
 
 	measurements(KFNav::w) = data->gbody_velocity.z;
