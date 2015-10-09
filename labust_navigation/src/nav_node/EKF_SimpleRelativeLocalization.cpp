@@ -134,6 +134,9 @@ void Estimator3D::onInit()
 
 	/** Enable outlier rejection */
 	ph.param("meas_outlier_rejection", enableRejection, enableRejection);
+
+	ph.param("dvl_model",dvl_model, dvl_model);
+
 }
 
 void Estimator3D::onReset(const std_msgs::Bool::ConstPtr& reset)
@@ -158,19 +161,19 @@ void Estimator3D::configureNav(KFNav& nav, ros::NodeHandle& nh)
 
 void Estimator3D::onLocalStateHat(const auv_msgs::NavSts::ConstPtr& data)
 {
-	/*measurements(KFNav::xp) = data->position.north;
+	measurements(KFNav::xb) = data->position.north;
 	newMeas(KFNav::xp) = 1;
 
-	measurements(KFNav::yp) = data->position.east;
+	measurements(KFNav::yb) = data->position.east;
 	newMeas(KFNav::yp) = 1;
 
-	measurements(KFNav::zp) = data->position.depth;
-	newMeas(KFNav::zp) = 1;
+	//measurements(KFNav::zp) = data->position.depth;
+	//newMeas(KFNav::zp) = 1;
 
 	// OVO NIJE DOBRO, TREBA U GLOBALNOM FRAME-u
 	//measurements(KFNav::psi) = std::atan2(data->gbody_velocity.y,data->gbody_velocity.x);
 	//remonewMeas(KFNav::psi) = 1;
-
+/*
 	measurements(KFNav::u) = std::sqrt(std::pow(data->gbody_velocity.x,2)+std::pow(data->gbody_velocity.y,2));
 	newMeas(KFNav::u) = 1;
 
@@ -219,6 +222,8 @@ void Estimator3D::onSecond_usbl_fix(const underwater_msgs::USBLFix::ConstPtr& da
 	measurements(KFNav::range) = (data->range > 0.1)?data->range:0.1;
 	newMeas(KFNav::range) = enableRange;
 	measDelay(KFNav::range) = delay;
+
+	ROS_ERROR("RANGE: %f", measurements(KFNav::range));
 }
 
 /*********************************************************************
@@ -304,6 +309,8 @@ void Estimator3D::publishState()
 	state2->header.stamp = ros::Time::now();
 	state2->header.frame_id = "local";
 	pubSecondStateHat.publish(state2);*/
+
+	calculateConditionNumber();
 }
 
 void Estimator3D::calculateConditionNumber(){
@@ -317,7 +324,8 @@ void Estimator3D::calculateConditionNumber(){
 	Pxy << P(KFNav::xp,KFNav::xp), P(KFNav::xp,KFNav::yp),
 		   P(KFNav::yp,KFNav::xp), P(KFNav::yp,KFNav::yp);
 
-	Eigen::JacobiSVD<Eigen::MatrixXd> svd2(P);
+	ROS_ERROR_STREAM(Pxy);
+	Eigen::JacobiSVD<Eigen::MatrixXd> svd2(Pxy);
 	double cond2 = svd2.singularValues()(0) / svd2.singularValues()(svd2.singularValues().size()-1);
 
 	double traceP = Pxy.trace();
@@ -381,7 +389,7 @@ void Estimator3D::start()
 
 		//ROS_ERROR_STREAM(state.Pcov);
 		/*** Limit queue size ***/
-		if(pastStates.size()>100){
+		if(pastStates.size()>1000){
 			pastStates.pop_front();
 			//ROS_ERROR("Pop front");
 		}

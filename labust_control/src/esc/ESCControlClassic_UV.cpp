@@ -99,16 +99,16 @@ namespace labust{
 
 					newRange = false;
 
-					Eigen::Vector2d out, in;
+					Eigen::Vector2d out, in, tmp;
 					Eigen::Matrix2d R;
 
 					//in = esc_controller.step(ref.data*ref.data);
-					in = esc_controller.step(ref.data);
+					tmp = esc_controller.step(ref.data);
 
 					ROS_ERROR("cost:");
 					ROS_ERROR_STREAM(ref.data);
 					ROS_ERROR("control:");
-					ROS_ERROR_STREAM(in);
+					ROS_ERROR_STREAM(tmp);
 
 
 					auv_msgs::BodyVelocityReqPtr nu(new auv_msgs::BodyVelocityReq());
@@ -116,10 +116,15 @@ namespace labust{
 					nu->goal.requester = "esc_controller";
 					labust::tools::vectorToDisableAxis(disable_axis, nu->disable_axis);
 
+					in[0] = tmp[1];
+					in[1] = tmp[0];
+										
+
 					double yaw = state.orientation.yaw;
 					R<<cos(yaw),-sin(yaw),sin(yaw),cos(yaw);
 					out = R.transpose()*in;
 
+					// Switched axes !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 					nu->twist.linear.x = out[x];
 					nu->twist.linear.y = out[y];
 

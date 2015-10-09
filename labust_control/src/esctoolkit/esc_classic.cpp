@@ -98,7 +98,7 @@ namespace labust{
 				for (size_t i = 0; i<controlNum; i++){
 
 				//	signal_demodulated(i)= cost_signal_filtered*sin_amp_(i)*std::sin(double(cycle_count_*Ts_*sin_freq_(i) + phase_shift_(i)));
-					signal_demodulated(i)= cost_signal_filtered*std::sin(double(cycle_count_*Ts_*sin_freq_(i) + phase_shift_(i)));
+					signal_demodulated(i)= cost_signal_filtered*std::sin(double(cycle_count_*Ts_*sin_freq_(i) + phase_shift_(i)-M_PI/4));
 				}
 
 				return signal_demodulated;
