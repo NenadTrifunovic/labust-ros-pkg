@@ -90,7 +90,9 @@ namespace labust{
 				 }
 
 				 virtual vector controllerGain(vector postFiltered){
+					ROS_ERROR("DEBUG2-1");
 					 control_ = control_+gain_.cwiseProduct(postFiltered)*Ts_;
+					ROS_ERROR("DEBUG2-2");
 					 return control_;
 				 }
 
@@ -98,12 +100,16 @@ namespace labust{
 
 				 virtual vector step(numericprecission cost_signal, vector additional_input = vector::Zero(2) ){
 
+					ROS_ERROR("DEBUG0");
 					 numericprecission filtered_cost =  preFiltering(cost_signal);
 
+					ROS_ERROR("DEBUG1");
 					 vector estimated_gradient = gradientEstimation(filtered_cost, additional_input);
 
+					ROS_ERROR("DEBUG2");
 					 vector control = controllerGain(postFiltering(estimated_gradient));
 
+					ROS_ERROR("DEBUG3");
 					 vector controlInput =  superimposePerturbation(control);
 
 					 pre_filter_input_old_ = cost_signal;
@@ -113,6 +119,7 @@ namespace labust{
 					 old_vals_initialized_ = true;
 					 cycle_count_++;
 
+					ROS_ERROR("DEBUG4");
 					 return controlInput;
 				 }
 
