@@ -84,8 +84,8 @@ add_library(labust_navigation
    src/labust_navigation/SensorHandlers.cpp
    src/labust_navigation/LDTravModelExtended.cpp
    src/labust_navigation/EKF_3D_USBLModel.cpp 
-   src/labust_navigation/TwoVehicleLocalizationModel.cpp  
-    
+   src/labust_navigation/TwoVehicleLocalizationModel.cpp 
+   src/labust_navigation/SimpleRelativeLocalizationModel.cpp   
 )
 
 ## Declare a cpp executable
@@ -103,6 +103,7 @@ add_executable(static_transform_publisher src/static_transform_publisher/static_
 add_executable(ekf3d_node src/nav_node/EKF3D.cpp)
 add_executable(ekf_3d_usbl_node src/nav_node/EKF_3D_USBL.cpp)
 add_executable(ekf_two_vehicle_localization_node src/nav_node/EKF_TwoVehicleLocalization.cpp)
+add_executable(ekf_simple_relative_localization_node src/nav_node/EKF_SimpleRelativeLocalization.cpp)
 add_executable(pressure2depth src/test/pressure2depth.cpp)
 add_executable(navsatfix_vector3 src/latlon_node/navsatfix_vector3.cpp)
 
@@ -120,7 +121,9 @@ if (DEFINED catkin_EXPORTED_TARGETS)
  add_dependencies(static_transform_publisher ${catkin_EXPORTED_TARGETS})
  add_dependencies(ekf3d_node ${catkin_EXPORTED_TARGETS})
  add_dependencies(ekf_3d_usbl_node ${catkin_EXPORTED_TARGETS}) 
- add_dependencies(ekf_two_vehicle_localization_node ${catkin_EXPORTED_TARGETS}) 
+ add_dependencies(ekf_two_vehicle_localization_node ${catkin_EXPORTED_TARGETS})
+ add_dependencies(ekf_simple_relative_localization_node ${catkin_EXPORTED_TARGETS}) 
+  
  
  
 endif()
@@ -142,6 +145,8 @@ target_link_libraries(static_transform_publisher ${catkin_LIBRARIES})
 target_link_libraries(ekf3d_node ${catkin_LIBRARIES} labust_navigation)
 target_link_libraries(ekf_3d_usbl_node ${catkin_LIBRARIES} labust_navigation)
 target_link_libraries(ekf_two_vehicle_localization_node ${catkin_LIBRARIES} labust_navigation)
+target_link_libraries(ekf_simple_relative_localization_node ${catkin_LIBRARIES} labust_navigation)
+
 target_link_libraries(pressure2depth ${catkin_LIBRARIES})
 target_link_libraries(pressure2depth ${catkin_LIBRARIES})
 target_link_libraries(navsatfix_vector3 ${catkin_LIBRARIES})
