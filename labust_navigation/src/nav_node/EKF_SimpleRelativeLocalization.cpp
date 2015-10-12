@@ -162,10 +162,10 @@ void Estimator3D::configureNav(KFNav& nav, ros::NodeHandle& nh)
 void Estimator3D::onLocalStateHat(const auv_msgs::NavSts::ConstPtr& data)
 {
 	measurements(KFNav::xb) = data->position.north;
-	newMeas(KFNav::xp) = 1;
+	newMeas(KFNav::xb) = 1;
 
 	measurements(KFNav::yb) = data->position.east;
-	newMeas(KFNav::yp) = 1;
+	newMeas(KFNav::yb) = 1;
 
 	//measurements(KFNav::zp) = data->position.depth;
 	//newMeas(KFNav::zp) = 1;
@@ -219,7 +219,8 @@ void Estimator3D::onSecond_usbl_fix(const underwater_msgs::USBLFix::ConstPtr& da
 	double delay = double(calculateDelaySteps(currentTime-delay_time, currentTime));
 
 	/*** Get USBL measurements ***/
-	measurements(KFNav::range) = (data->range > 0.1)?data->range:0.1;
+///	measurements(KFNav::range) = (data->range > 0.1)?data->range:0.1;
+	measurements(KFNav::range) = data->range;
 	newMeas(KFNav::range) = enableRange;
 	measDelay(KFNav::range) = delay;
 
@@ -317,6 +318,8 @@ void Estimator3D::calculateConditionNumber(){
 
 	KFNav::matrix P = nav.getStateCovariance();
 
+	//ROS_ERROR_STREAM(P);
+	
 	Eigen::JacobiSVD<Eigen::MatrixXd> svd(P);
 	double cond1 = svd.singularValues()(0) / svd.singularValues()(svd.singularValues().size()-1);
 
@@ -324,7 +327,7 @@ void Estimator3D::calculateConditionNumber(){
 	Pxy << P(KFNav::xp,KFNav::xp), P(KFNav::xp,KFNav::yp),
 		   P(KFNav::yp,KFNav::xp), P(KFNav::yp,KFNav::yp);
 
-	ROS_ERROR_STREAM(Pxy);
+	//ROS_ERROR_STREAM(Pxy);
 	Eigen::JacobiSVD<Eigen::MatrixXd> svd2(Pxy);
 	double cond2 = svd2.singularValues()(0) / svd2.singularValues()(svd2.singularValues().size()-1);
 
@@ -342,6 +345,7 @@ void Estimator3D::calculateConditionNumber(){
 	data->data = condCost;
 	pubCost.publish(data);
 
+	ROS_ERROR("COSTOVI: %f, %f, %f",cond1,cond2,condCost);
 }
 
 int Estimator3D::calculateDelaySteps(double measTime, double arrivalTime){
