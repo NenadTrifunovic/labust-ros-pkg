@@ -80,7 +80,7 @@ namespace labust
     	  double alpha, beta, betaa;
       };
 
-      enum {xp = 0,yp,stateNum};
+      enum {xp = 0,yp,xb,yb,stateNum};
       //enum {X=0,Y,Z,Kroll,M,N,inputSize};
       enum {x_dot=0,y_dot,inputSize};
       enum {range=stateNum,measSize};
