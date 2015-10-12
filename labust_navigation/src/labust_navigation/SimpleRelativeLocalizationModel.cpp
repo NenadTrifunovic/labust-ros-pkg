@@ -90,8 +90,10 @@ void SimpleRelativeLocalizationModel::step(const input_type& input){
   //ydot = x(u)*sin(x(psi));
   x(xb) += Ts * input(x_dot);
   x(yb) += Ts * input(y_dot);
-  x(yp) += 0;
+ // x(xb) += 0;
+ // x(yb) += 0;
   x(xp) += 0;
+  x(yp) += 0;
 
   xk_1 = x;
 
@@ -214,10 +216,10 @@ void SimpleRelativeLocalizationModel::derivativeH(){
 */
 
 double rng  = sqrt(pow((x(xp)-x(xb)),2)+pow((x(yp)-x(yb)),2));
-	double delta_x = (x(xb)-x(xp));
-	double delta_y = (x(yb)-x(yp));
+	double delta_x = (x(xp)-x(xb));
+	double delta_y = (x(yp)-x(yb));
 
-	double eps = 0.00001;
+	double eps = 0.000000001;
 
 	if(rng<eps)
 		rng = eps;
@@ -230,12 +232,17 @@ double rng  = sqrt(pow((x(xp)-x(xb)),2)+pow((x(yp)-x(yb)),2));
 
 	ynl(range) = rng;
 
-	Hnl(range, xp)  = -(x(xb)-x(xp))/rng;
-	Hnl(range, yp)  = -(x(yb)-x(yp))/rng;
+	//Hnl(range, xp)  = -(x(xb)-x(xp))/rng;
+	//Hnl(range, yp)  = -(x(yb)-x(yp))/rng;
 
-	Hnl(range, xb)  = (x(xb)-x(xp))/rng;
-	Hnl(range, yb)  = (x(yb)-x(yp))/rng;
+	//Hnl(range, xb)  = (x(xb)-x(xp))/rng;
+	//Hnl(range, yb)  = (x(yb)-x(yp))/rng;
 
+	Hnl(range, xp)  = delta_x/rng;
+	Hnl(range, yp)  = delta_y/rng;
+
+	Hnl(range, xb)  = -delta_x/rng;
+	Hnl(range, yb)  = -delta_y/rng;
 
 }
 
