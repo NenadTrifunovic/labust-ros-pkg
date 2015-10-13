@@ -48,7 +48,7 @@ using namespace labust::navigation;
 #include <ros/ros.h>
 
 TwoVehicleLocalizationModel::TwoVehicleLocalizationModel():
-		dvlModel(0),
+		dvlModel(1),
 		xdot(0),
 		ydot(0){
 
@@ -196,82 +196,11 @@ void TwoVehicleLocalizationModel::derivativeH(){
 	ynl = vector::Zero(measSize);
 	ynl.head(stateNum) = matrix::Identity(stateNum,stateNum)*x;
 
-//	switch (dvlModel){
-//	case 1:
-//		/*** Correct the nonlinear part ***/
-//		ynl(u) = x(u)+x(xc)*cos(x(psi))+x(yc)*sin(x(psi));
-//		ynl(v) = x(v)-x(xc)*sin(x(psi))+x(yc)*cos(x(psi));
-//
-//		//Correct for the nonlinear parts
-//		Hnl(u,u) = 1;
-//		Hnl(u,xc) = cos(x(psi));
-//		Hnl(u,yc) = sin(x(psi));
-//		Hnl(u,psi) = -x(xc)*sin(x(psi)) + x(yc)*cos(x(psi));
-//
-//		Hnl(v,v) = 1;
-//		Hnl(v,xc) = -sin(x(psi));
-//		Hnl(v,yc) = cos(x(psi));
-//		Hnl(v,psi) = -x(xc)*cos(x(psi)) - x(yc)*sin(x(psi));
-//		break;
-//
-//	case 2:
-//		/*** Correct the nonlinear part ***/
-//		y(u) = x(u)*cos(x(psi)) - x(v)*sin(x(psi)) + x(xc);
-//		y(v) = x(u)*sin(x(psi)) + x(v)*cos(x(psi)) + x(yc);
-//
-//	    /*** Correct for the nonlinear parts ***/
-//		Hnl(u,xc) = 1;
-//		Hnl(u,u) = cos(x(psi));
-//		Hnl(u,v) = -sin(x(psi));
-//		Hnl(u,psi) = -x(u)*sin(x(psi)) - x(v)*cos(x(psi));
-//
-//		Hnl(v,yc) = 1;
-//		Hnl(v,u) = sin(x(psi));
-//		Hnl(v,v) = cos(x(psi));
-//		Hnl(v,psi) = x(u)*cos(x(psi)) - x(v)*sin(x(psi));
-//		break;
-//	}
-
-//	double rng  = sqrt(pow((x(xp)-x(xb)),2)+pow((x(yp)-x(yb)),2)+pow((x(zp)-x(zb)),2));
-//
-//	//if(rng == 0) rng = 0.1;
-//
-//	if(rng<0.0001){
-//		rng = 0.0001;
-//	}
-//
-//	double delta_xbp = x(xb)-x(xp);
-//	//ROS_ERROR("delta: %f",delta_xbp);
-//	if(abs(delta_xbp)<0.000000001){
-//		delta_xbp = (delta_xbp<0)?-0.000000001:0.000000001;
-//	}
-//
-//	//ROS_ERROR("delta after: %f",delta_xbp);
-//
-//	ynl(range) = rng;
-//	ynl(bearing) = atan2((x(yp)-x(yb)),(x(xp)-x(xb)))-0*x(psi);
-//	ynl(elevation) = asin((x(zp)-x(zb))/rng);
-//
-//	Hnl(range, xp)  = (x(xp)-x(xb))/rng;
-//	Hnl(range, yp)  = (x(yp)-x(yb))/rng;
-//	Hnl(range, zp)  = (x(zp)-x(zb))/rng;
-//
-//	Hnl(range, xb)  = -(x(xp)-x(xb))/rng;
-//	Hnl(range, yb)  = -(x(yp)-x(yb))/rng;
-//	Hnl(range, zb)  = -(x(zp)-x(zb))/rng;
-//
-//	Hnl(bearing, xp) = (x(yb)-x(yp))/(pow(delta_xbp,2)*(pow((x(yb)-x(yp))/delta_xbp,2) + 1));
-//	Hnl(bearing, yp) = -1/((delta_xbp)*(pow((x(yb) - x(yp))/delta_xbp,2) + 1));
-//	Hnl(bearing, xb) = -(x(yb) - x(yp))/(pow(delta_xbp,2)*(pow((x(yb) - x(yp))/delta_xbp,2) + 1));
-//	Hnl(bearing, yb) = 1/((delta_xbp)*(pow((x(yb) - x(yp))/delta_xbp,2) + 1));
-//	//Hnl(bearing, psi) = -1;
-
-
 	double rng  = sqrt(pow((x(xp)-x(xb)),2)+pow((x(yp)-x(yb)),2)+pow((x(zp)-x(zb)),2));
 	double delta_x = (x(xb)-x(xp));
 	double delta_y = (x(yb)-x(yp));
 
-	double eps = 0.00001;
+	double eps = 0.00000001;
 
 	if(rng<eps)
 		rng = eps;
@@ -285,6 +214,8 @@ void TwoVehicleLocalizationModel::derivativeH(){
 	ynl(range) = rng;
 	ynl(bearing) = atan2(delta_y,delta_x) -1*x(psi);
 	ynl(elevation) = asin((x(zp)-x(zb))/rng);
+
+
 
 	Hnl(range, xp)  = -(x(xb)-x(xp))/rng;
 	Hnl(range, yp)  = -(x(yb)-x(yp))/rng;
@@ -300,6 +231,25 @@ void TwoVehicleLocalizationModel::derivativeH(){
 	Hnl(bearing, yb) = delta_x/(delta_x*delta_x+delta_y*delta_y);
 
 	Hnl(bearing, psi) = -1;
+
+
+	ynl(sonar_range) = rng;
+	ynl(sonar_bearing) = atan2(delta_y,delta_x) -1*x(psi);
+
+	Hnl(sonar_range, xp)  = -(x(xb)-x(xp))/rng;
+	Hnl(sonar_range, yp)  = -(x(yb)-x(yp))/rng;
+	Hnl(sonar_range, zp)  = -(x(zb)-x(zp))/rng;
+
+	Hnl(sonar_range, xb)  = (x(xb)-x(xp))/rng;
+	Hnl(sonar_range, yb)  = (x(yb)-x(yp))/rng;
+	Hnl(sonar_range, zb)  = (x(zb)-x(zp))/rng;
+
+	Hnl(sonar_bearing, xp) = delta_y/(delta_x*delta_x+delta_y*delta_y);
+	Hnl(sonar_bearing, yp) = -delta_x/(delta_x*delta_x+delta_y*delta_y);
+	Hnl(sonar_bearing, xb) = -delta_y/(delta_x*delta_x+delta_y*delta_y);
+	Hnl(sonar_bearing, yb) = delta_x/(delta_x*delta_x+delta_y*delta_y);
+
+	Hnl(sonar_bearing, psi) = -1;
 
 
 

@@ -174,7 +174,6 @@ void Estimator3D::onLocalStateHat(const auv_msgs::NavSts::ConstPtr& data)
 	in << data->gbody_velocity.x, data->gbody_velocity.y;
 	out = R*in;
 
-
 	measurements(KFNav::psi) = std::atan2(out(1),out(0));
 	newMeas(KFNav::psi) = 1;
 
@@ -253,6 +252,17 @@ void Estimator3D::onSecond_usbl_fix(const underwater_msgs::USBLFix::ConstPtr& da
 	measurements(KFNav::zb) = x(KFNav::zp) - data->relative_position.z;
 	newMeas(KFNav::zb) = 1; */
 
+}
+
+
+void Estimator3D::onSecond_sonar_fix(const underwater_msgs::SonarFix::ConstPtr& data)
+{
+	/*** Get USBL measurements ***/
+	measurements(KFNav::sonar_range) = (data->range > 0.1)?data->range:0.1;
+	newMeas(KFNav::sonar_range) = enableRange;
+
+	measurements(KFNav::sonar_bearing) = labust::math::wrapRad(data->bearing);
+	newMeas(KFNav::sonar_bearing) = enableBearing;
 }
 
 /*********************************************************************
