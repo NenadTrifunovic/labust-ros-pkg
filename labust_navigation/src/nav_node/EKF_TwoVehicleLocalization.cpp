@@ -262,10 +262,10 @@ void Estimator3D::onSecond_sonar_fix(const underwater_msgs::SonarFix::ConstPtr& 
 {
 	/*** Get USBL measurements ***/
 	measurements(KFNav::sonar_range) = (data->range > 0.1)?data->range:0.1;
-	newMeas(KFNav::sonar_range) = enableRange;
+	newMeas(KFNav::sonar_range) = 1;
 
 	measurements(KFNav::sonar_bearing) = labust::math::wrapRad(data->bearing);
-	newMeas(KFNav::sonar_bearing) = enableBearing;
+	newMeas(KFNav::sonar_bearing) = 1;
 }
 
 /*********************************************************************
