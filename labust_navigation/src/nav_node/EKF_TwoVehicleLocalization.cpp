@@ -351,7 +351,7 @@ void Estimator3D::calculateConditionNumber(){
 	Pxy << P(KFNav::xp,KFNav::xp), P(KFNav::xp,KFNav::yp),
 		   P(KFNav::yp,KFNav::xp), P(KFNav::yp,KFNav::yp);
 
-	Eigen::JacobiSVD<Eigen::MatrixXd> svd2(P);
+	Eigen::JacobiSVD<Eigen::MatrixXd> svd2(Pxy);
 	double cond2 = svd2.singularValues()(0) / svd2.singularValues()(svd2.singularValues().size()-1);
 
 	double traceP = Pxy.trace();
@@ -362,11 +362,11 @@ void Estimator3D::calculateConditionNumber(){
 	std_msgs::Float32::Ptr data(new std_msgs::Float32);
 
 	data->data = cond1;
-	pubCondP.publish(data);
+//	pubCondP.publish(data);
 	data->data = cond2;
-	pubCondPxy.publish(data);
+//	pubCondPxy.publish(data);
 	data->data = condCost;
-	pubCost.publish(data);
+//	pubCost.publish(data);
 
 }
 

@@ -719,6 +719,9 @@ void Estimator3D::publishState()
 	std_msgs::Float32::Ptr altcov(new std_msgs::Float32());
 	altcov->data = covariance(KFNav::altitude, KFNav::altitude);
 	altitude_cov.publish(altcov);
+ 	
+	/** Observability metric */
+        calculateConditionNumber();
 }
 
 void Estimator3D::calculateConditionNumber(){
@@ -729,25 +732,28 @@ void Estimator3D::calculateConditionNumber(){
 	double cond1 = svd.singularValues()(0) / svd.singularValues()(svd.singularValues().size()-1);
 
 	Eigen::Matrix2d Pxy;
-	Pxy << P(KFNav::xp,KFNav::xp), P(KFNav::xp,KFNav::yp),
-		   P(KFNav::yp,KFNav::xp), P(KFNav::yp,KFNav::yp);
+	Pxy << P(KFNav::xp,KFNav::xp), P(KFNav::xp,KFNav::yp), P(KFNav::yp,KFNav::xp), P(KFNav::yp,KFNav::yp);
 
-	Eigen::JacobiSVD<Eigen::MatrixXd> svd2(P);
-	double cond2 = svd2.singularValues()(0) / svd2.singularValues()(svd2.singularValues().size()-1);
 
+	//double P(1,0)*P(0,1);
+
+	//ROS_ERROR_STREAM(Pxy);
 	double traceP = Pxy.trace();
 	double detP = Pxy.determinant();
 
 	double condCost = std::sqrt(traceP*traceP-4*detP);
+	
+	Eigen::JacobiSVD<Eigen::MatrixXd> svd2(Pxy);
+	double cond2 = svd2.singularValues()(0) / svd2.singularValues()(svd2.singularValues().size()-1);
 
 	std_msgs::Float32::Ptr data(new std_msgs::Float32);
 
 	data->data = cond1;
-	pubCondP.publish(data);
+//	pubCondP.publish(data);
 	data->data = cond2;
-	pubCondPxy.publish(data);
+//	pubCondPxy.publish(data);
 	data->data = condCost;
-	pubCost.publish(data);
+//	pubCost.publish(data);
 
 }
 
