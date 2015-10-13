@@ -127,7 +127,9 @@ namespace labust
 
 			///The main worker method
 			void step();
-			///Frame updatemethod
+			///Frame init method
+			void initPath();
+			///Frame update method
 			void updateFS();
 			///Monitoring and guidance position caclulation
 			void setDesiredPathPosition();
@@ -160,6 +162,8 @@ namespace labust
 
 			///Current diver position
 			auv_msgs::NavSts diver_pos;
+			///Current vehicle position
+			auv_msgs::NavSts vehicle_pos;
 			///Current desired path speed
 			double dpi_r;
 			///Current path state
