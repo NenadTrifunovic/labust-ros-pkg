@@ -61,6 +61,7 @@
 #include <auv_msgs/NavSts.h>
 #include <auv_msgs/BodyForceReq.h>
 #include <underwater_msgs/USBLFix.h>
+#include <underwater_msgs/SonarFix.h>
 #include <geometry_msgs/TwistStamped.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <geometry_msgs/Point.h>
@@ -122,6 +123,8 @@ void Estimator3D::onInit()
 	subSecond_position = nh.subscribe<geometry_msgs::Point>("out_acoustic_position", 1, &Estimator3D::onSecond_position,this);
 	subSecond_speed = nh.subscribe<std_msgs::Float32>("out_acoustic_speed", 1, &Estimator3D::onSecond_speed,this);
 	subSecond_usbl_fix = nh.subscribe<underwater_msgs::USBLFix>("usbl_fix", 1, &Estimator3D::onSecond_usbl_fix,this);
+	subSecond_sonar_fix = nh.subscribe<underwater_msgs::SonarFix>("sonar_fix", 1, &Estimator3D::onSecond_sonar_fix,this);
+
 
 	resetTopic = nh.subscribe<std_msgs::Bool>("reset_nav_covariance", 1, &Estimator3D::onReset,this);
 
