@@ -64,8 +64,8 @@ void TrackDiver::init()
 {
 	ros::NodeHandle nh, ph("~");
 	//Load parameters
-	double radius(7);
-	boundedParam(ph, "safety_raidus", &radius, min_radius, min_radius);
+	double radius(min_radius);
+	boundedParam(ph, "safety_radius", &radius, min_radius, min_radius);
 	boundedParam(ph, "kxi", &kxi, 0.0, kxi);
 	boundedParam(ph, "kpsi", &kpsi, 0.0, kpsi);
 	boundedParam(ph, "sigma_fov", &sigma_fov, radius, sigma_fov);
@@ -78,6 +78,21 @@ void TrackDiver::init()
 			&TrackDiver::onDiverState, this);
 	dpi_r_sub = nh.subscribe("dpi_r", 1,
 			&TrackDiver::onPathSpeed,this);
+}
+
+void TrackDiver::initPath()
+{
+	boost::mutex::scoped_lock lg(goal_mux);
+	double radius = cgoal->radius;
+	double voff = cgoal->vertical_offset;
+	lg.unlock();
+	boost::mutex::scoped_lock ls(state_mux);
+	double nr = sqrt(radius*radius - voff*voff);
+	double dx = vehicle_pos.position.north - diver_pos.position.north;
+	double dy = vehicle_pos.position.east - diver_pos.position.east;
+	ls.unlock();
+	boost::mutex::scoped_lock lp(fs_mux);
+	path.pi = nr*atan2(dy,dx);
 }
 
 void TrackDiver::onGoal()
@@ -94,8 +109,12 @@ void TrackDiver::onGoal()
 	//Process goal
 	processGoal();
 	l.unlock();
+	//Init path position
+	initPath();
+	//Update the frame
+	//updateFS();
 	//Update reference
-	this->step();
+	//this->step();
 
 	//If no goal was running
 	if (!active)
@@ -107,6 +126,7 @@ void TrackDiver::onGoal()
 
 void TrackDiver::processGoal()
 {
+	ROS_DEBUG("Process goal.");
 	//If not empty and the topic name changed
 	if (!cgoal->guidance_topic.empty() &&
 			(cgoal->guidance_topic != guidance_sub.getTopic()))
@@ -156,6 +176,8 @@ void TrackDiver::onStateHat(const auv_msgs::NavSts::ConstPtr& estimate)
 	{
 		boost::mutex::scoped_lock lg(goal_mux);
 		boost::mutex::scoped_lock ls(state_mux);
+		//Update current position
+		vehicle_pos = *estimate;
 		//Calculate desired position and orientation
 		//if on a operational circle
 		if (fabs(cgoal->vertical_offset) < cgoal->radius)
@@ -173,13 +195,15 @@ void TrackDiver::onStateHat(const auv_msgs::NavSts::ConstPtr& estimate)
 			path.xi_r = path.pi;
 			path.dxi_r = 0;
 		}
-
 		this->step();
 	}
 	else
 	{
 		boost::mutex::scoped_lock l(goal_mux);
 		if (cgoal != 0) this->stop();
+		l.unlock();
+		boost::mutex::scoped_lock ls(state_mux);
+		vehicle_pos = *estimate;
 	}
 };
 
@@ -210,12 +234,14 @@ void TrackDiver::setDesiredPathPosition()
 	else
 	{
 		finfo.gamma_r = finfo.mu_r;
-		boost::mutex::scoped_lock lf(fs_mux);
 		path.xi_r = finfo.mu_r;
 		path.dxi_r = diver_pos.orientation_rate.yaw*nr;
 	}
-	path.pi_tilda = path.pi - path.dxi_r;
-	if (cgoal->wrapping_enable) path.pi_tilda = nr*labust::math::wrapRad(path.pi_tilda);
+
+	double dx = diver_pos.position.north - vehicle_pos.position.north;
+	double dy = diver_pos.position.east - vehicle_pos.position.east;
+	path.pi_tilda = (path.pi - path.xi_r)/cosh(5*(sqrt(dx*dx+dy*dy) - nr));
+	if (cgoal->wrapping_enable) path.pi_tilda = nr*labust::math::wrapRad(path.pi_tilda/nr);
 }
 
 void TrackDiver::setDesiredOrientation(const auv_msgs::NavSts& estimate)

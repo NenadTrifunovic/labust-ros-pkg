@@ -94,7 +94,7 @@ namespace labust
 				try
 				{
 					//Get the transform frames
-					td = buffer.lookupTransform("base_link", "sf_frame", ros::Time(0));
+					td = buffer.lookupTransform("sf_frame", "base_link", ros::Time(0));
 					d << td.transform.translation.x,
 							td.transform.translation.y,
 							td.transform.translation.z;
@@ -112,11 +112,14 @@ namespace labust
 				//Calculate the path control signal
 				double dpi_r = kpi*(d(s) - ref.pi_tilda/kpierr) + ref.dxi_r;
 		 	  //Calculate the velocity control signal
-				Eigen::Vector3d nur = Rpb*(Kpd*d + dr_p + ref.dxi_r*Eigen::Vector3d(1,0,0));
-				//TODO: Calculate the surge only orientation (Note: only a 2D case, extende to 3D)
-   			double zeta_r = ref.orientation.yaw + atan2(Kpd(e,e)*d(e) + dr_p(e), Kpd(s,s)*d(s) + dr_p(s));
+				Eigen::Vector3d nur = Rpb*(-Kpd*d + dr_p + ref.dxi_r*Eigen::Vector3d(1,0,0));
+				//TODO: Calculate the surge only orientation (Note: only a 2D case, extend to 3D)
+   			double zeta_r = labust::math::wrapRad(ref.orientation.yaw) +
+   					atan2(-Kpd(e,e)*d(e) + dr_p(e), -Kpd(s,s)*d(s) + dr_p(s));
    			//Reference orientation
    			double psi_r = ref.k*zeta_r + (1-ref.k)*ref.delta_r;
+   			psi_r = labust::math::wrapRad(psi_r);
+
 
 				//Send the control signal
 				auv_msgs::BodyVelocityReqPtr nu(new auv_msgs::BodyVelocityReq());
@@ -124,10 +127,24 @@ namespace labust
 				nu->header.stamp = ros::Time::now();
 				nu->goal.requester = "vt_controller";
 
+				ROS_ERROR("Position (s,e,h): (%f, %f, %f)",d(s),d(e),d(h));
+
 				nu->twist.linear.x = nur(u);
 				nu->twist.linear.y = nur(v);
 				nu->twist.linear.z = nur(w);
-				nu->twist.angular.z = 0;
+				nu->twist.angular.z = -labust::math::wrapRad(state.orientation.yaw - psi_r);
+
+				geometry_msgs::TwistStamped::Ptr piref_out(new geometry_msgs::TwistStamped());
+				piref_out->twist.linear.x = dpi_r;
+				piref_out->header.stamp = nu->header.stamp;
+				piref_out->header.frame_id = "sf_frame";
+				piref.publish(piref_out);
+
+				auv_msgs::NavSts::Ptr psiref_out(new auv_msgs::NavSts());
+				psiref_out->orientation.yaw = psi_r;
+				psiref_out->header.stamp = nu->header.stamp;
+				psiref_out->header.frame_id = "local";
+				psiref.publish(psiref_out);
 
 				return nu;
 			}
@@ -172,7 +189,8 @@ namespace labust
 				disable_axis[r] = 0;
 
 				diver = nh.subscribe("diver_state", 1, &VTControl::onDiverState, this);
-				piref = nh.advertise<geometry_msgs::TwistStamped>("piref",1);
+				piref = nh.advertise<geometry_msgs::TwistStamped>("dpi_r",1);
+				psiref = nh.advertise<auv_msgs::NavSts>("psi_r",1);
 
 				ROS_INFO("VT controller initialized.");
 			}
@@ -192,7 +210,7 @@ namespace labust
 			//The diver speed (in SF-frame
 			Eigen::Vector3d dr_p;
 			//Publisher for the path progression speed
-			ros::Publisher piref;
+			ros::Publisher piref, psiref;
 			//The frame transform buffer
 			tf2_ros::Buffer buffer;
 			//The transform frame listener

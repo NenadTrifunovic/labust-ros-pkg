@@ -393,7 +393,7 @@ void Estimator3D::start()
 
 		//ROS_ERROR_STREAM(state.Pcov);
 		/*** Limit queue size ***/
-		if(pastStates.size()>1000){
+		if(pastStates.size()>10000){
 			pastStates.pop_front();
 			//ROS_ERROR("Pop front");
 		}
