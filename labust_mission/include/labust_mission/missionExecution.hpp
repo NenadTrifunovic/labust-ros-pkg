@@ -386,6 +386,8 @@ namespace labust {
 	    	/*** Activate primitive timeout */
 			if(!timeoutActive && primitiveMap["timeout"] > 0)
 				setTimeout(primitiveMap["timeout"]);
+
+ 			CM.pointer(true, primitiveMap["radius"], primitiveMap["vertical_offset"], primitiveMap["guidance_target_x"], primitiveMap["guidance_target_y"], primitiveMap["guidance_target_z"], bool(primitiveMap["guidance_enable"]), bool(primitiveMap["wrapping_enable"]), bool(primitiveMap["streamline_orientation"]), primitiveStringMap["guidance_topic"], primitiveStringMap["radius_topic"]); 
 	    }
 
 		/*****************************************************************
