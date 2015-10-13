@@ -170,6 +170,13 @@ void Estimator3D::onLocalStateHat(const auv_msgs::NavSts::ConstPtr& data)
 	measurements(KFNav::zp) = data->position.depth;
 	newMeas(KFNav::zp) = 1;
 
+	// Temporary !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
+	measurements(KFNav::zb) = data->position.depth;
+	newMeas(KFNav::zb) = 1;
+
+	measurements(KFNav::hdg) = labust::math::wrapRad(data->orientation.yaw);
+	newMeas(KFNav::hdg) = 1;
+
 	Eigen::Matrix2d R;
 	double yaw = labust::math::wrapRad(data->orientation.yaw);
 	R<<cos(yaw),-sin(yaw),sin(yaw),cos(yaw);
@@ -266,6 +273,9 @@ void Estimator3D::onSecond_sonar_fix(const underwater_msgs::SonarFix::ConstPtr& 
 
 	measurements(KFNav::sonar_bearing) = labust::math::wrapRad(data->bearing);
 	newMeas(KFNav::sonar_bearing) = 1;
+
+	ROS_ERROR("SONAR - RANGE: %f, BEARING: %f rad", data->range, data->bearing);
+
 }
 
 /*********************************************************************

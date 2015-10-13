@@ -212,7 +212,7 @@ void TwoVehicleLocalizationModel::derivativeH(){
 		delta_y = (delta_y<0)?-eps:eps;
 
 	ynl(range) = rng;
-	ynl(bearing) = atan2(delta_y,delta_x) -1*x(psi);
+	ynl(bearing) = atan2(delta_y,delta_x) -1*x(hdg);
 	ynl(elevation) = asin((x(zp)-x(zb))/rng);
 
 
@@ -230,11 +230,11 @@ void TwoVehicleLocalizationModel::derivativeH(){
 	Hnl(bearing, xb) = -delta_y/(delta_x*delta_x+delta_y*delta_y);
 	Hnl(bearing, yb) = delta_x/(delta_x*delta_x+delta_y*delta_y);
 
-	Hnl(bearing, psi) = -1;
+	Hnl(bearing, hdg) = -1;
 
 
 	ynl(sonar_range) = rng;
-	ynl(sonar_bearing) = atan2(delta_y,delta_x) -1*x(psi);
+	ynl(sonar_bearing) = atan2(delta_y,delta_x) -1*x(hdg);
 
 	Hnl(sonar_range, xp)  = -(x(xb)-x(xp))/rng;
 	Hnl(sonar_range, yp)  = -(x(yb)-x(yp))/rng;
@@ -249,7 +249,7 @@ void TwoVehicleLocalizationModel::derivativeH(){
 	Hnl(sonar_bearing, xb) = -delta_y/(delta_x*delta_x+delta_y*delta_y);
 	Hnl(sonar_bearing, yb) = delta_x/(delta_x*delta_x+delta_y*delta_y);
 
-	Hnl(sonar_bearing, psi) = -1;
+	Hnl(sonar_bearing, hdg) = -1;
 
 
 
