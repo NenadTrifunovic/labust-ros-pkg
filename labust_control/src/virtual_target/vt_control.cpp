@@ -110,7 +110,7 @@ namespace labust
 				}
 
 				//Calculate the path control signal
-				double dpi_r = kpi*(d(s) - ref.pi_tilda/kpierr) + ref.dxi_r;
+				double dpi_r = labust::math::coerce(kpi*(d(s) - tanh(ref.pi_tilda/kpierr)) + ref.dxi_r, -1,1);
 		 	  //Calculate the velocity control signal
 				Eigen::Vector3d nur = Rpb*(-Kpd*d + dr_p + ref.dxi_r*Eigen::Vector3d(1,0,0));
 				//TODO: Calculate the surge only orientation (Note: only a 2D case, extend to 3D)

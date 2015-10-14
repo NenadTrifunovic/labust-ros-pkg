@@ -41,6 +41,7 @@
 #include <auv_msgs/FSPathInfo.h>
 #include <geometry_msgs/PointStamped.h>
 #include <geometry_msgs/TwistStamped.h>
+#include <geometry_msgs/TwistStamped.h>
 #include <std_msgs/Float32.h>
 #include <tf2_ros/transform_broadcaster.h>
 #include <ros/ros.h>
@@ -112,11 +113,7 @@ namespace labust
 						radius->data, min_radius, std::numeric_limits<double>::quiet_NaN());
 			}
 			///Diver position update handling
-			void onDiverState(const auv_msgs::NavSts::ConstPtr& diver_state)
-			{
-				boost::mutex::scoped_lock l(state_mux);
-				diver_pos = *diver_state;
-			}
+			void onDiverState(const auv_msgs::NavSts::ConstPtr& diver_state);
 			///Path speed update handling
 			void onPathSpeed(const geometry_msgs::TwistStamped::ConstPtr& dpi_r)
 			{

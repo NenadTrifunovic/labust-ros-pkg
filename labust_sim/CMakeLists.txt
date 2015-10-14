@@ -11,7 +11,8 @@ find_package(catkin REQUIRED COMPONENTS
     roscpp 
     rospy 
     tf2_ros 
-    snippets)
+    snippets
+    visualization_msgs)
 
 ## System dependencies are found with CMake's conventions
 find_package(Boost REQUIRED COMPONENTS random)
@@ -100,6 +101,8 @@ add_executable(navsts2odom src/navsts2odom/navsts2odom.cpp)
 target_link_libraries(navsts2odom ${catkin_LIBRARIES})
 add_executable(usbl_sim src/data_sim/USBLSim.cpp)
 target_link_libraries(usbl_sim ${catkin_LIBRARIES})
+add_executable(diver_marker src/diver_sim/diver_marker.cpp)
+target_link_libraries(diver_marker ${catkin_LIBRARIES})
 
 if (DEFINED catkin_EXPORTED_TARGETS)
  add_dependencies(imu_sim ${catkin_EXPORTED_TARGETS})
