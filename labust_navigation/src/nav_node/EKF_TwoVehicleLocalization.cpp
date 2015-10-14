@@ -237,7 +237,7 @@ void Estimator3D::onSecond_usbl_fix(const underwater_msgs::USBLFix::ConstPtr& da
 
 	//labust::math::wrapRad(measurements(KFNav::psi));
 
-	ROS_ERROR("RANGE: %f, BEARING: %f deg %f rad", data->range, labust::math::wrapRad(bear*M_PI/180), labust::math::wrapRad(bear*M_PI/180+x(KFNav::psi)));
+	ROS_ERROR("RANGE: %f, BEARING: %f deg", data->range, labust::math::wrapDeg(bear));
 	/*** Get USBL measurements ***/
 	measurements(KFNav::range) = (data->range > 0.1)?data->range:0.1;
 	newMeas(KFNav::range) = enableRange;
