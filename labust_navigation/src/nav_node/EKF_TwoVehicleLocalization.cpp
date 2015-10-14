@@ -61,6 +61,7 @@
 #include <auv_msgs/NavSts.h>
 #include <auv_msgs/BodyForceReq.h>
 #include <underwater_msgs/USBLFix.h>
+#include <underwater_msgs/SonarFix.h>
 #include <geometry_msgs/TwistStamped.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <geometry_msgs/Point.h>
@@ -122,6 +123,8 @@ void Estimator3D::onInit()
 	subSecond_position = nh.subscribe<geometry_msgs::Point>("out_acoustic_position", 1, &Estimator3D::onSecond_position,this);
 	subSecond_speed = nh.subscribe<std_msgs::Float32>("out_acoustic_speed", 1, &Estimator3D::onSecond_speed,this);
 	subSecond_usbl_fix = nh.subscribe<underwater_msgs::USBLFix>("usbl_fix", 1, &Estimator3D::onSecond_usbl_fix,this);
+	subSecond_sonar_fix = nh.subscribe<underwater_msgs::SonarFix>("sonar_fix", 1, &Estimator3D::onSecond_sonar_fix,this);
+
 
 	resetTopic = nh.subscribe<std_msgs::Bool>("reset_nav_covariance", 1, &Estimator3D::onReset,this);
 
@@ -167,13 +170,19 @@ void Estimator3D::onLocalStateHat(const auv_msgs::NavSts::ConstPtr& data)
 	measurements(KFNav::zp) = data->position.depth;
 	newMeas(KFNav::zp) = 1;
 
+	// Temporary !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
+	measurements(KFNav::zb) = data->position.depth;
+	newMeas(KFNav::zb) = 1;
+
+	measurements(KFNav::hdg) = labust::math::wrapRad(data->orientation.yaw);
+	newMeas(KFNav::hdg) = 1;
+
 	Eigen::Matrix2d R;
 	double yaw = labust::math::wrapRad(data->orientation.yaw);
 	R<<cos(yaw),-sin(yaw),sin(yaw),cos(yaw);
 	Eigen::Vector2d in, out;
 	in << data->gbody_velocity.x, data->gbody_velocity.y;
 	out = R*in;
-
 
 	measurements(KFNav::psi) = std::atan2(out(1),out(0));
 	newMeas(KFNav::psi) = 1;
@@ -252,6 +261,20 @@ void Estimator3D::onSecond_usbl_fix(const underwater_msgs::USBLFix::ConstPtr& da
 	newMeas(KFNav::yb) = 1;
 	measurements(KFNav::zb) = x(KFNav::zp) - data->relative_position.z;
 	newMeas(KFNav::zb) = 1; */
+
+}
+
+
+void Estimator3D::onSecond_sonar_fix(const underwater_msgs::SonarFix::ConstPtr& data)
+{
+	/*** Get USBL measurements ***/
+	measurements(KFNav::sonar_range) = (data->range > 0.1)?data->range:0.1;
+	newMeas(KFNav::sonar_range) = 1;
+
+	measurements(KFNav::sonar_bearing) = labust::math::wrapRad(data->bearing);
+	newMeas(KFNav::sonar_bearing) = 1;
+
+	ROS_ERROR("SONAR - RANGE: %f, BEARING: %f rad", data->range, data->bearing);
 
 }
 

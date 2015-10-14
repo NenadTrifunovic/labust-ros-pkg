@@ -56,6 +56,7 @@
 #include <std_msgs/Bool.h>
 #include <auv_msgs/BodyForceReq.h>
 #include <underwater_msgs/USBLFix.h>
+#include <underwater_msgs/SonarFix.h>
 
 #include <auv_msgs/NED.h>
 #include <std_msgs/Bool.h>
@@ -132,6 +133,10 @@ namespace labust
 			 */
 			void onSecond_usbl_fix(const underwater_msgs::USBLFix::ConstPtr& data);
 			/**
+			 * Handle the sonar measurement.
+			 */
+			void onSecond_sonar_fix(const underwater_msgs::SonarFix::ConstPtr& data);
+			/**
 			 * Helper method to process measurements.
 			 */
 			void processMeasurements();
@@ -178,7 +183,7 @@ namespace labust
 			 * Sensors and input subscribers.
 			 */
 			ros::Subscriber subLocalStateHat, resetTopic;
-			ros::Subscriber subSecond_heading, subSecond_position, subSecond_speed, subSecond_usbl_fix;
+			ros::Subscriber subSecond_heading, subSecond_position, subSecond_speed, subSecond_usbl_fix, subSecond_sonar_fix;
 			/**
 			 * The transform broadcaster.
 			 */
