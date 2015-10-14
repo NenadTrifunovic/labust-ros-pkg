@@ -95,6 +95,19 @@ void TwoVehicleLocalizationModel::step(const input_type& input){
   x(zp) += Ts * x(w);
   x(psi) += Ts * x(r);
 
+  x(hdg) += Ts*x(r);
+
+  x(ub) += 0;
+  x(wb) += 0;
+  x(rb) += 0;
+
+  xdot = x(ub)*cos(x(psib));
+  ydot = x(ub)*sin(x(psib));
+  x(xb) += Ts * xdot;
+  x(yb) += Ts * ydot;
+  x(zb) += Ts * x(wb);
+  x(psib) += Ts * x(rb);
+
   xk_1 = x;
 
   derivativeAW();
