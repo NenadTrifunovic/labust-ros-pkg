@@ -235,12 +235,12 @@ void TrackDiver::setDesiredPathPosition()
 	{
 		finfo.gamma_r = finfo.mu_r;
 		path.xi_r = finfo.mu_r;
-		path.dxi_r = diver_pos.orientation_rate.yaw*nr;
+		path.dxi_r = 0*diver_pos.orientation_rate.yaw*nr;
 	}
 
 	double dx = diver_pos.position.north - vehicle_pos.position.north;
 	double dy = diver_pos.position.east - vehicle_pos.position.east;
-	path.pi_tilda = (path.pi - path.xi_r)/cosh(5*(sqrt(dx*dx+dy*dy) - nr));
+	path.pi_tilda = (path.pi - path.xi_r);0/cosh(5*(sqrt(dx*dx+dy*dy) - nr));
 	if (cgoal->wrapping_enable) path.pi_tilda = nr*labust::math::wrapRad(path.pi_tilda/nr);
 }
 
@@ -281,6 +281,21 @@ void TrackDiver::updateFS()
 	path.pi_tilda = 0;
 	path.dxi_r = 0;
 	path.xi_r = path.pi;
+
+	//Calcuate the feedforward
+	Eigen::Quaternion<double> q;
+	labust::tools::quaternionFromEulerZYX(
+			diver_pos.orientation.roll - path.orientation.roll,
+			diver_pos.orientation.pitch - path.orientation.pitch,
+			diver_pos.orientation.yaw - path.orientation.yaw, q);
+	Eigen::Vector3d speed;
+	speed<<diver_pos.body_velocity.x,
+			diver_pos.body_velocity.y,
+			diver_pos.body_velocity.z;
+	speed = q.toRotationMatrix()*speed;
+	path.dr_p.x = speed(0);
+	path.dr_p.y = speed(1);
+	path.dr_p.z = speed(2);
 
 	if (fabs(voff) < radius)
 	{
@@ -345,6 +360,28 @@ void TrackDiver::updateControllers(bool on)
 	navcon_msgs::EnableControl req;
   req.request.enable = on;
 	this->control_manager.call(req);
+}
+
+///Diver position update handling
+void TrackDiver::onDiverState(const auv_msgs::NavSts::ConstPtr& diver_state)
+{
+	boost::mutex::scoped_lock l(state_mux);
+	diver_pos = *diver_state;
+	//Publish transform
+	geometry_msgs::TransformStamped tfs;
+	tfs.transform.translation.x = diver_pos.position.north;
+	tfs.transform.translation.y = diver_pos.position.east;
+	tfs.transform.translation.z = diver_pos.position.depth;
+	labust::tools::quaternionFromEulerZYX(
+			diver_pos.orientation.roll,
+			diver_pos.orientation.pitch,
+			diver_pos.orientation.yaw,
+			tfs.transform.rotation);
+	tfs.child_frame_id = "diver_frame";
+	tfs.header.frame_id = "local";
+	tfs.header.stamp = ros::Time::now();
+	l.unlock();
+	broadcaster.sendTransform(tfs);
 }
 
 int main(int argc, char* argv[])

@@ -36,6 +36,7 @@
  *********************************************************************/
 #include <labust/ros/diver_sim.h>
 #include <labust/math/NumberManipulation.hpp>
+#include <labust/tools/conversions.hpp>
 
 #include <auv_msgs/NavSts.h>
 #include <sensor_msgs/JointState.h>
@@ -67,6 +68,14 @@ void DiverSim::onInit()
 	ph.param("joint_names",jnames,jnames);
 	ph.param("joint_defaults",jdefaults,jdefaults);
 	ph.param("move_head", move_head, move_head);
+	std::vector<double> position(3,0.0), orientation(3,0.0);
+	ph.param("initial_position", position, position);
+	ph.param("initial_orientation", orientation, orientation);
+
+	vector3 vpos, vrpy;
+	vpos<<position[0], position[1], position[2];
+	vrpy<<orientation[0], orientation[1], orientation[2];
+	model.setPosition(vpos, vrpy);
 
 	if (jdefaults.size() != 3*jnames.size())
 	{
