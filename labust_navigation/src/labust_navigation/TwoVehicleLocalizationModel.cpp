@@ -99,7 +99,7 @@ void TwoVehicleLocalizationModel::step(const input_type& input){
 
   x(ub) += 0;
   x(wb) += 0;
-  x(rb) += 0;
+  x(rb) = 0;
 
   xdot = x(ub)*cos(x(psib));
   ydot = x(ub)*sin(x(psib));

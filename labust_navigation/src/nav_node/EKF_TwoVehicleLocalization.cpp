@@ -233,7 +233,8 @@ void Estimator3D::onSecond_usbl_fix(const underwater_msgs::USBLFix::ConstPtr& da
 	// Totalno nepotrebno
 	double delay = double(calculateDelaySteps(currentTime-delay_time, currentTime));
 
-	double bear = 360 - data->bearing;
+	//double bear = 360 - data->bearing;
+	double bear =  data->bearing;  // Buddy pings Videoray
 	double elev = 180 - data->elevation;
 
 	const KFNav::vector& x = nav.getState();
@@ -366,8 +367,16 @@ void Estimator3D::publishState()
 	pubSecondStateHat.publish(state2);
 
 	navcon_msgs::RelativePosition::Ptr rel_pos(new navcon_msgs::RelativePosition());
-	rel_pos->x = estimate(KFNav::xb) - estimate(KFNav::xp);
-	rel_pos->y = estimate(KFNav::yb) - estimate(KFNav::yp);
+
+
+	Eigen::Matrix2d R;
+	double yaw = estimate(KFNav::hdg);
+	R<<cos(yaw),-sin(yaw),sin(yaw),cos(yaw);
+	Eigen::Vector2d in, out;
+	in << estimate(KFNav::xb) - estimate(KFNav::xp), estimate(KFNav::yb) - estimate(KFNav::yp);
+	out = R*in;
+	rel_pos->x = out(0);
+	rel_pos->y = out(1);
 
 	pubSecondRelativePosition.publish(rel_pos);
 
