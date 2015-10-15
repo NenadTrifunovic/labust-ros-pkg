@@ -60,6 +60,7 @@
 
 #include <auv_msgs/NavSts.h>
 #include <auv_msgs/BodyForceReq.h>
+#include <navcon_msgs/RelativePosition.h>
 #include <underwater_msgs/USBLFix.h>
 #include <underwater_msgs/SonarFix.h>
 #include <geometry_msgs/TwistStamped.h>
@@ -106,12 +107,14 @@ void Estimator3D::onInit()
 	pubLocalStateMeas = nh.advertise<auv_msgs::NavSts>("localMesurement",1);
 	pubSecondStateMeas = nh.advertise<auv_msgs::NavSts>("secondMesurement",1);
 
-	pubRange = nh.advertise<std_msgs::Float32>("range_meas",1);
 	pubBearing = nh.advertise<std_msgs::Float32>("bearing_meas",1);
 
 	pubCondP = nh.advertise<std_msgs::Float32>("condP",1);
 	pubCondPxy = nh.advertise<std_msgs::Float32>("condPxy",1);
 	pubCost = nh.advertise<std_msgs::Float32>("cost",1);
+
+	pubSecondRelativePosition = nh.advertise<navcon_msgs::RelativePosition>("relative_position",1);
+	pubSecondRange = nh.advertise<std_msgs::Float32>("range_meas",1);
 
 	//pubRangeFiltered = nh.advertise<std_msgs::Float32>("range_filtered",1);
 	//pubwk = nh.advertise<std_msgs::Float32>("w_limit",1);
@@ -361,6 +364,13 @@ void Estimator3D::publishState()
 	state2->header.stamp = ros::Time::now();
 	state2->header.frame_id = "local";
 	pubSecondStateHat.publish(state2);
+
+	navcon_msgs::RelativePosition::Ptr rel_pos(new navcon_msgs::RelativePosition());
+	rel_pos->x = estimate(KFNav::xb) - estimate(KFNav::xp);
+	rel_pos->y = estimate(KFNav::yb) - estimate(KFNav::yp);
+
+	pubSecondRelativePosition.publish(rel_pos);
+
 }
 
 void Estimator3D::calculateConditionNumber(){
