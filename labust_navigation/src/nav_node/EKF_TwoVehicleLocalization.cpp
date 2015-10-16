@@ -175,11 +175,11 @@ void Estimator3D::onLocalStateHat(const auv_msgs::NavSts::ConstPtr& data)
 	measurements(KFNav::zb) = data->position.depth;
 	newMeas(KFNav::zb) = 1;
 
-	measurements(KFNav::hdg) = labust::math::wrapRad(data->orientation.yaw);
+	measurements(KFNav::hdg) = unwrap(data->orientation.yaw);
 	newMeas(KFNav::hdg) = 1;
 
 	Eigen::Matrix2d R;
-	double yaw = labust::math::wrapRad(data->orientation.yaw);
+	double yaw = unwrap(data->orientation.yaw);
 	R<<cos(yaw),-sin(yaw),sin(yaw),cos(yaw);
 	Eigen::Vector2d in, out;
 	in << data->gbody_velocity.x, data->gbody_velocity.y;
@@ -336,7 +336,8 @@ void Estimator3D::publishState()
 	state2->gbody_velocity.x = estimate(KFNav::ub);
 	state2->gbody_velocity.z = estimate(KFNav::wb);
 
-	state2->orientation.yaw = labust::math::wrapRad(estimate(KFNav::psib));
+	state2->orientation.yaw = 0;
+	//state2->orientation.yaw = labust::math::wrapRad(estimate(KFNav::psib));
 	state2->orientation_rate.yaw = estimate(KFNav::rb);
 
 	state2->position.north = estimate(KFNav::xb);
@@ -374,7 +375,7 @@ void Estimator3D::publishState()
 	rel_pos->y_variance = out(1);
 
 	rel_pos->range = sqrt(pow(delta_x,2)+pow(delta_y,2));
-	rel_pos->bearing = atan2(delta_y,delta_x)-estimate(KFNav::hdg);
+	rel_pos->bearing = labust::math::wrapDeg(atan2(delta_y,delta_x)-estimate(KFNav::hdg));
 
 	pubSecondRelativePosition.publish(rel_pos);
 

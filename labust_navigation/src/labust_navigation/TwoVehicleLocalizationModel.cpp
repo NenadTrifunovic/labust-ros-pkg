@@ -98,6 +98,11 @@ void TwoVehicleLocalizationModel::step(const input_type& input){
   x(hdg) += Ts*x(r);
 
   x(ub) += 0;
+  if(x(ub)>0.5)
+	x(ub)=0.5;
+  if(x(ub)<-0.5)
+	x(ub)=-0.5;
+		
   x(wb) += 0;
   x(rb) = 0;
 
@@ -213,7 +218,7 @@ void TwoVehicleLocalizationModel::derivativeH(){
 	double delta_x = (x(xb)-x(xp));
 	double delta_y = (x(yb)-x(yp));
 
-	double eps = 0.00000001;
+	double eps = 0.00000000000000001;
 
 	if(rng<eps)
 		rng = eps;
