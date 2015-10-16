@@ -173,6 +173,12 @@ namespace labust
 			 */
 			labust::math::unwrap unwrap;
 			/**
+			 * Sonar bearing unwrapper.
+			 */
+			labust::math::unwrap sonar_unwrap;
+			labust::math::unwrap usbl_unwrap;
+			labust::math::unwrap course_unwrap;
+			/**
 			 * Estimated and measured state publisher.
 			 */
 			ros::Publisher pubLocalStateHat, pubSecondStateHat, pubLocalStateMeas, pubSecondStateMeas, pubSecondRelativePosition;

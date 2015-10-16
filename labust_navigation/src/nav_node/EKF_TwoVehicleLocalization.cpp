@@ -185,7 +185,7 @@ void Estimator3D::onLocalStateHat(const auv_msgs::NavSts::ConstPtr& data)
 	in << data->gbody_velocity.x, data->gbody_velocity.y;
 	out = R*in;
 
-	measurements(KFNav::psi) = std::atan2(out(1),out(0));
+	measurements(KFNav::psi) = course_unwrap(std::atan2(out(1),out(0)));
 	newMeas(KFNav::psi) = 1;
 
 	measurements(KFNav::u) = std::sqrt(std::pow(out(0),2)+std::pow(out(1),2));
@@ -245,7 +245,7 @@ void Estimator3D::onSecond_usbl_fix(const underwater_msgs::USBLFix::ConstPtr& da
 	newMeas(KFNav::range) = enableRange;
 	measDelay(KFNav::range) = delay;
 
-	measurements(KFNav::bearing) = labust::math::wrapRad(bear*M_PI/180);
+	measurements(KFNav::bearing) = bear*M_PI/180;
 	newMeas(KFNav::bearing) = enableBearing;
 	measDelay(KFNav::bearing) = delay;
 
@@ -261,7 +261,7 @@ void Estimator3D::onSecond_sonar_fix(const underwater_msgs::SonarFix::ConstPtr& 
 	measurements(KFNav::sonar_range) = (data->range > 0.1)?data->range:0.1;
 	newMeas(KFNav::sonar_range) = 1;
 
-	measurements(KFNav::sonar_bearing) = labust::math::wrapRad(data->bearing);
+	measurements(KFNav::sonar_bearing) = sonar_unwrap(data->bearing);
 	newMeas(KFNav::sonar_bearing) = 1;
 
 	ROS_ERROR("SONAR - RANGE: %f, BEARING: %f deg", data->range, data->bearing*180/M_PI);
@@ -340,9 +340,13 @@ void Estimator3D::publishState()
 	//state2->orientation.yaw = labust::math::wrapRad(estimate(KFNav::psib));
 	state2->orientation_rate.yaw = estimate(KFNav::rb);
 
-	state2->position.north = estimate(KFNav::xb);
-	state2->position.east = estimate(KFNav::yb);
+	//state2->position.north = estimate(KFNav::xb);
+	//state2->position.east = estimate(KFNav::yb);
 	state2->position.depth = estimate(KFNav::zb);
+
+	state2->position.north = measurements(KFNav::xp)+measurements(KFNav::sonar_range)*cos(measurements(KFNav::sonar_bearing)+measurements(KFNav::hdg));
+	state2->position.east = measurements(KFNav::yp)+measurements(KFNav::sonar_range)*sin(measurements(KFNav::sonar_bearing)+measurements(KFNav::hdg));
+
 
 	state2->position_variance.north = covariance(KFNav::xb, KFNav::xb);
 	state2->position_variance.east = covariance(KFNav::yb, KFNav::yb);
@@ -373,6 +377,8 @@ void Estimator3D::publishState()
 
 	rel_pos->x_variance = out(0);
 	rel_pos->y_variance = out(1);
+
+
 
 	rel_pos->range = sqrt(pow(delta_x,2)+pow(delta_y,2));
 	rel_pos->bearing = labust::math::wrapDeg(atan2(delta_y,delta_x)-estimate(KFNav::hdg));
