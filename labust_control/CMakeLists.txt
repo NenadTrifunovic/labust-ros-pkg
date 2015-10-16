@@ -116,6 +116,7 @@ add_executable(ref_manual src/RefManual.cpp)
 add_executable(async_merger src/AsyncMerger.cpp)
 add_executable(velocity_control	src/VelocityControl.cpp)
 add_executable(navstsreq_navsts	src/navstsreq_navsts.cpp)
+add_executable(diver_navsts	src/diver_navsts.cpp)
 
 # ESC executables
 add_executable(esc_uv src/esc/ESCControlClassic_UV.cpp src/esctoolkit/esc_classic.cpp)
@@ -190,6 +191,10 @@ target_link_libraries(depth_controller2
 )
 
 target_link_libraries(navstsreq_navsts
+  ${catkin_LIBRARIES}
+)
+
+target_link_libraries(diver_navsts
   ${catkin_LIBRARIES}
 )
 
