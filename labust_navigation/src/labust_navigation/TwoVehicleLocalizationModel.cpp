@@ -218,22 +218,17 @@ void TwoVehicleLocalizationModel::derivativeH(){
 	double delta_x = (x(xb)-x(xp));
 	double delta_y = (x(yb)-x(yp));
 
-	double eps = 0.00000000000000001;
+	double eps = 1.0e-18;
 
-	if(rng<eps)
+	if(rng<eps){
 		rng = eps;
-
-	if(abs(delta_x)<eps)
-		delta_x = (delta_x<0)?-eps:eps;
-
-	if(abs(delta_y)<eps)
-		delta_y = (delta_y<0)?-eps:eps;
+		delta_x = (delta_x<0)?-0.5*eps:0.5*eps;
+		delta_y = (delta_y<0)?-0.5*eps:0.5*eps;
+	}
 
 	ynl(range) = rng;
 	ynl(bearing) = atan2(delta_y,delta_x) -1*x(hdg);
 	ynl(elevation) = asin((x(zp)-x(zb))/rng);
-
-
 
 	Hnl(range, xp)  = -(x(xb)-x(xp))/rng;
 	Hnl(range, yp)  = -(x(yb)-x(yp))/rng;
@@ -249,7 +244,6 @@ void TwoVehicleLocalizationModel::derivativeH(){
 	Hnl(bearing, yb) = delta_x/(delta_x*delta_x+delta_y*delta_y);
 
 	Hnl(bearing, hdg) = -1;
-
 
 	ynl(sonar_range) = rng;
 	ynl(sonar_bearing) = atan2(delta_y,delta_x) -1*x(hdg);
@@ -268,8 +262,6 @@ void TwoVehicleLocalizationModel::derivativeH(){
 	Hnl(sonar_bearing, yb) = delta_x/(delta_x*delta_x+delta_y*delta_y);
 
 	Hnl(sonar_bearing, hdg) = -1;
-
-
 
 	// Nadi gresku u elevationu i sredi singularitete
 //	double part1 = (x(zb) - x(zp))/(sqrt(1 - pow((x(zb) - x(zp)),2)/pow(rng,2))*(pow((rng),3)));

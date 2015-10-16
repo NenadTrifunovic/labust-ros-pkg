@@ -175,9 +175,8 @@ namespace labust
 			/**
 			 * Sonar bearing unwrapper.
 			 */
-			labust::math::unwrap sonar_unwrap;
-			labust::math::unwrap usbl_unwrap;
 			labust::math::unwrap course_unwrap;
+			labust::math::unwrap bearing_unwrap;
 			/**
 			 * Estimated and measured state publisher.
 			 */
