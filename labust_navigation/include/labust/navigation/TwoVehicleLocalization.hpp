@@ -175,7 +175,7 @@ namespace labust
 			/**
 			 * Estimated and measured state publisher.
 			 */
-			ros::Publisher pubLocalStateHat, pubSecondStateHat, pubLocalStateMeas, pubSecondStateMeas;
+			ros::Publisher pubLocalStateHat, pubSecondStateHat, pubLocalStateMeas, pubSecondStateMeas, pubSecondRelativePosition;
 			ros::Publisher pubRange, pubBearing, pubRangeFiltered, pubwk;
 			ros::Publisher pubCondP, pubCondPxy, pubCost;
 

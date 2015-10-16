@@ -60,6 +60,7 @@
 
 #include <auv_msgs/NavSts.h>
 #include <auv_msgs/BodyForceReq.h>
+#include <navcon_msgs/RelativePosition.h>
 #include <underwater_msgs/USBLFix.h>
 #include <underwater_msgs/SonarFix.h>
 #include <geometry_msgs/TwistStamped.h>
@@ -106,12 +107,13 @@ void Estimator3D::onInit()
 	pubLocalStateMeas = nh.advertise<auv_msgs::NavSts>("localMesurement",1);
 	pubSecondStateMeas = nh.advertise<auv_msgs::NavSts>("secondMesurement",1);
 
-	pubRange = nh.advertise<std_msgs::Float32>("range_meas",1);
 	pubBearing = nh.advertise<std_msgs::Float32>("bearing_meas",1);
 
 	pubCondP = nh.advertise<std_msgs::Float32>("condP",1);
 	pubCondPxy = nh.advertise<std_msgs::Float32>("condPxy",1);
 	pubCost = nh.advertise<std_msgs::Float32>("cost",1);
+
+	pubSecondRelativePosition = nh.advertise<navcon_msgs::RelativePosition>("relative_position",1);
 
 	//pubRangeFiltered = nh.advertise<std_msgs::Float32>("range_filtered",1);
 	//pubwk = nh.advertise<std_msgs::Float32>("w_limit",1);
@@ -124,7 +126,6 @@ void Estimator3D::onInit()
 	subSecond_speed = nh.subscribe<std_msgs::Float32>("out_acoustic_speed", 1, &Estimator3D::onSecond_speed,this);
 	subSecond_usbl_fix = nh.subscribe<underwater_msgs::USBLFix>("usbl_fix", 1, &Estimator3D::onSecond_usbl_fix,this);
 	subSecond_sonar_fix = nh.subscribe<underwater_msgs::SonarFix>("sonar_fix", 1, &Estimator3D::onSecond_sonar_fix,this);
-
 
 	resetTopic = nh.subscribe<std_msgs::Bool>("reset_nav_covariance", 1, &Estimator3D::onReset,this);
 
@@ -230,21 +231,20 @@ void Estimator3D::onSecond_usbl_fix(const underwater_msgs::USBLFix::ConstPtr& da
 	// Totalno nepotrebno
 	double delay = double(calculateDelaySteps(currentTime-delay_time, currentTime));
 
-	double bear = 360 - data->bearing;
+	//double bear = 360 - data->bearing;
+	double bear =  data->bearing;  // Buddy pings Videoray
 	double elev = 180 - data->elevation;
 
 	const KFNav::vector& x = nav.getState();
 
 	//labust::math::wrapRad(measurements(KFNav::psi));
 
-	ROS_ERROR("RANGE: %f, BEARING: %f deg %f rad", data->range, labust::math::wrapRad(bear*M_PI/180), labust::math::wrapRad(bear*M_PI/180+x(KFNav::psi)));
+	ROS_ERROR("RANGE: %f, BEARING: %f deg", data->range, labust::math::wrapDeg(bear));
 	/*** Get USBL measurements ***/
 	measurements(KFNav::range) = (data->range > 0.1)?data->range:0.1;
 	newMeas(KFNav::range) = enableRange;
 	measDelay(KFNav::range) = delay;
 
-
-	//measurements(KFNav::bearing) = labust::math::wrapRad(bear*M_PI/180+x(KFNav::psi));
 	measurements(KFNav::bearing) = labust::math::wrapRad(bear*M_PI/180);
 	newMeas(KFNav::bearing) = enableBearing;
 	measDelay(KFNav::bearing) = delay;
@@ -252,29 +252,19 @@ void Estimator3D::onSecond_usbl_fix(const underwater_msgs::USBLFix::ConstPtr& da
 	measurements(KFNav::elevation) = elev*M_PI/180;
 	newMeas(KFNav::elevation) = enableElevation;
 	measDelay(KFNav::elevation) = delay;
-
-	/** Relative distance measurements */
-
-	/*measurements(KFNav::xb) = x(KFNav::xp) - data->relative_position.x;
-	newMeas(KFNav::xb) = 1;
-	measurements(KFNav::yb) = x(KFNav::yp) - data->relative_position.y;
-	newMeas(KFNav::yb) = 1;
-	measurements(KFNav::zb) = x(KFNav::zp) - data->relative_position.z;
-	newMeas(KFNav::zb) = 1; */
-
 }
 
 
 void Estimator3D::onSecond_sonar_fix(const underwater_msgs::SonarFix::ConstPtr& data)
 {
-	/*** Get USBL measurements ***/
+	/*** Get sonar measurements ***/
 	measurements(KFNav::sonar_range) = (data->range > 0.1)?data->range:0.1;
 	newMeas(KFNav::sonar_range) = 1;
 
 	measurements(KFNav::sonar_bearing) = labust::math::wrapRad(data->bearing);
 	newMeas(KFNav::sonar_bearing) = 1;
 
-	ROS_ERROR("SONAR - RANGE: %f, BEARING: %f rad", data->range, data->bearing);
+	ROS_ERROR("SONAR - RANGE: %f, BEARING: %f deg", data->range, data->bearing*180/M_PI);
 
 }
 
@@ -361,6 +351,33 @@ void Estimator3D::publishState()
 	state2->header.stamp = ros::Time::now();
 	state2->header.frame_id = "local";
 	pubSecondStateHat.publish(state2);
+
+	navcon_msgs::RelativePosition::Ptr rel_pos(new navcon_msgs::RelativePosition());
+
+	double delta_x = estimate(KFNav::xb) - estimate(KFNav::xp);
+	double delta_y = estimate(KFNav::yb) - estimate(KFNav::yp);
+
+	Eigen::Matrix2d R;
+	double yaw = estimate(KFNav::hdg);
+	R<<cos(yaw),-sin(yaw),sin(yaw),cos(yaw);
+	Eigen::Vector2d in, out;
+	in << delta_x, delta_y;
+	out = R.transpose()*in;
+
+	rel_pos->x = out(0);
+	rel_pos->y = out(1);
+
+	in << covariance(KFNav::xb, KFNav::xb), covariance(KFNav::yb, KFNav::yb);
+	out = R.transpose()*in;
+
+	rel_pos->x_variance = out(0);
+	rel_pos->y_variance = out(1);
+
+	rel_pos->range = sqrt(pow(delta_x,2)+pow(delta_y,2));
+	rel_pos->bearing = atan2(delta_y,delta_x)-estimate(KFNav::hdg);
+
+	pubSecondRelativePosition.publish(rel_pos);
+
 }
 
 void Estimator3D::calculateConditionNumber(){
@@ -438,7 +455,7 @@ void Estimator3D::start()
 
 		//ROS_ERROR_STREAM(state.Pcov);
 		/*** Limit queue size ***/
-		if(pastStates.size()>100){
+		if(pastStates.size()>1000){
 			pastStates.pop_front();
 			//ROS_ERROR("Pop front");
 		}
