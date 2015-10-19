@@ -75,6 +75,7 @@ include_directories(include ${catkin_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS} ${Eigen
 
 ## Declare a cpp executable
 # add_executable(snippets_node src/snippets_node.cpp)
+add_executable(rosbag_filter src/tools/RosbagFilter.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
@@ -84,6 +85,9 @@ include_directories(include ${catkin_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS} ${Eigen
 # target_link_libraries(snippets_node
 #   ${catkin_LIBRARIES}
 # )
+target_link_libraries(rosbag_filter
+  ${catkin_LIBRARIES}
+)
 
 #############
 ## Install ##

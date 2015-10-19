@@ -61,10 +61,18 @@ namespace labust {
           topics.push_back(topic_name);
         }
 
+        void addTopics(std::vector<std::string> topic_names) {
+          topics.insert(topics.end(), topic_names.begin(), topic_names.end());
+        }
+
         void open() {
           bag.open(bag_name.c_str(), rosbag::bagmode::Read);
           bag_view.addQuery(bag, rosbag::TopicQuery(topics));
           message_it = bag_view.begin();
+        }
+
+        void close() {
+          bag.close();
         }
 
         bool done() {
@@ -93,6 +101,40 @@ namespace labust {
         std::vector<std::string> topics;
     };
 
+    class RosbagWriter {
+      public:
+        RosbagWriter() {}
+        RosbagWriter(const std::string& out_bag_filename) :
+          bag_name(out_bag_filename) {}
+
+        ~RosbagWriter() {
+          bag.close();
+        }
+
+        void setBag(const std::string& out_bag_filename) {
+           bag_name = out_bag_filename;
+        }
+
+        void open() {
+          bag.open(bag_name, rosbag::bagmode::Write);
+        }
+
+        void close() {
+          bag.close();
+        }
+
+        template<class T>
+        void addMessage(const std::string& topic,
+                        const ros::Time& time,
+                        const T& message) {
+          bag.write(topic, time, message);
+        }
+
+      private:
+        rosbag::Bag bag;
+        std::string bag_name;
+
+    };
   }
 }
 /* ROSBAGUTILITIES_HPP_ */
