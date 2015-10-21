@@ -43,7 +43,9 @@ namespace labust {
 
     class RosbagReader {
       public:
-        RosbagReader() {}
+        RosbagReader() :
+          time_start(ros::TIME_MIN),
+          time_end(ros::TIME_MAX) {}
 
         RosbagReader(std::string bag_filename) {
           bag_name = bag_filename;
@@ -65,9 +67,14 @@ namespace labust {
           topics.insert(topics.end(), topic_names.begin(), topic_names.end());
         }
 
+        void setTime(const ros::Time& start_t, const ros::Time& end_t) {
+          time_start = start_t;
+          time_end = end_t;
+        }
+
         void open() {
           bag.open(bag_name.c_str(), rosbag::bagmode::Read);
-          bag_view.addQuery(bag, rosbag::TopicQuery(topics));
+          bag_view.addQuery(bag, rosbag::TopicQuery(topics), time_start, time_end);
           message_it = bag_view.begin();
         }
 
@@ -97,6 +104,7 @@ namespace labust {
         rosbag::Bag bag;
         rosbag::View bag_view;
         rosbag::View::iterator message_it; 
+        ros::Time time_start, time_end;
         std::string bag_name;
         std::vector<std::string> topics;
     };
