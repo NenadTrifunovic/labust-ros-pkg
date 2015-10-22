@@ -44,9 +44,11 @@ namespace labust {
         void setOutputBag(const std::string& out_filename); 
         void setInputBags(const std::vector<std::string>& in_bags);
         void setTopics(const std::vector<std::string>& topics);
+        void setTime(const ros::Time& start_t, const ros::Time& end_t);
         void start();
       private:
         RosbagWriter bag_writer;
+        ros::Time time_start, time_end;
         std::string out_bag_name_;
         std::vector<std::string> in_bags_;
         std::vector<std::string> topics_;

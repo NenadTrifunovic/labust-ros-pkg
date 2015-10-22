@@ -55,17 +55,25 @@ void RosbagFilter::setTopics(const std::vector<std::string>& topics) {
   topics_ = topics;
 }
 
+void RosbagFilter::setTime(const ros::Time& start_t, const ros::Time& end_t) {
+  time_start = start_t;
+  time_end = end_t;
+}
+
 void RosbagFilter::start() {
   bag_writer.setBag(out_bag_name_);
   bag_writer.open();
   for (int i=0; i<in_bags_.size(); ++i) {
+    ROS_INFO("Opening bag %s.", in_bags_[i].c_str());
     RosbagReader bag_reader(in_bags_[i]);
     bag_reader.addTopics(topics_);
+    bag_reader.setTime(time_start, time_end);
     bag_reader.open();
     while (!bag_reader.done()) {
       rosbag::MessageInstance m = bag_reader.nextMessageInstance();
       bag_writer.addMessage(m.getTopic(), m.getTime(), m);
     }
+    ROS_INFO("Done with bag, closing.");
     bag_reader.close();
   }
   bag_writer.close();
@@ -76,6 +84,8 @@ int main(int argc, char **argv) {
   std::string out_bag_filename;
   std::vector<std::string> in_bags;
   std::vector<std::string> topics;
+  ros::Time time_start = ros::TIME_MIN;
+  ros::Time time_end = ros::TIME_MAX;
   for (int i=1; i<argc; ++i) {
     std::string curr_argv(argv[i]);
     if (curr_argv[0] == '-') {
@@ -88,17 +98,19 @@ int main(int argc, char **argv) {
       topics.push_back(curr_argv);
     } else if (curr_flag == "-o") {
       out_bag_filename = curr_argv; 
+    } else if (curr_flag == "-start_time") {
+      time_start = ros::Time(strtod(argv[i], NULL));
+    } else if (curr_flag == "-end_time") {
+      time_end = ros::Time(strtod(argv[i], NULL));
     }
   }
-  ros::init(argc, argv, "rosbag_filter");
-  ros::Time::init();
   
   RosbagFilter filter;
   filter.setOutputBag(out_bag_filename);
   filter.setInputBags(in_bags);
   filter.setTopics(topics);
+  filter.setTime(time_start, time_end);
   filter.start();
   ROS_INFO("Done.");
-  ros::spin();
   return 0;
 }
