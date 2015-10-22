@@ -45,6 +45,8 @@
 #ifndef EKF_3DMODEL_HPP_
 #define EKF_3DMODEL_HPP_
 #include <labust/navigation/SSModel.hpp>
+#include <labust/math/NumberManipulation.hpp>
+
 
 namespace labust
 {
@@ -189,6 +191,10 @@ namespace labust
        * The nonlinear and final y.
        */
       vector ynl,y;
+		/**
+		 *  Bearing unwrapper.
+		 */
+		labust::math::unwrap bearing_unwrap;
     };
   }
 }

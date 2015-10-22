@@ -40,6 +40,8 @@
 *  POSSIBILITY OF SUCH DAMAGE.
 *********************************************************************/
 #include <labust/navigation/TwoVehicleLocalizationModel.hpp>
+#include <labust/math/NumberManipulation.hpp>
+
 
 using namespace labust::navigation;
 
@@ -218,7 +220,7 @@ void TwoVehicleLocalizationModel::derivativeH(){
 	double delta_x = (x(xb)-x(xp));
 	double delta_y = (x(yb)-x(yp));
 
-	double eps = 1.0e-18;
+	double eps = 1.0e-25;
 
 	if(rng<eps){
 		rng = eps;
@@ -227,7 +229,7 @@ void TwoVehicleLocalizationModel::derivativeH(){
 	}
 
 	ynl(range) = rng;
-	ynl(bearing) = atan2(delta_y,delta_x) -1*x(hdg);
+	ynl(bearing) = bearing_unwrap(atan2(delta_y,delta_x) -1*x(hdg));
 	ynl(elevation) = asin((x(zp)-x(zb))/rng);
 
 	Hnl(range, xp)  = -(x(xb)-x(xp))/rng;
@@ -246,7 +248,8 @@ void TwoVehicleLocalizationModel::derivativeH(){
 	Hnl(bearing, hdg) = -1;
 
 	ynl(sonar_range) = rng;
-	ynl(sonar_bearing) = atan2(delta_y,delta_x) -1*x(hdg);
+	ynl(sonar_bearing) = bearing_unwrap(atan2(delta_y,delta_x) -1*x(hdg));
+	//ROS_ERROR("ynl ber: %f, hdg: %f, delta: %f %f, ",ynl(sonar_bearing)*180/M_PI,x(hdg),delta_x, delta_y);
 
 	Hnl(sonar_range, xp)  = -(x(xb)-x(xp))/rng;
 	Hnl(sonar_range, yp)  = -(x(yb)-x(yp))/rng;

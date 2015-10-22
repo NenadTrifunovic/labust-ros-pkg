@@ -91,7 +91,8 @@ Estimator3D::Estimator3D():
 		enableRejection(false),
 		delay_time(0.0),
 		dvl_model(1),
-		OR(3,0.95){this->onInit();};
+		OR(3,0.9),
+		OR_b(2,0.97){this->onInit();};
 
 void Estimator3D::onInit()
 {
@@ -372,15 +373,29 @@ void Estimator3D::publishState()
 	rel_pos->x = out(0);
 	rel_pos->y = out(1);
 
-	in << covariance(KFNav::xb, KFNav::xb), covariance(KFNav::yb, KFNav::yb);
-	out = R.transpose()*in;
+	Eigen::Matrix2d Pt;
+	Eigen::Matrix2d P;
+	P << covariance(KFNav::xb, KFNav::xb), covariance(KFNav::xb, KFNav::yb),
+	     covariance(KFNav::yb, KFNav::xb), covariance(KFNav::yb, KFNav::yb);
+	Pt = R.transpose()*P*R;
 
-	rel_pos->x_variance = out(0);
-	rel_pos->y_variance = out(1);
+	rel_pos->x_variance = Pt(0,0);
+	rel_pos->y_variance = Pt(1,1);
 
 	rel_pos->range = sqrt(pow(delta_x,2)+pow(delta_y,2));
 	rel_pos->bearing = labust::math::wrapDeg(atan2(delta_y,delta_x)-estimate(KFNav::hdg));
 
+	Eigen::Matrix2d J;
+	J<< rel_pos->x/rel_pos->range, rel_pos->y/rel_pos->range,
+	    -rel_pos->y/pow(rel_pos->range,2), rel_pos->x/pow(rel_pos->range,2);
+
+	Pt = J*Pt*J.transpose();
+
+	rel_pos->range_variance = Pt(0,0);
+	rel_pos->bearing_variance = Pt(1,1);
+
+	rel_pos->header.stamp = ros::Time::now();
+	rel_pos->header.frame_id = "local";
 	pubSecondRelativePosition.publish(rel_pos);
 
 }
@@ -518,26 +533,72 @@ void Estimator3D::start()
 									w_limit = (w_limit>1.0)?1.0:w_limit;
 									if(w>w_limit)
 									{
-										rng_msg.data = range;
-										pubRangeFiltered.publish(rng_msg);
+									//	rng_msg.data = range;
+									//	pubRangeFiltered.publish(rng_msg);
 										//pubRangeFiltered.publish(rng_msg);
 
 									} else {
 										tmp_state.newMeas(j) = 0;
+										ROS_ERROR("rng outlier!!!");
 									}
 									//std_msgs::Float32 rng_msg;
 
-									rng_msg.data = w_limit;
-									pubwk.publish(rng_msg);
+									//rng_msg.data = w_limit;
+									//pubwk.publish(rng_msg);
 
-									rng_msg.data = range;
-									pubRange.publish(rng_msg);
+									//rng_msg.data = range;
+									//pubRange.publish(rng_msg);
+
 
 								}
 
-								if(j == KFNav::bearing && tmp_state.newMeas(j-1) == 0)
+/*								if(j == KFNav::bearing && tmp_state.newMeas(j-1) == 0)
 								{
 									tmp_state.newMeas(j) = 0;
+
+								}*/
+
+								if(j == KFNav::bearing)
+								//if(j == KFNav::bearing || j == KFNav::sonar_bearing)
+								{
+									const KFNav::vector& x = tmp_state.state; ///// Treba li jos predikciju napravit?
+									//double range = measurements(j);
+
+									Eigen::VectorXd input(Eigen::VectorXd::Zero(2));
+										//Eigen::VectorXd output(Eigen::VectorXd::Zero(1));
+
+
+									input << x(KFNav::xb)-x(KFNav::xp), x(KFNav::yb)-x(KFNav::yp);
+									//input << x(KFNav::u), x(KFNav::yp)-x(KFNav::yb), x(KFNav::zp)-x(KFNav::zb);
+
+									//output << measurements(KFNav::range);
+									double y_filt, sigma, w;
+									OR_b.step(input, measurements(KFNav::bearing), &y_filt, &sigma, &w);
+									//ROS_INFO("Finished outlier rejection");
+
+									std_msgs::Float32 rng_msg;
+									//ROS_ERROR("w: %f",w);
+
+									double w_limit =  0.3*std::sqrt(float(sigma));
+									w_limit = (w_limit>1.0)?1.0:w_limit;
+									if(w>w_limit)
+									{
+										//rng_msg.data = range;
+										//pubRangeFiltered.publish(rng_msg);
+										//pubRangeFiltered.publish(rng_msg);
+
+									} else {
+										tmp_state.newMeas(j) = 0;
+										ROS_ERROR("bearing outlier!!!");
+
+									}
+									//std_msgs::Float32 rng_msg;
+
+									//rng_msg.data = w_limit;
+									//pubwk.publish(rng_msg);
+
+									//rng_msg.data = range;
+									//pubRange.publish(rng_msg);
 
 								}
 							}

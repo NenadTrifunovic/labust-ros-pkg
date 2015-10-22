@@ -218,7 +218,7 @@ namespace labust
 
 			std::deque<FilterState> pastStates;
 
-			labust::tools::OutlierRejection OR;
+			labust::tools::OutlierRejection OR, OR_b;
 
 		};
 	}
