@@ -99,7 +99,7 @@ void ImuHandler::onImu(const sensor_msgs::Imu::ConstPtr& data)
 	geometry_msgs::TransformStamped transform;
 	try
 	{
-		transform = buffer.lookupTransform("base_link", "imu_frame", ros::Time(0));
+		transform = buffer.lookupTransform("base_link", data->header.frame_id, ros::Time(0));
 		Eigen::Quaternion<double> meas(data->orientation.w, data->orientation.x,
 				data->orientation.y, data->orientation.z);
 		Eigen::Quaternion<double> rot(transform.transform.rotation.w,
@@ -176,17 +176,18 @@ void DvlHandler::onDvl(const geometry_msgs::TwistStamped::ConstPtr& data)
 					transform.transform.rotation.x,
 					transform.transform.rotation.y,
 					transform.transform.rotation.z);
-			Eigen::Vector3d body_speed = rot.matrix()*speed;
-
-			//Add compensation for excentralized DVL
-			Eigen::Vector3d origin(transform.transform.translation.x,
+			//Add compensation for DVL offset
+			Eigen::Vector3d offset(transform.transform.translation.x,
 					transform.transform.translation.y,
 					transform.transform.translation.z);
-			if (origin.x() != 0 || origin.y() != 0)
-			{
-
-				body_speed -= Eigen::Vector3d(-r*origin.y(),r*origin.x(),0);
-			}
+			//Rotational speed compensation
+			Eigen::Matrix3d omega;
+			Eigen::Vector3d nur(0,0,r);
+			enum {p=0,q,r};
+			omega<<0,-nur(r),nur(q),
+					nur(r),0,-nur(p),
+					-nur(q),nur(p),0;
+			Eigen::Vector3d body_speed = rot.matrix()*speed - omega*offset;
 
 			uvw[u] = body_speed.x();
 			uvw[v] = body_speed.y();

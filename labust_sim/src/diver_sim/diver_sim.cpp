@@ -97,6 +97,7 @@ void DiverSim::onInit()
 	navsts = nh.advertise<auv_msgs::NavSts>("state",1);
 	joints = nh.advertise<sensor_msgs::JointState>("joint_states",1);
 	nusub = nh.subscribe<auv_msgs::BodyVelocityReq>("diver_nu",1,&DiverSim::onNu,this);
+	initsub = nh.subscribe<auv_msgs::NavSts>("diver_init",1,&DiverSim::onDiverInit, this);
 
 	runner = boost::thread(boost::bind(&DiverSim::start, this));
 }
