@@ -40,6 +40,7 @@
 #include <tf2_ros/transform_broadcaster.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <geometry_msgs/Vector3Stamped.h>
+#include <std_msgs/Float32.h>
 #include <ros/ros.h>
 
 #include <GeographicLib/Geocentric.hpp>
@@ -47,6 +48,7 @@
 #include <GeographicLib/MagneticModel.hpp>
 
 #include <boost/thread.hpp>
+#include <boost/date_time.hpp>
 
 struct LLNode
 {
@@ -63,11 +65,19 @@ struct LLNode
 		nh.param("LocalOriginLon",originLon,originLon);
 		ph.param("LocalFixSim",fixValidated, fixValidated);
 
+		//Get magnetic data
+		std::string magnetic_model("wmm2015");
+		std::string magnetic_path("/usr/share/geographiclib/magnetic");
+		ph.param("magnetic_data_path", magnetic_path, magnetic_path);
+		ph.param("magnetic_model", magnetic_model, magnetic_model);
+		mag.reset(new GeographicLib::MagneticModel(magnetic_model, magnetic_path));
+
 		//Setup the local projection
 		if (fixValidated) proj.Reset(originLat, originLon, originH);
 
 		gps_raw = nh.subscribe<sensor_msgs::NavSatFix>("gps",1,&LLNode::onGps, this);
 		gps_ned = nh.advertise<geometry_msgs::Vector3Stamped>("gps_raw",1);
+		mag_dec = nh.advertise<std_msgs::Float32>("magnetic_declination",1,true);
 
 		runner = boost::thread(boost::bind(&LLNode::publishFrame, this));
 	}
@@ -106,6 +116,18 @@ struct LLNode
 			Eigen::Vector3d ned = q.toRotationMatrix()*enu;
 			labust::tools::vectorToPoint(ned, gpsout.vector);
 			gps_ned.publish(gpsout);
+
+			//Magnetic declination
+		  double Bx, By, Bz;
+		  using namespace boost::posix_time;
+		  double days = second_clock::local_time().date().day_of_year();
+		  double year = second_clock::local_time().date().year() + days/356.25;
+		  (*mag)(year, fix->latitude, fix->longitude, fix->altitude, Bx, By, Bz);
+		  double H, F, D, I;
+		  GeographicLib::MagneticModel::FieldComponents(Bx, By, Bz, H, F, D, I);
+		  std_msgs::Float32 dec;
+		  dec.data = D;
+		  mag_dec.publish(dec);
 		}
 	};
 
@@ -154,7 +176,7 @@ struct LLNode
 
 private:
 	ros::Subscriber gps_raw;
-	ros::Publisher gps_ned;
+	ros::Publisher gps_ned, mag_dec;
 	tf2_ros::TransformBroadcaster broadcaster;
 	double originLat, originLon, originH;
 	bool fixValidated;
@@ -162,6 +184,8 @@ private:
 	boost::thread runner;
 	//The ENU frame
 	GeographicLib::LocalCartesian proj;
+	//The magnetic model
+  boost::shared_ptr<GeographicLib::MagneticModel> mag;
 };
 
 int main(int argc, char* argv[])
