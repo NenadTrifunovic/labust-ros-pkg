@@ -6,6 +6,7 @@
  */
 #include <labust/tools/GeoUtilities.hpp>
 #include <labust/tools/conversions.hpp>
+#include <labust/math/NumberManipulation.hpp>
 #include <iostream>
 #include <exception>
 #include <cmath>
@@ -94,6 +95,9 @@ int main(int argc, char* argv[])
 
 	compare_methods(olat,olon,oh,lat,lon,h);
 	magnetic_declination(lat,lon,h);
+
+	std::cout<<"Wrapped:"<<labust::math::wrapRad(-7)<<std::endl;
+	std::cout<<"Fmod:"<<fmod(-7, 2*M_PI)<<std::endl;
 
 	return 0;
 }
