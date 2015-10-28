@@ -90,9 +90,21 @@ struct GPSSim
 					transformLocal.transform.rotation.z);
 			Eigen::Vector3d gps_w = qrot.toRotationMatrix().transpose()*offset;
 			//Update the simulated position of GPS with offset
-			transformLocal.transform.translation.x += gps_w(0);
-			transformLocal.transform.translation.y += gps_w(1);
-			transformLocal.transform.translation.z += gps_w(2);
+			//Eigen::Vector3d ned;
+			//ned<<msg->pose.pose.position.x,
+			//		msg->pose.pose.position.y,
+			//		msg->pose.pose.position.z;
+			//labust::tools::quaternionFromEulerZYX(M_PI,0,M_PI/2,qrot);
+			//Eigen::Vector3d enu = qrot.matrix().transpose()*ned + gps_w;
+			Eigen::Vector3d enu;
+			enu<<transformLocal.transform.translation.x,
+					transformLocal.transform.translation.y,
+					transformLocal.transform.translation.z;
+			enu += gps_w;
+
+			transformLocal.transform.translation.x = enu(0);
+			transformLocal.transform.translation.y = enu(1);
+			transformLocal.transform.translation.z = enu(2);
 			//In case the origin changes
 			transformDeg = buffer.lookupTransform("ecef", "world",
 					ros::Time(0), ros::Duration(5.0));

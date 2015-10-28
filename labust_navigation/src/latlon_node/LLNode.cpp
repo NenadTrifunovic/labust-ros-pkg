@@ -40,7 +40,7 @@
 #include <tf2_ros/transform_broadcaster.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <geometry_msgs/Vector3Stamped.h>
-#include <std_msgs/Float32.h>
+#include <std_msgs/Float64.h>
 #include <ros/ros.h>
 
 #include <GeographicLib/Geocentric.hpp>
@@ -77,7 +77,7 @@ struct LLNode
 
 		gps_raw = nh.subscribe<sensor_msgs::NavSatFix>("gps",1,&LLNode::onGps, this);
 		gps_ned = nh.advertise<geometry_msgs::Vector3Stamped>("gps_raw",1);
-		mag_dec = nh.advertise<std_msgs::Float32>("magnetic_declination",1,true);
+		mag_dec = nh.advertise<std_msgs::Float64>("magnetic_declination",1,true);
 
 		runner = boost::thread(boost::bind(&LLNode::publishFrame, this));
 	}
@@ -125,8 +125,8 @@ struct LLNode
 		  (*mag)(year, fix->latitude, fix->longitude, fix->altitude, Bx, By, Bz);
 		  double H, F, D, I;
 		  GeographicLib::MagneticModel::FieldComponents(Bx, By, Bz, H, F, D, I);
-		  std_msgs::Float32 dec;
-		  dec.data = D;
+		  std_msgs::Float64 dec;
+		  dec.data = M_PI*D/180;
 		  mag_dec.publish(dec);
 		}
 	};

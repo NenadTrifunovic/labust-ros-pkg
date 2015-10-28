@@ -50,7 +50,6 @@
  *********************************************************************/
 #include <labust/navigation/SimpleRelativeLocalization.hpp>
 #include <labust/navigation/SimpleRelativeLocalizationModel.hpp>
-#include <labust/tools/GeoUtilities.hpp>
 #include <labust/tools/MatrixLoader.hpp>
 #include <labust/tools/conversions.hpp>
 #include <labust/tools/DynamicsLoader.hpp>

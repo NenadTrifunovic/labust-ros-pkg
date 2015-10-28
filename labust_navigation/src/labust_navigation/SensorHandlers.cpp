@@ -33,7 +33,6 @@
  *********************************************************************/
 #include <labust/navigation/SensorHandlers.hpp>
 #include <labust/math/NumberManipulation.hpp>
-#include <labust/tools/GeoUtilities.hpp>
 #include <labust/tools/conversions.hpp>
 
 #include <geometry_msgs/TransformStamped.h>
@@ -53,33 +52,67 @@ void GPSHandler::onGps(const sensor_msgs::NavSatFix::ConstPtr& data)
 	geometry_msgs::TransformStamped transformDeg, transformLocal, transformGPS;
 	try
 	{
-		transformLocal = buffer.lookupTransform("local", "gps_frame", ros::Time(0));
-		transformGPS = buffer.lookupTransform("base_link", "gps_frame", ros::Time(0));
-		transformDeg = buffer.lookupTransform("worldLatLon", "local", ros::Time(0));
-		posxy =	labust::tools::deg2meter(data->latitude - transformDeg.transform.translation.y,
-					data->longitude - transformDeg.transform.translation.x,
-					transformDeg.transform.translation.y);
-	/*	Eigen::Quaternion<double> rot(transformLocal.transform.rotation.w,
-				transformLocal.transform.rotation.x,
-				transformLocal.transform.rotation.y,
-				transformLocal.transform.rotation.z);*/
-		Eigen::Vector3d offset(transformGPS.transform.translation.x,
-				transformGPS.transform.translation.y,
-				transformGPS.transform.translation.z);
-		Eigen::Vector3d pos_corr = rot.matrix()*offset;
-
- 		posxy.first -= pos_corr(0);
- 		posxy.second -= pos_corr(1);
+		//Get the ENU coordinates
+		transformDeg = buffer.lookupTransform("ecef", "world", ros::Time(0));
+		//Set the projection origin
+		double lat0,lon0,h0;
+		GeographicLib::Geocentric::WGS84.Reverse(
+				transformDeg.transform.translation.x,
+				transformDeg.transform.translation.y,
+				transformDeg.transform.translation.z,
+				lat0, lon0, h0);
+		proj.Reset(lat0, lon0, h0);
+		double e,n,u;
+		proj.Forward(data->latitude,
+				data->longitude,
+				data->altitude,
+				e,n,u);
+		//Convert to NED
+		Eigen::Quaternion<double> qrot;
+		labust::tools::quaternionFromEulerZYX(M_PI,0,M_PI/2,qrot);
+		Eigen::Vector3d enu;
+		enu<<e,n,u;
+		Eigen::Vector3d ned = qrot.toRotationMatrix() * enu;
+		//Get rotation to base_link
+		try
+		{
+			//Try to get the transform at the exact time or the latest
+			try
+			{
+				transformLocal = buffer.lookupTransform("local", "base_link", data->header.stamp);
+			}
+			catch (tf2::TransformException& ex)
+			{
+				transformLocal = buffer.lookupTransform("local", "base_link", ros::Time(0));
+			}
+			//Get GPS offset
+			transformGPS = buffer.lookupTransform("base_link", "gps_frame", data->header.stamp);
+			Eigen::Vector3d gps_b;
+			gps_b<<transformGPS.transform.translation.x,
+					transformGPS.transform.translation.y,
+					transformGPS.transform.translation.z;
+			Eigen::Quaternion<double> rot(transformLocal.transform.rotation.w,
+					transformLocal.transform.rotation.x,
+					transformLocal.transform.rotation.y,
+					transformLocal.transform.rotation.z);
+			ned -= rot.toRotationMatrix()*gps_b;
+			enu = qrot.toRotationMatrix().transpose()*ned;
+		}
+		catch (tf2::TransformException& ex)
+		{
+			ROS_WARN("Unable to decode GPS measurement. Missing frame : %s",ex.what());
+		}
 		
-		//ROS_ERROR("Corrected position: %f %f", pos_corr(0), pos_corr(1));
+		//Set the data
+ 		posxy.first = ned(0);
+ 		posxy.second = ned(1);
+		originLL.first = lon0;
+		originLL.second = lat0;
 		
-		originLL.first = transformDeg.transform.translation.y;
-		originLL.second = transformDeg.transform.translation.x;
-
-		std::pair<double, double> posxy_corr = labust::tools::meter2deg(posxy.first, posxy.second, transformDeg.transform.translation.y);
-		posLL.first = originLL.first + posxy_corr.first;
-		posLL.second = originLL.second + posxy_corr.second;
-
+		double lat, lon;
+		proj.Reverse(enu(0), enu(1), enu(2), lat, lon, originh);
+		posLL.second = lat;
+		posLL.first = lon;
 		isNew = true;
 	}
 	catch(tf2::TransformException& ex)
@@ -92,6 +125,8 @@ void ImuHandler::configure(ros::NodeHandle& nh)
 {
 	imu = nh.subscribe<sensor_msgs::Imu>("imu", 1,
 			&ImuHandler::onImu, this);
+	mag_dec = nh.subscribe<std_msgs::Float64>("magnetic_declination",1,
+					&ImuHandler::onMagDec, this);
 }
 
 void ImuHandler::onImu(const sensor_msgs::Imu::ConstPtr& data)
@@ -111,6 +146,7 @@ void ImuHandler::onImu(const sensor_msgs::Imu::ConstPtr& data)
 		//KDL::Rotation::Quaternion(result.x(),result.y(),result.z(),result.w()).GetEulerZYX
 		//		(rpy[yaw],rpy[pitch],rpy[roll]);
 		labust::tools::eulerZYXFromQuaternion(result, rpy[roll], rpy[pitch], rpy[yaw]);
+		rpy[yaw] -= magdec;
 		rpy[yaw] = unwrap(rpy[yaw]);
 
 		//Transform angular velocities

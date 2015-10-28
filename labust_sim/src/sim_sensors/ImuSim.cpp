@@ -38,6 +38,7 @@
 #include <geometry_msgs/Vector3.h>
 #include <sensor_msgs/Imu.h>
 #include <std_msgs/Float32.h>
+#include <std_msgs/Float64.h>
 #include <tf2_ros/transform_broadcaster.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <ros/ros.h>
@@ -49,7 +50,8 @@ struct ImuSim
 {
 	ImuSim():
 		last_time(ros::Time::now()),
-		last_omega(Eigen::Matrix3d::Zero())
+		last_omega(Eigen::Matrix3d::Zero()),
+		magdec(0)
 	{
 		ros::NodeHandle nh,ph("~");
 
@@ -64,9 +66,16 @@ struct ImuSim
 
 		odom = nh.subscribe<nav_msgs::Odometry>("meas_odom",1,&ImuSim::onOdom, this);
 		acc = nh.subscribe<geometry_msgs::Vector3>("nuacc_ideal",1,&ImuSim::onAcc, this);
+		mag_dec = nh.subscribe<std_msgs::Float64>("magnetic_declination",1,
+				&ImuSim::onMagneticDeclination, this);
 
 		imu_pub = nh.advertise<sensor_msgs::Imu>("imu",1);
 		depth_pub = nh.advertise<std_msgs::Float32>("depth",1);
+	}
+
+	void onMagneticDeclination(const typename std_msgs::Float64::ConstPtr& msg)
+	{
+		magdec = msg->data;
 	}
 
 	void onOdom(const typename nav_msgs::Odometry::ConstPtr& msg)
@@ -85,6 +94,10 @@ struct ImuSim
 				msg->pose.pose.orientation.x,
 				msg->pose.pose.orientation.y,
 				msg->pose.pose.orientation.z);
+		double roll, pitch, yaw;
+		labust::tools::eulerZYXFromQuaternion(meas,roll, pitch, yaw);
+		yaw += magdec;
+		labust::tools::quaternionFromEulerZYX(roll, pitch, yaw, meas);
 		Eigen::Quaternion<double> sim_meas = meas*orot.inverse();
 		imu->orientation.x = sim_meas.x();
 		imu->orientation.y = sim_meas.y();
@@ -141,7 +154,7 @@ struct ImuSim
 	}
 
 private:
-	ros::Subscriber odom, acc;
+	ros::Subscriber odom, acc, mag_dec;
 	ros::Publisher imu_pub, depth_pub;
 	Eigen::Vector3d offset;
 	Eigen::Quaternion<double> orot;
@@ -150,6 +163,7 @@ private:
 	ros::Time last_time;
 	geometry_msgs::Vector3 nuacc;
 	tf2_ros::TransformBroadcaster broadcaster;
+	double magdec;
 };
 
 int main(int argc, char* argv[])

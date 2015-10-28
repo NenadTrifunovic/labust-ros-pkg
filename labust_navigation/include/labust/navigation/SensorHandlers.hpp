@@ -38,9 +38,13 @@
 #include <sensor_msgs/NavSatFix.h>
 #include <sensor_msgs/Imu.h>
 #include <std_msgs/Bool.h>
+#include <std_msgs/Float64.h>
 #include <geometry_msgs/TwistStamped.h>
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
+
+#include <GeographicLib/Geocentric.hpp>
+#include <GeographicLib/LocalCartesian.hpp>
 
 #include <ros/ros.h>
 
@@ -74,7 +78,7 @@ namespace labust
 		class GPSHandler : public NewArrived
 		{
 		public:
-			GPSHandler():listener(buffer){};
+			GPSHandler():listener(buffer),originh(0){};
 			void configure(ros::NodeHandle& nh);
 
 			inline const std::pair<double, double>&
@@ -82,6 +86,8 @@ namespace labust
 
 			inline const std::pair<double, double>&
 			origin() const {return originLL;}
+
+			inline const double origin_h() const {return originh;}
 
 			inline const std::pair<double, double>&
 			latlon() const	{return posLL;}
@@ -94,7 +100,10 @@ namespace labust
 			tf2_ros::Buffer buffer;
 			tf2_ros::TransformListener listener;
 			ros::Subscriber gps;
+			//The ENU frame
+			GeographicLib::LocalCartesian proj;
 			Eigen::Quaternion<double> rot;
+			double originh;
 		};
 
 		/**
@@ -107,7 +116,7 @@ namespace labust
 			enum {p=0,q,r};
 			enum {ax,ay,az};
 
-			ImuHandler():listener(buffer),gps(0){};
+			ImuHandler():listener(buffer),gps(0),magdec(0){};
 			
 			void setGpsHandler(GPSHandler* gps){this->gps = gps;};
 
@@ -121,11 +130,12 @@ namespace labust
 
 		private:
 			void onImu(const sensor_msgs::Imu::ConstPtr& data);
+			void onMagDec(const std_msgs::Float64::ConstPtr& data){magdec = data->data;}
 			tf2_ros::Buffer buffer;
 			tf2_ros::TransformListener listener;
 			labust::math::unwrap unwrap;
-			ros::Subscriber imu;
-			double rpy[3], pqr[3], axyz[3];
+			ros::Subscriber imu, mag_dec;
+			double rpy[3], pqr[3], axyz[3], magdec;
 			GPSHandler* gps;
 		};
 
