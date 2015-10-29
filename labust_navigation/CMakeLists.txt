@@ -104,7 +104,7 @@ add_executable(ekf_3d_usbl_node src/nav_node/EKF_3D_USBL.cpp)
 add_executable(ekf_two_vehicle_localization_node src/nav_node/EKF_TwoVehicleLocalization.cpp)
 add_executable(ekf_simple_relative_localization_node src/nav_node/EKF_SimpleRelativeLocalization.cpp)
 add_executable(pressure2depth src/test/pressure2depth.cpp)
-add_executable(geographiclib_test src/test/geographiclib_test.cpp)
+#add_executable(geographiclib_test src/test/geographiclib_test.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
@@ -145,7 +145,7 @@ target_link_libraries(ekf_simple_relative_localization_node ${catkin_LIBRARIES} 
 
 target_link_libraries(pressure2depth ${catkin_LIBRARIES})
 target_link_libraries(pressure2depth ${catkin_LIBRARIES})
-target_link_libraries(geographiclib_test ${catkin_LIBRARIES} Geographic)
+#target_link_libraries(geographiclib_test ${catkin_LIBRARIES} Geographic)
 
 #############
 ## Install ##

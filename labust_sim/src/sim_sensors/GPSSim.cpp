@@ -34,8 +34,6 @@
  *  Author: Dula Nad
  *  Created: 01.02.2013.
  *********************************************************************/
-#include <labust/tools/GeoUtilities.hpp>
-
 #include <nav_msgs/Odometry.h>
 #include <sensor_msgs/NavSatFix.h>
 #include <tf2_ros/buffer.h>
