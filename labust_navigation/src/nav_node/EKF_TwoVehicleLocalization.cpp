@@ -240,7 +240,7 @@ void Estimator3D::onSecond_usbl_fix(const underwater_msgs::USBLFix::ConstPtr& da
 
 	//labust::math::wrapRad(measurements(KFNav::psi));
 
-	ROS_ERROR("RANGE: %f, BEARING: %f deg", data->range, labust::math::wrapDeg(bear));
+	ROS_ERROR("RANGE: %f, BEARING: %f deg, Time %d %d", data->range, labust::math::wrapDeg(bear), data->header.stamp.sec, data->header.stamp.nsec);
 	/*** Get USBL measurements ***/
 	measurements(KFNav::range) = (data->range > 0.1)?data->range:0.1;
 	newMeas(KFNav::range) = enableRange;
@@ -265,7 +265,7 @@ void Estimator3D::onSecond_sonar_fix(const underwater_msgs::SonarFix::ConstPtr& 
 	measurements(KFNav::sonar_bearing) = bearing_unwrap(data->bearing);
 	newMeas(KFNav::sonar_bearing) = 1;
 
-	ROS_ERROR("SONAR - RANGE: %f, BEARING: %f deg", data->range, data->bearing*180/M_PI);
+	ROS_ERROR("SONAR - RANGE: %f, BEARING: %f deg, TIME: %d %d", data->range, data->bearing*180/M_PI, data->header.stamp.sec, data->header.stamp.nsec);
 
 }
 
@@ -337,8 +337,8 @@ void Estimator3D::publishState()
 	state2->gbody_velocity.x = estimate(KFNav::ub);
 	state2->gbody_velocity.z = estimate(KFNav::wb);
 
-	state2->orientation.yaw = 0;
-	//state2->orientation.yaw = labust::math::wrapRad(estimate(KFNav::psib));
+	//state2->orientation.yaw = 0;
+	state2->orientation.yaw = labust::math::wrapRad(estimate(KFNav::psib));
 	state2->orientation_rate.yaw = estimate(KFNav::rb);
 
 	state2->position.north = estimate(KFNav::xb);
