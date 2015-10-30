@@ -101,9 +101,13 @@ add_executable(navsts2odom src/navsts2odom/navsts2odom.cpp)
 target_link_libraries(navsts2odom ${catkin_LIBRARIES})
 add_executable(usbl_sim src/data_sim/USBLSim.cpp)
 target_link_libraries(usbl_sim ${catkin_LIBRARIES})
+add_executable(uvsim_timing src/test/uvsim_timing.cpp)
+target_link_libraries(uvsim_timing labust_sim ${catkin_LIBRARIES})
 
 add_executable(diver_marker src/diver_sim/diver_marker.cpp)
 target_link_libraries(diver_marker ${catkin_LIBRARIES})
+add_executable(virtual_diver src/diver_sim/virtual_diver.cpp)
+target_link_libraries(virtual_diver ${catkin_LIBRARIES})
 
 add_executable(trajectory_generator src/labust_sim/trajectory_generator.cpp)
 target_link_libraries(trajectory_generator ${catkin_LIBRARIES})

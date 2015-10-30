@@ -109,6 +109,33 @@ int main( int argc, char** argv )
     // Publish the marker
     marker_pub.publish(marker);
 
+    // Draw the pool
+    geometry_msgs::Point p1,p2,p3,p4;
+    double x[4] = {-7,14,-1,-20};
+    double y[4] = {25,-12,-20,18};
+    int li = 3;
+    for(int i=0; i<4; ++i)
+    {
+    	geometry_msgs::Point p1,p2;
+    	p1.x = x[i];
+    	p1.y = y[i];
+    	p1.z = 0;
+    	p2.x = x[li];
+    	p2.y = y[li];
+    	p2.z = 0;
+    	marker.points.push_back(p1);
+    	marker.points.push_back(p2);
+    	li=i;
+    }
+    marker.header.frame_id = "local";
+    marker.ns = "pool";
+    marker.id = 1;
+    marker.type = visualization_msgs::Marker::LINE_LIST;
+		marker.scale.x = 0.5;
+		// Publish the marker
+    marker_pub.publish(marker);
+
+
     rate.sleep();
     ros::spinOnce();
   }

@@ -47,9 +47,21 @@
 
 struct ImuSim
 {
-	ImuSim()
+	ImuSim():
+		last_time(ros::Time::now()),
+		last_omega(Eigen::Matrix3d::Zero())
 	{
-		ros::NodeHandle nh;
+		ros::NodeHandle nh,ph("~");
+
+		std::vector<double> offset(3,0), orot(3,0);
+		ph.param("offset", offset, offset);
+		ph.param("orot", orot, orot);
+		this->offset<<offset[0],offset[1],offset[2];
+		labust::tools::quaternionFromEulerZYX(M_PI*orot[0]/180,
+				M_PI*orot[1]/180,
+				M_PI*orot[2]/180,
+				this->orot);
+
 		odom = nh.subscribe<nav_msgs::Odometry>("meas_odom",1,&ImuSim::onOdom, this);
 		acc = nh.subscribe<geometry_msgs::Vector3>("nuacc_ideal",1,&ImuSim::onAcc, this);
 
@@ -59,15 +71,47 @@ struct ImuSim
 
 	void onOdom(const typename nav_msgs::Odometry::ConstPtr& msg)
 	{
+		double dT = (ros::Time::now() - last_time).toSec();
 		sensor_msgs::Imu::Ptr imu(new sensor_msgs::Imu());
 		imu->header.stamp = ros::Time::now();
-		imu->header.frame_id = "base_link";
-		imu->angular_velocity = msg->twist.twist.angular;
-		imu->orientation = msg->pose.pose.orientation;
+		imu->header.frame_id = "imu_frame";
+		//Calculate angular velocities
+		Eigen::Vector3d nua;
+		labust::tools::pointToVector(msg->twist.twist.angular, nua);
+		Eigen::Vector3d cnua = orot.toRotationMatrix().transpose()*nua;
+		labust::tools::vectorToPoint(cnua, imu->angular_velocity);
+		//Calculate orientation
+		Eigen::Quaternion<double> meas(msg->pose.pose.orientation.w,
+				msg->pose.pose.orientation.x,
+				msg->pose.pose.orientation.y,
+				msg->pose.pose.orientation.z);
+		Eigen::Quaternion<double> sim_meas = meas*orot.inverse();
+		imu->orientation.x = sim_meas.x();
+		imu->orientation.y = sim_meas.y();
+		imu->orientation.z = sim_meas.z();
+		imu->orientation.w = sim_meas.w();
 
 		{
 			boost::mutex::scoped_lock l(acc_mux);
-			imu->linear_acceleration = nuacc;
+			Eigen::Matrix3d omegac;
+			enum {p=0,q,r};
+			omegac<<0,-nua(r),nua(q),
+					nua(r),0,-nua(p),
+					-nua(q),nua(p),0;
+			//Calculate derivative
+			Eigen::Matrix3d omegad = (omegac - last_omega)/dT;
+			last_omega = omegac;
+			Eigen::Vector3d accr;
+			accr<<nuacc.x,nuacc.y,nuacc.z;
+			Eigen::Vector3d accm = orot.toRotationMatrix().transpose()*(accr + omegad*offset);
+			labust::tools::vectorToPoint(accm,imu->linear_acceleration);
+			/*ROS_ERROR("Offset: %f %f %f",offset(0),offset(1),offset(2));
+			std::stringstream os;
+			os<<omegad;
+			ROS_ERROR("Omegad: %s",os.str().c_str());
+			os.str("");
+			os<<omegac;
+			ROS_ERROR("Omegac: %s",os.str().c_str());*/
 		}
 
 		imu_pub.publish(imu);
@@ -87,7 +131,7 @@ struct ImuSim
 		transform.child_frame_id = "imu_frame";
 		transform.header.frame_id = "base_link";
 		transform.header.stamp = ros::Time::now();
-		broadcaster.sendTransform(transform);
+		//broadcaster.sendTransform(transform);
 	}
 
 	void onAcc(const typename geometry_msgs::Vector3::ConstPtr& msg)
@@ -99,7 +143,11 @@ struct ImuSim
 private:
 	ros::Subscriber odom, acc;
 	ros::Publisher imu_pub, depth_pub;
+	Eigen::Vector3d offset;
+	Eigen::Quaternion<double> orot;
+	Eigen::Matrix3d last_omega;
 	boost::mutex acc_mux;
+	ros::Time last_time;
 	geometry_msgs::Vector3 nuacc;
 	tf2_ros::TransformBroadcaster broadcaster;
 };

@@ -77,7 +77,7 @@ struct GPSSim
 		transform.child_frame_id = "gps_frame";
 		transform.header.frame_id = "base_link";
 		transform.header.stamp = ros::Time::now();
-		broadcaster.sendTransform(transform);
+		//broadcaster.sendTransform(transform);
 
 		geometry_msgs::TransformStamped transformLocal, transformDeg;
 		try

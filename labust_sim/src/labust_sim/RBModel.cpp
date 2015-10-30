@@ -48,6 +48,7 @@ RBModel::RBModel():
     eta0(vector::Zero()),
     nu(vector::Zero()),
     eta(vector::Zero()),
+		lgacc(0,0,g_acc),
     g(vector::Zero()),
     isCoupled(false),
     current(vector3::Zero())
@@ -111,7 +112,9 @@ void RBModel::step(const vector& tau)
 			nu(i) = (M(i,i)*nu(i) + dT*(tau(i)- g(i)))/(M(i,i) + dT*beta);
 		};
 	}
-	nuacc = (nu - nu_old)/dT;
+	vector grav;
+	grav<<lgacc,0,0,0;
+	nuacc = (nu - nu_old)/dT + grav;
 
 	//From body to world coordinates
 	eta.block<3,1>(0,0) += dT*(J1*nu.block<3,1>(0,0)+current);
@@ -148,7 +151,8 @@ void RBModel::restoring_force(const matrix3& J1)
 	//Currently a simple model
 	B=2*labust::math::coerce((eta(z)+waterLevel+rb(z)/2)/ce+1,0,2)*M_PI/3*ae*be*ce*rho*g_acc;
 
-	vector3 fg = invJ1*(m*g_acc*vector3::UnitZ());
+	lgacc = g_acc*invJ1*vector3::UnitZ();
+	vector3 fg = m*lgacc;
 	vector3 fb = -invJ1*(B*vector3::UnitZ());
 
 	g.block<3,1>(0,0) = -fg-fb;

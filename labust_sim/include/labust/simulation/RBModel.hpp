@@ -219,6 +219,10 @@ namespace labust
        */
       vector eta;
       /**
+       * The linear acceleration introduced by gravity
+       */
+      vector3 lgacc;
+      /**
        * The noisy measurements.
        */
       mutable vector etaN, nuN;

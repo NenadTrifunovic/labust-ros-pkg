@@ -110,16 +110,22 @@ namespace labust
 				}
 
 				//Calculate the path control signal
-				double dpi_r = labust::math::coerce(kpi*(d(s) - tanh(ref.pi_tilda/kpierr)) + ref.dxi_r, -1,1);
+				double dpi_r = labust::math::coerce((1+3*ref.k)*kpi*(d(s) - tanh(ref.pi_tilda/kpierr)) + ref.dxi_r, -1,1);
 		 	  //Calculate the velocity control signal
 				Eigen::Vector3d nur = Rpb*(-Kpd*d + dr_p + ref.dxi_r*Eigen::Vector3d(1,0,0));
 				//TODO: Calculate the surge only orientation (Note: only a 2D case, extend to 3D)
    			double zeta_r = labust::math::wrapRad(ref.orientation.yaw) +
    					atan2(-Kpd(e,e)*d(e) + dr_p(e), -Kpd(s,s)*d(s) + dr_p(s));
-   			//Reference orientation
-   			double psi_r = ref.k*zeta_r + (1-ref.k)*ref.delta_r;
-   			psi_r = labust::math::wrapRad(psi_r);
+   			zeta_r = labust::math::wrapRad(zeta_r);
 
+   			if (zeta_r < 0) zeta_r += 2*M_PI;
+   			double delta_r = ref.delta_r;
+   			if (delta_r < 0) delta_r += 2*M_PI;
+
+   			//Reference orientatio
+   			double psi_r = ref.k*zeta_r + (1-ref.k)*ref.delta_r;
+   			//if (ref.k > 0.5) psi_r = zeta_r; else psi_r=ref.delta_r;
+   			psi_r = labust::math::wrapRad(psi_r);
 
 				//Send the control signal
 				auv_msgs::BodyVelocityReqPtr nu(new auv_msgs::BodyVelocityReq());
@@ -127,12 +133,11 @@ namespace labust
 				nu->header.stamp = ros::Time::now();
 				nu->goal.requester = "vt_controller";
 
-				ROS_ERROR("Position (s,e,h): (%f, %f, %f)",d(s),d(e),d(h));
-
-				nu->twist.linear.x = nur(u);
-				nu->twist.linear.y = nur(v);
-				nu->twist.linear.z = nur(w);
+				//ROS_ERROR("Position (s,e,h): (%f, %f, %f)",d(s),d(e),d(h));
 				nu->twist.angular.z = -labust::math::wrapRad(state.orientation.yaw - psi_r);
+				nu->twist.linear.x = nur(u) + nur(v)*nu->twist.angular.z;
+				nu->twist.linear.y = nur(v) - nur(u)*nu->twist.angular.z;
+				nu->twist.linear.z = nur(w);
 
 				geometry_msgs::TwistStamped::Ptr piref_out(new geometry_msgs::TwistStamped());
 				piref_out->twist.linear.x = dpi_r;

@@ -34,19 +34,63 @@
  *  Author: Dula Nad
  *  Created: 01.02.2013.
  *********************************************************************/
-#include <labust/tools/conversions.hpp>
+#include <labust/simulation/dvl_sim.h>
 
-#include <nav_msgs/Odometry.h>
-#include <geometry_msgs/TwistStamped.h>
-#include <std_msgs/Float32.h>
-#include <std_msgs/Bool.h>
-#include <ros/ros.h>
+using namespace labust::simulation;
 
-#include <Eigen/Dense>
-
-struct DvlSim
+DVLSim::DVLSim()
 {
-	DvlSim():
+	//Initialize the noise generators with minimal noise
+	for(int i=0; i<noise_gen.size(); ++i)
+	{
+		noise_gen[i].reset(new NoiseGenerator(rd,
+				boost::normal_distribution<>(0,1e-5)));
+	}
+
+	//Initialize the measurement mapping output
+	this->map_meas.resize(nstate);
+	map_meas<<m_u,m_v,m_w,m_alt;
+	this->sim_meas = Eigen::VectorXd::Zero(nstate);
+};
+
+void DVLSim::step(const vector& eta,
+		const vector& nu,
+		const vector& nuacc,
+		const EnvironmentModel& env)
+{
+	//Calculate the position derivative to get speed over-ground
+	for (int i=0; i<3; ++i) sim_meas(i) = (eta(i) - last_eta(i))/env.Ts;
+	last_eta = eta;
+
+	//Rotate into body frame
+	//sim_meas.head(3) = R*sim_meas.head(3);
+	//Calculate measured speed on sensor due to movement and lever arm
+	Eigen::Matrix3d omega;
+	enum {p=3,q,r};
+	omega<<0,-nu(r),nu(q),
+			nu(r),0,-nu(p),
+			-nu(q),nu(p),0;
+	sim_meas.head(3) = orot.toRotationMatrix()*(sim_meas.head(3) + omega*offset);
+
+	//Calculate the altitude
+
+
+};
+
+bool DVLSim::setNoise(const Eigen::VectorXd& mean, const Eigen::VectorXd& var)
+{
+	if ((mean.size() != var.size()) || (mean.size() != nstate)) return false;
+
+	for(int i=0; i<noise_gen.size(); ++i)
+	{
+		noise_gen[i].reset(new NoiseGenerator(rd,
+				boost::normal_distribution<>(mean(i),var(i))));
+	}
+
+	return true;
+};
+
+/*
 		maxBottomLock(100),
 		maxDepth(100),
 		dvl_pub(1)
@@ -56,14 +100,6 @@ struct DvlSim
 		ph.param("MaxBottomLock",maxBottomLock, maxBottomLock);
 		ph.param("MaxDepth", maxDepth, maxDepth);
 		ph.param("DvlPub", dvl_pub, dvl_pub);
-		std::vector<double> offset(3,0), orot(3,0);
-		ph.param("offset", offset, offset);
-		ph.param("orot", orot, orot);
-		this->offset<<offset[0],offset[1],offset[2];
-		labust::tools::quaternionFromEulerZYX(M_PI*orot[0]/180,
-				M_PI*orot[1]/180,
-				M_PI*orot[2]/180,
-				this->orot);
 
 		odom = nh.subscribe<nav_msgs::Odometry>("meas_odom",1,&DvlSim::onOdom, this);
 		dvl_nu = nh.advertise<geometry_msgs::TwistStamped>("dvl",1);
@@ -98,24 +134,13 @@ struct DvlSim
 
 			dvl.reset(new geometry_msgs::TwistStamped());
 			dvl->header.stamp = ros::Time::now();
-			dvl->header.frame_id = "dvl_frame";
+			dvl->header.frame_id = msg->child_frame_id;
 			//Calculate body-fixed speeds
-			Eigen::Quaternion<double> qv(msg->pose.pose.orientation.w,
+			Eigen::Quaternion<double> q(msg->pose.pose.orientation.w,
 					msg->pose.pose.orientation.x,
 					msg->pose.pose.orientation.y,
 					msg->pose.pose.orientation.z);
-			Eigen::Vector3d nu = qv.matrix().transpose() * Eigen::Vector3d(v[0],v[1],v[2]);
-
-			//Incorporate offsets for DVL frame
-			Eigen::Vector3d nur;
-			labust::tools::pointToVector(msg->twist.twist.angular, nur);
-			Eigen::Matrix3d omega;
-			enum {p=0,q,r};
-			omega<<0,-nur(r),nur(q),
-					nur(r),0,-nur(p),
-					-nur(q),nur(p),0;
-
-			nu = orot.toRotationMatrix().transpose()*(nu + omega*offset);
+			Eigen::Vector3d nu = q.matrix().transpose() * Eigen::Vector3d(v[0],v[1],v[2]);
 			dvl->twist.linear.x = nu(0);
 			dvl->twist.linear.y = nu(1);
 			dvl->twist.linear.z = nu(2);
@@ -143,20 +168,10 @@ private:
 	ros::Subscriber odom;
 	ros::Publisher dvl_nu, altitude_pub, dvl_ned, dvl_bottom;
 	ros::Time lastTime;
-	Eigen::Vector3d offset;
-	Eigen::Quaternion<double> orot;
 	double last_pos[3];
 	int dvl_pub;
 	double maxBottomLock, maxDepth;
 };
-
-int main(int argc, char* argv[])
-{
-	ros::init(argc,argv,"dvl_sim");
-	ros::NodeHandle nh;
-	DvlSim dvl;
-	ros::spin();
-	return 0;
-}
+*/
 
 

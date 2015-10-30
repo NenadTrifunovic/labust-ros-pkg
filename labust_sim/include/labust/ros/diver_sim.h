@@ -40,6 +40,7 @@
 
 #include <sensor_msgs/JointState.h>
 #include <auv_msgs/BodyVelocityReq.h>
+#include <auv_msgs/NavSts.h>
 #include <ros/ros.h>
 
 #include <boost/thread.hpp>
@@ -79,6 +80,15 @@ namespace labust
 				labust::tools::pointToVector(nu->twist.linear, this->nu);
 				labust::tools::pointToVector(nu->twist.angular, this->nu,3);
 			}
+			///Handle incoming init request
+			void onDiverInit(const auv_msgs::NavSts::ConstPtr& pos)
+			{
+				boost::mutex::scoped_lock l(nu_mux);
+				vector3 vpos, vrpy;
+				vpos<<pos->position.north, pos->position.east, pos->position.depth;
+				vrpy<<pos->orientation.roll, pos->orientation.pitch, pos->orientation.yaw;
+				model.setPosition(vpos, vrpy);
+			}
 
 			///Navigation state publisher
 			ros::Publisher navsts;
@@ -86,6 +96,8 @@ namespace labust
 			ros::Publisher joints;
 			///Subscriber to commanded speeds
 			ros::Subscriber nusub;
+			///Subscriber for initial position
+			ros::Subscriber initsub;
 			///The incoming speed vector
 			labust::simulation::vector nu;
 			///The incoming speed mutex
