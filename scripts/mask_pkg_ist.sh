@@ -3,7 +3,7 @@ SCRIPT_DIR="$( cd "$(dirname "$0")" ; pwd -P )"
 
 # Packages not used by IST
 LABUST_LIST="ident_so labust_diagnostics labust_sim labust_allocation labust_execution labust_navigation labust_control labust_framework"
-SENSOR_LIST="labust_imu image_processing diver_net novatel_dgps sensors_util usbl tritech_sdk spatial_ins diver_net labust_kinect"
+SENSOR_LIST="labust_imu image_processing diver_net novatel_dgps sensors_util usbl tritech_sdk spatial_ins diver_net labust_kinect navquest_dvl"
 VIS_LIST="labust_gearth labust_uwsim rqt_relay usbl_uwsim labust_gui"
 
 LABUST_PKG=${SCRIPT_DIR}/..
