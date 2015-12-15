@@ -47,15 +47,16 @@
 struct DvlSim
 {
 	DvlSim():
-		maxBottomLock(100),
-		maxDepth(100),
-		dvl_pub(1)
+		maxBottomLock(40),
+		maxDepth(30),
+		dvl_pub(1),
+		lastPubTime(ros::Time::now())
 	{
 		ros::NodeHandle nh,ph("~");
 
 		ph.param("MaxBottomLock",maxBottomLock, maxBottomLock);
 		ph.param("MaxDepth", maxDepth, maxDepth);
-		ph.param("DvlPub", dvl_pub, dvl_pub);
+		ph.param("dvl_pub", dvl_pub, dvl_pub);
 		std::vector<double> offset(3,0), orot(3,0);
 		ph.param("offset", offset, offset);
 		ph.param("orot", orot, orot);
@@ -76,52 +77,60 @@ struct DvlSim
 
 	void onOdom(const typename nav_msgs::Odometry::ConstPtr& msg)
 	{
-		static int i=0;
-		i=++i%dvl_pub;
-
-		if (i == 0)
+		//Get sampling time
+		double dT = (ros::Time::now() - lastTime).toSec();
+		lastTime = ros::Time::now();
+		//Get bottom lock
+		bool hasBottomLock = (maxDepth - msg->pose.pose.position.z) < maxBottomLock;
+		//Get rotation local->base_link
+		Eigen::Quaternion<double> qv(msg->pose.pose.orientation.w,
+				msg->pose.pose.orientation.x,
+				msg->pose.pose.orientation.y,
+				msg->pose.pose.orientation.z);
+		//Set first the water lock speeds
+		Eigen::Vector3d nu_b;
+		nu_b<<msg->twist.twist.linear.x,
+				msg->twist.twist.linear.y,
+				msg->twist.twist.linear.z;
+		Eigen::Vector3d nu_l = qv.toRotationMatrix()*nu_b;
+		if (hasBottomLock)
 		{
-			double dT = (ros::Time::now() - lastTime).toSec();
-			lastTime = ros::Time::now();
-			geometry_msgs::TwistStamped::Ptr dvl(new geometry_msgs::TwistStamped());
-			dvl->header.stamp = ros::Time::now();
-			dvl->header.frame_id = msg->header.frame_id;
-			double pos[3],v[3];
+			double pos[3];
 			labust::tools::pointToVector(msg->pose.pose.position, pos);
 			for (int i=0; i<3; ++i)
 			{
-				v[i] = (pos[i] - last_pos[i])/dT;
+				nu_l[i] = (pos[i] - last_pos[i])/dT;
 				last_pos[i] = pos[i];
 			}
-			labust::tools::vectorToPoint(v, dvl->twist.linear);
+			nu_b = qv.toRotationMatrix().transpose()*nu_l;
+		}
+		//Incorporate offsets for DVL frame
+		Eigen::Vector3d nur;
+		labust::tools::pointToVector(msg->twist.twist.angular, nur);
+		Eigen::Matrix3d omega;
+		enum {p=0,q,r};
+		omega<<0,-nur(r),nur(q),
+				nur(r),0,-nur(p),
+				-nur(q),nur(p),0;
+		nu_b = orot.toRotationMatrix().transpose()*(nu_b + omega*offset);
+		nu_l = qv.toRotationMatrix()*nu_b;
+
+		double lp((ros::Time::now() - lastPubTime).toSec());
+		if (lp >= 1/dvl_pub)
+		{
+			lastPubTime = ros::Time::now();
+			geometry_msgs::TwistStamped::Ptr dvl(new geometry_msgs::TwistStamped());
+			dvl->header.stamp = msg->header.stamp;
+			dvl->header.frame_id = msg->header.frame_id;
+			labust::tools::vectorToPoint(nu_l, dvl->twist.linear);
 			dvl_ned.publish(dvl);
-
 			dvl.reset(new geometry_msgs::TwistStamped());
-			dvl->header.stamp = ros::Time::now();
+			dvl->header.stamp = msg->header.stamp;
 			dvl->header.frame_id = "dvl_frame";
-			//Calculate body-fixed speeds
-			Eigen::Quaternion<double> qv(msg->pose.pose.orientation.w,
-					msg->pose.pose.orientation.x,
-					msg->pose.pose.orientation.y,
-					msg->pose.pose.orientation.z);
-			Eigen::Vector3d nu = qv.matrix().transpose() * Eigen::Vector3d(v[0],v[1],v[2]);
-
-			//Incorporate offsets for DVL frame
-			Eigen::Vector3d nur;
-			labust::tools::pointToVector(msg->twist.twist.angular, nur);
-			Eigen::Matrix3d omega;
-			enum {p=0,q,r};
-			omega<<0,-nur(r),nur(q),
-					nur(r),0,-nur(p),
-					-nur(q),nur(p),0;
-
-			nu = orot.toRotationMatrix().transpose()*(nu + omega*offset);
-			dvl->twist.linear.x = nu(0);
-			dvl->twist.linear.y = nu(1);
-			dvl->twist.linear.z = nu(2);
+			labust::tools::vectorToPoint(nu_b, dvl->twist.linear);
 			dvl_nu.publish(dvl);
 
-			if ((maxDepth - msg->pose.pose.position.z) < maxBottomLock)
+			if (hasBottomLock)
 			{
 				std_msgs::Float32::Ptr altitude(new std_msgs::Float32());
 				altitude->data = maxDepth - msg->pose.pose.position.z;
@@ -146,7 +155,8 @@ private:
 	Eigen::Vector3d offset;
 	Eigen::Quaternion<double> orot;
 	double last_pos[3];
-	int dvl_pub;
+	double dvl_pub;
+	ros::Time lastPubTime;
 	double maxBottomLock, maxDepth;
 };
 

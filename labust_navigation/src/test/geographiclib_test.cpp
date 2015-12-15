@@ -6,6 +6,7 @@
  */
 #include <labust/tools/GeoUtilities.hpp>
 #include <labust/tools/conversions.hpp>
+#include <labust/math/NumberManipulation.hpp>
 #include <iostream>
 #include <exception>
 #include <cmath>
@@ -56,7 +57,7 @@ void compare_methods(double olat, double olon, double oh, double lat, double lon
 	std::cout<<"Method 1 NED origin: x="<<0<<", y="<<0<<", z= "<<0<<std::endl;
 	std::cout<<"Method 2 NED origin: x="<<ned(0)<<", y="<<ned(1)<<", z= "<<ned(2)<<std::endl;
 	std::cout<<"Method 3 NED origin: x="<<on<<", y="<<oe<<", z= "<<od<<std::endl;
-	std::cout<<"Method 1 NED vehicle: x="<<posxy.first<<", y="<<posxy.second<<", z= "<<-(h-oh)<<std::endl;
+	//std::cout<<"Method 1 NED vehicle: x="<<posxy.first<<", y="<<posxy.second<<", z= "<<-(h-oh)<<std::endl;
 	std::cout<<"Method 2 NED vehicle: x="<<vned(0)<<", y="<<vned(1)<<", z= "<<vned(2)<<std::endl;
 	std::cout<<"Method 3 ENU vehicle: x="<<n<<", y="<<e<<", z= "<<d<<std::endl;
 	Eigen::Vector3d venu(n,e,d);
@@ -94,6 +95,9 @@ int main(int argc, char* argv[])
 
 	compare_methods(olat,olon,oh,lat,lon,h);
 	magnetic_declination(lat,lon,h);
+
+	std::cout<<"Wrapped:"<<labust::math::wrapRad(-7)<<std::endl;
+	std::cout<<"Fmod:"<<fmod(-7, 2*M_PI)<<std::endl;
 
 	return 0;
 }

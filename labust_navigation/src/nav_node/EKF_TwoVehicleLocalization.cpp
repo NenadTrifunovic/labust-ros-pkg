@@ -50,7 +50,6 @@
  *********************************************************************/
 #include <labust/navigation/TwoVehicleLocalization.hpp>
 #include <labust/navigation/TwoVehicleLocalizationModel.hpp>
-#include <labust/tools/GeoUtilities.hpp>
 #include <labust/tools/MatrixLoader.hpp>
 #include <labust/tools/conversions.hpp>
 #include <labust/tools/DynamicsLoader.hpp>

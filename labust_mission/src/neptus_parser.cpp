@@ -7,38 +7,38 @@
  ********************************************************************/
 
 /*********************************************************************
-* Software License Agreement (BSD License)
-*
-*  Copyright (c) 2014, LABUST, UNIZG-FER
-*  All rights reserved.
-*
-*  Redistribution and use in source and binary forms, with or without
-*  modification, are permitted provided that the following conditions
-*  are met:
-*
-*   * Redistributions of source code must retain the above copyright
-*     notice, this list of conditions and the following disclaimer.
-*   * Redistributions in binary form must reproduce the above
-*     copyright notice, this list of conditions and the following
-*     disclaimer in the documentation and/or other materials provided
-*     with the distribution.
-*   * Neither the name of the LABUST nor the names of its
-*     contributors may be used to endorse or promote products derived
-*     from this software without specific prior written permission.
-*
-*  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-*  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-*  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-*  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-*  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-*  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-*  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-*  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-*  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-*  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-*  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-*  POSSIBILITY OF SUCH DAMAGE.
-*********************************************************************/
+ * Software License Agreement (BSD License)
+ *
+ *  Copyright (c) 2014, LABUST, UNIZG-FER
+ *  All rights reserved.
+ *
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions
+ *  are met:
+ *
+ *   * Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *   * Redistributions in binary form must reproduce the above
+ *     copyright notice, this list of conditions and the following
+ *     disclaimer in the documentation and/or other materials provided
+ *     with the distribution.
+ *   * Neither the name of the LABUST nor the names of its
+ *     contributors may be used to endorse or promote products derived
+ *     from this software without specific prior written permission.
+ *
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ *  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ *  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ *  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ *  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ *  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ *  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ *  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ *  POSSIBILITY OF SUCH DAMAGE.
+ *********************************************************************/
 
 #include <labust_mission/labustMission.hpp>
 #include <labust_mission/maneuverGenerator.hpp>
@@ -49,8 +49,10 @@
 
 #include <tf2_ros/transform_listener.h>
 #include <labust/tools/conversions.hpp>
-#include <labust/tools/GeoUtilities.hpp>
 #include <tinyxml2.h>
+
+#include <GeographicLib/Geocentric.hpp>
+#include <GeographicLib/LocalCartesian.hpp>
 
 using namespace std;
 using namespace tinyxml2;
@@ -69,12 +71,12 @@ public:
 	 ********************************************************************/
 
 	NeptusParser():startPointSet(false),
-					 startRelative(true),
-					 latLonAbs(false),
-					 underactuated(true),
-					 speed(0.5),
-					 heading(0.0),
-					 victory_radius(1.0){
+	startRelative(true),
+	latLonAbs(false),
+	underactuated(true),
+	speed(0.5),
+	heading(0.0),
+	victory_radius(1.0){
 
 		offset.north = offset.east = 0;
 		xmlSavePath = "";
@@ -93,57 +95,57 @@ public:
 
 	int parseNeptus(string xmlFile){
 
-	   /* Open XML file */
-	   if(xmlDoc.LoadFile(xmlFile.c_str()) == XML_SUCCESS) {
+		/* Open XML file */
+		if(xmlDoc.LoadFile(xmlFile.c_str()) == XML_SUCCESS) {
 
-		   ROS_INFO("*.nmis mission file successfully loaded.");
-		   /* Write mission tag */
-		   MG.writeXML.addMission();
+			ROS_INFO("*.nmis mission file successfully loaded.");
+			/* Write mission tag */
+			MG.writeXML.addMission();
 
-		   /* Go to graph node and loop through it's children */
-		   XMLElement *graph = xmlDoc.FirstChildElement("mission-def")->FirstChildElement("body")
-											   ->FirstChildElement("plan")->FirstChildElement("graph");
+			/* Go to graph node and loop through it's children */
+			XMLElement *graph = xmlDoc.FirstChildElement("mission-def")->FirstChildElement("body")
+											  		 ->FirstChildElement("plan")->FirstChildElement("graph");
 
-		   for (XMLElement* node = graph->FirstChildElement(); node != NULL; node = node->NextSiblingElement()){
+			for (XMLElement* node = graph->FirstChildElement(); node != NULL; node = node->NextSiblingElement()){
 
-			   /* Check if child element is maneuver node */
-			   if( XMLElement *maneuver = node->FirstChildElement("maneuver")){
+				/* Check if child element is maneuver node */
+				if( XMLElement *maneuver = node->FirstChildElement("maneuver")){
 
-				   /* Loop through maneuver child nodes */
-				   for (XMLElement* maneuverType = maneuver->FirstChildElement(); maneuverType != NULL; maneuverType = maneuverType->NextSiblingElement()){
+					/* Loop through maneuver child nodes */
+					for (XMLElement* maneuverType = maneuver->FirstChildElement(); maneuverType != NULL; maneuverType = maneuverType->NextSiblingElement()){
 
-					   /* Check maneuver type */
-					   if(strcmp(maneuverType->ToElement()->Name(),"Goto") == 0){
+						/* Check maneuver type */
+						if(strcmp(maneuverType->ToElement()->Name(),"Goto") == 0){
 
-						   ROS_ERROR("GoTo manevar");
-						   parseGoto(maneuverType);
+							ROS_ERROR("GoTo manevar");
+							parseGoto(maneuverType);
 
-					   } else  if(strcmp(maneuverType->ToElement()->Name(),"Loiter") == 0){
+						} else  if(strcmp(maneuverType->ToElement()->Name(),"Loiter") == 0){
 
-						   ROS_ERROR("loiter manevar");
-						   parseLoiter(maneuverType);
+							ROS_ERROR("loiter manevar");
+							parseLoiter(maneuverType);
 
-					   } else  if(strcmp(maneuverType->ToElement()->Name(),"RowsManeuver") == 0){
+						} else  if(strcmp(maneuverType->ToElement()->Name(),"RowsManeuver") == 0){
 
-						   ROS_ERROR("lawnmower manevar");
-						   parseRows(maneuverType);
+							ROS_ERROR("lawnmower manevar");
+							parseRows(maneuverType);
 
-					   } else  if(strcmp(maneuverType->ToElement()->Name(),"StationKeeping") == 0){
+						} else  if(strcmp(maneuverType->ToElement()->Name(),"StationKeeping") == 0){
 
-						   ROS_ERROR("DP manevar");
-						   parseStationKeeping(maneuverType);
-					   }
-				   }
-			   }
-		   }
+							ROS_ERROR("DP manevar");
+							parseStationKeeping(maneuverType);
+						}
+					}
+				}
+			}
 
-		   /* Save XML file */
-		   MG.writeXML.saveXML(xmlSavePath);
-		   return 1;
-	   } else {
-		   ROS_ERROR("Cannot open XML file!");
-		   return -1;
-	   }
+			/* Save XML file */
+			MG.writeXML.saveXML(xmlSavePath);
+			return 1;
+		} else {
+			ROS_ERROR("Cannot open XML file!");
+			return -1;
+		}
 	}
 
 
@@ -152,7 +154,7 @@ public:
 		ROS_INFO("Parsing goto maneuver...");
 
 		XMLElement *LatLonPoint = maneuverType->FirstChildElement("finalPoint")->FirstChildElement("point")->
-									   	   	   	   	   	   	   	   	   FirstChildElement("coordinate")->FirstChildElement("latitude");
+				FirstChildElement("coordinate")->FirstChildElement("latitude");
 		/* Read maneuver parameters */
 		ROS_ERROR("Lat: %s", LatLonPoint->ToElement()->GetText());
 		string lat = LatLonPoint->ToElement()->GetText();
@@ -196,7 +198,7 @@ public:
 		ROS_INFO("Parsing rows maneuver...");
 
 		XMLElement *LatLonPoint = maneuverType->FirstChildElement("basePoint")->FirstChildElement("point")->
-																   FirstChildElement("coordinate")->FirstChildElement("latitude");
+				FirstChildElement("coordinate")->FirstChildElement("latitude");
 		/* Read rows maneuver start point parameters */
 		ROS_ERROR("Lat: %s", LatLonPoint->ToElement()->GetText());
 		string lat = LatLonPoint->ToElement()->GetText();
@@ -286,7 +288,7 @@ public:
 
 				if(strcmp(param->ToElement()->Attribute("unit"),"RPM") == 0) {
 
-				ROS_ERROR("Speed units RPM. Leaving default speed: %f m/s", speed);
+					ROS_ERROR("Speed units RPM. Leaving default speed: %f m/s", speed);
 
 				} else {
 					speed = atof(param->ToElement()->GetText());
@@ -295,14 +297,14 @@ public:
 			}
 		}
 
-ROS_ERROR("width: %f, length: %f, hstep: %f, bearing: %f, alternationPercent: %f, curvOff: %f, crossAngle: %f, speed: %f, squareCurve: %d, invertY: %d", width, length, hstep, bearing, alternationPercent,curvOff, crossAngle,speed, squareCurve, invertY);
+		ROS_ERROR("width: %f, length: %f, hstep: %f, bearing: %f, alternationPercent: %f, curvOff: %f, crossAngle: %f, speed: %f, squareCurve: %d, invertY: %d", width, length, hstep, bearing, alternationPercent,curvOff, crossAngle,speed, squareCurve, invertY);
 
 
 		/* Generate maneuver points */
 		std::vector<Eigen::Vector4d> tmpPoints;
 		tmpPoints = MG.calcRowsPoints(width, length, hstep,
-					alternationPercent/100, curvOff, squareCurve, bearing*M_PI/180,
-					crossAngle*M_PI/180, invertY);
+				alternationPercent/100, curvOff, squareCurve, bearing*M_PI/180,
+				crossAngle*M_PI/180, invertY);
 
 		/* For each point subtract offset and add start point */
 		for(std::vector<Eigen::Vector4d>::iterator it = tmpPoints.begin(); it != tmpPoints.end(); ++it){
@@ -326,7 +328,7 @@ ROS_ERROR("width: %f, length: %f, hstep: %f, bearing: %f, alternationPercent: %f
 		ROS_INFO("Parsing StationKeeping maneuver...");
 
 		XMLElement *LatLonPoint = maneuverType->FirstChildElement("basePoint")->FirstChildElement("point")->
-																	   FirstChildElement("coordinate")->FirstChildElement("latitude");
+				FirstChildElement("coordinate")->FirstChildElement("latitude");
 		/* Read maneuver parameters */
 		ROS_ERROR("Lat: %s", LatLonPoint->ToElement()->GetText());
 		string lat = LatLonPoint->ToElement()->GetText();
@@ -376,7 +378,7 @@ ROS_ERROR("width: %f, length: %f, hstep: %f, bearing: %f, alternationPercent: %f
 		ROS_ERROR("DMS %f, %f, %f", DLon, MLon, SLon);
 
 		LatLon.latitude = DLat+MLat/60+SLat/3600;
-	    LatLon.longitude = DLon+MLon/60+SLon/3600;
+		LatLon.longitude = DLon+MLon/60+SLon/3600;
 
 		ROS_ERROR("LAT LON %f, %f", LatLon.latitude, LatLon.longitude);
 		ROS_ERROR("Origin LAT LON %f, %f", origin.latitude, origin.longitude);
@@ -384,13 +386,15 @@ ROS_ERROR("width: %f, length: %f, hstep: %f, bearing: %f, alternationPercent: %f
 
 
 		//posxy =	labust::tools::deg2meter(LatLon.latitude - startPoint.latitude, LatLon.longitude - startPoint.longitude, startPoint.longitude);
-		posxy =	labust::tools::deg2meter(LatLon.latitude - origin.latitude, LatLon.longitude - origin.longitude, origin.latitude);
+		proj.Reset(origin.latitude, origin.longitude, 0);
+		double e,n,u;
+		proj.Forward(LatLon.latitude, LatLon.longitude, 0, e, n, u);
 
-	    position.north = posxy.first;
-	    position.east = posxy.second;
-	    position.depth = 0;
+		position.north = n;
+		position.east = e;
+		position.depth = 0;
 
-	    return position;
+		return position;
 	}
 
 	void setStartPoint(auv_msgs::NED position){
@@ -426,6 +430,9 @@ ROS_ERROR("width: %f, length: %f, hstep: %f, bearing: %f, alternationPercent: %f
 	/*** Mission parameters ***/
 	bool underactuated;
 	double speed, heading, victory_radius;
+
+	/*** Geo conversion ***/
+	GeographicLib::LocalCartesian proj;
 };
 
 void startParseCallback(ros::Publisher &pubStartDispatcher, const misc_msgs::StartNeptusParser::ConstPtr& msg){
