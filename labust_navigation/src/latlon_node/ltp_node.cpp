@@ -35,7 +35,6 @@
  *  Created: 01.02.2013.
  *********************************************************************/
 #include <labust/tools/conversions.hpp>
-#include <labust/tools/GeoUtilities.hpp>
 
 #include <sensor_msgs/NavSatFix.h>
 #include <tf2_ros/static_transform_broadcaster.h>
@@ -91,6 +90,7 @@ struct LTPNode
 
 	void setupFrame()
 	{
+		/*
 		Eigen::Vector3d geo;
 		geo<<origin_lon, origin_lat, 0;
 		Eigen::Vector3d ecef = labust::tools::geodetic2ecef(geo);
@@ -109,6 +109,7 @@ struct LTPNode
 		transform.header.frame_id = "ecef";
 		transform.header.stamp = ros::Time::now();
 		broadcaster.sendTransform(transform);
+		*/
 	}
 
 private:

@@ -1,0 +1,8 @@
+<launch>
+	<param name="LocalOriginLat" value="42"/>
+  <param name="LocalOriginLon" value="15"/>
+    
+  <node pkg="labust_navigation" type="llnode" name="llnode" output="screen">
+    <param name="LocalFixSim" value="true" />
+  </node>
+</launch>

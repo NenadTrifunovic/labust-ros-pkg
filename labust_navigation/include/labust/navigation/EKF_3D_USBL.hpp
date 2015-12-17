@@ -61,6 +61,9 @@
 #include <std_msgs/Bool.h>
 #include <std_msgs/Int32.h>
 
+#include <GeographicLib/Geocentric.hpp>
+#include <GeographicLib/LocalCartesian.hpp>
+
 #include <stack>
 #include <deque>
 
@@ -286,6 +289,8 @@ namespace labust
 			int nsamples_alt;
 			//The accepted variance for altimeter
 			double altok_var;
+			//The ENU projection
+			GeographicLib::LocalCartesian proj;
 
 			//DVL filter params
 			double dvl_fp;

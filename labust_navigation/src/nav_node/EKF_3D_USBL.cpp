@@ -50,7 +50,6 @@
  *********************************************************************/
 #include <labust/navigation/EKF_3D_USBL.hpp>
 #include <labust/navigation/EKF_3D_USBLModel.hpp>
-#include <labust/tools/GeoUtilities.hpp>
 #include <labust/tools/MatrixLoader.hpp>
 #include <labust/tools/conversions.hpp>
 #include <labust/tools/DynamicsLoader.hpp>
@@ -681,13 +680,21 @@ void Estimator3D::publishState()
 	state->orientation.yaw = labust::math::wrapRad(estimate(KFNav::psi));
 
 	state->origin.latitude = gps.origin().first;
-    state->origin.longitude = gps.origin().second;
-	std::pair<double, double> diffAngle = labust::tools::meter2deg(state->position.north,
+  state->origin.longitude = gps.origin().second;
+  proj.Reset(state->origin.latitude, state->origin.longitude, gps.origin_h());
+	Eigen::Quaternion<double> qrot;
+	labust::tools::quaternionFromEulerZYX(M_PI,0,M_PI/2,qrot);
+	Eigen::Vector3d ned;
+	ned<<state->position.north,
 			state->position.east,
-			//The latitude angle
-			state->origin.latitude);
-	state->global_position.latitude = state->origin.latitude + diffAngle.first;
-	state->global_position.longitude = state->origin.longitude + diffAngle.second;
+			state->position.depth;
+	double h;
+	Eigen::Vector3d enu =  qrot.toRotationMatrix().transpose()*ned;
+  proj.Reverse(enu(0),
+  		enu(1),
+			enu(2),
+			state->global_position.latitude,
+			state->global_position.longitude,h);
 
 	const KFNav::matrix& covariance = nav.getStateCovariance();
 	state->position_variance.north = covariance(KFNav::xp, KFNav::xp);
@@ -949,11 +956,24 @@ void Estimator3D::start()
 		//Update DVL sensor
 		if (updateDVL) dvl.current_r(cstate(KFNav::r));
 
+		//local -> base_pose
 		transform.transform.translation.x = cstate(KFNav::xp);
 		transform.transform.translation.y = cstate(KFNav::yp);
 		transform.transform.translation.z = cstate(KFNav::zp);
+		labust::tools::quaternionFromEulerZYX(0, 0, 0, transform.transform.rotation);
+		if(absoluteEKF){
+			transform.child_frame_id = "base_pose_usbl_abs";
+		} else{
+			transform.child_frame_id = "base_pose_usbl";
+		}
+		transform.header.frame_id = "local";
+		transform.header.stamp = ros::Time::now();
+		broadcaster.sendTransform(transform);
 
-
+		//local -> base_pose
+		transform.transform.translation.x = 0;
+		transform.transform.translation.y = 0;
+		transform.transform.translation.z = 0;
 		labust::tools::quaternionFromEulerZYX(cstate(KFNav::phi),
 				cstate(KFNav::theta),
 				cstate(KFNav::psi),
@@ -963,8 +983,7 @@ void Estimator3D::start()
 		} else{
 			transform.child_frame_id = "base_link_usbl";
 		}
-		transform.header.frame_id = "local";
-		transform.header.stamp = ros::Time::now();
+		transform.header.frame_id = "base_pose_usbl";
 		broadcaster.sendTransform(transform);
 
 		rate.sleep();

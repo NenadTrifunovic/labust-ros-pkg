@@ -236,17 +236,26 @@ void SimCore::publishSimBaseLink()
 {
 	const vector& eta = model.Eta();
 
+	//base_pose_sim
 	geometry_msgs::TransformStamped transform;
 	transform.transform.translation.x = eta(RBModel::x);
 	transform.transform.translation.y = eta(RBModel::y);
 	transform.transform.translation.z = eta(RBModel::z);
+	labust::tools::quaternionFromEulerZYX(0,0,0,transform.transform.rotation);
+	transform.child_frame_id = "base_pose_sim";
+	transform.header.frame_id = "local";
+	transform.header.stamp = ros::Time::now();
+	broadcast.sendTransform(transform);
+
+	transform.transform.translation.x = 0;
+	transform.transform.translation.y = 0;
+	transform.transform.translation.z = 0;
 	labust::tools::quaternionFromEulerZYX(eta(RBModel::phi),
 			eta(RBModel::theta),
 			eta(RBModel::psi),
 			transform.transform.rotation);
 	transform.child_frame_id = "base_link_sim";
-	transform.header.frame_id = "local";
-	transform.header.stamp = ros::Time::now();
+	transform.header.frame_id = "base_pose_sim";
 	broadcast.sendTransform(transform);
 }
 
