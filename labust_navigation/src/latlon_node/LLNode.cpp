@@ -58,7 +58,8 @@ struct LLNode
 		originH(0),
 		proj(originLat,originLon,originH),
 		fixValidated(false),
-		fixCount(0)
+		fixCount(0),
+		use_mag(false)
 	{
 		ros::NodeHandle nh,ph("~");
 		nh.param("LocalOriginLat",originLat,originLat);
@@ -70,7 +71,15 @@ struct LLNode
 		std::string magnetic_path("/usr/share/geographiclib/magnetic");
 		ph.param("magnetic_data_path", magnetic_path, magnetic_path);
 		ph.param("magnetic_model", magnetic_model, magnetic_model);
-		mag.reset(new GeographicLib::MagneticModel(magnetic_model, magnetic_path));
+		try
+		{
+			mag.reset(new GeographicLib::MagneticModel(magnetic_model, magnetic_path));
+			use_mag = (mag != 0);
+		}
+		catch (std::exception& e)
+		{
+			ROS_ERROR("%s", e.what());
+		}
 
 		//Setup the local projection
 		if (fixValidated) proj.Reset(originLat, originLon, originH);
@@ -118,16 +127,23 @@ struct LLNode
 			gps_ned.publish(gpsout);
 
 			//Magnetic declination
-		  double Bx, By, Bz;
-		  using namespace boost::posix_time;
-		  double days = second_clock::local_time().date().day_of_year();
-		  double year = second_clock::local_time().date().year() + days/356.25;
-		  (*mag)(year, fix->latitude, fix->longitude, fix->altitude, Bx, By, Bz);
-		  double H, F, D, I;
-		  GeographicLib::MagneticModel::FieldComponents(Bx, By, Bz, H, F, D, I);
-		  std_msgs::Float64 dec;
-		  dec.data = M_PI*D/180;
-		  mag_dec.publish(dec);
+			if (use_mag)
+			{
+				double Bx, By, Bz;
+				using namespace boost::posix_time;
+				double days = second_clock::local_time().date().day_of_year();
+				double year = second_clock::local_time().date().year() + days/356.25;
+				(*mag)(year, fix->latitude, fix->longitude, fix->altitude, Bx, By, Bz);
+				double H, F, D, I;
+				GeographicLib::MagneticModel::FieldComponents(Bx, By, Bz, H, F, D, I);
+				std_msgs::Float64 dec;
+				dec.data = M_PI*D/180;
+				mag_dec.publish(dec);
+			}
+			else
+			{
+				ROS_WARN("Magnetic model unavailable.");
+			}
 		}
 	};
 
@@ -185,7 +201,8 @@ private:
 	//The ENU frame
 	GeographicLib::LocalCartesian proj;
 	//The magnetic model
-  boost::shared_ptr<GeographicLib::MagneticModel> mag;
+	boost::shared_ptr<GeographicLib::MagneticModel> mag;
+	bool use_mag;
 };
 
 int main(int argc, char* argv[])

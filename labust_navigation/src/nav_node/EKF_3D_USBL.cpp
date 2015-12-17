@@ -956,11 +956,24 @@ void Estimator3D::start()
 		//Update DVL sensor
 		if (updateDVL) dvl.current_r(cstate(KFNav::r));
 
+		//local -> base_pose
 		transform.transform.translation.x = cstate(KFNav::xp);
 		transform.transform.translation.y = cstate(KFNav::yp);
 		transform.transform.translation.z = cstate(KFNav::zp);
+		labust::tools::quaternionFromEulerZYX(0, 0, 0, transform.transform.rotation);
+		if(absoluteEKF){
+			transform.child_frame_id = "base_pose_usbl_abs";
+		} else{
+			transform.child_frame_id = "base_pose_usbl";
+		}
+		transform.header.frame_id = "local";
+		transform.header.stamp = ros::Time::now();
+		broadcaster.sendTransform(transform);
 
-
+		//local -> base_pose
+		transform.transform.translation.x = 0;
+		transform.transform.translation.y = 0;
+		transform.transform.translation.z = 0;
 		labust::tools::quaternionFromEulerZYX(cstate(KFNav::phi),
 				cstate(KFNav::theta),
 				cstate(KFNav::psi),
@@ -970,8 +983,7 @@ void Estimator3D::start()
 		} else{
 			transform.child_frame_id = "base_link_usbl";
 		}
-		transform.header.frame_id = "local";
-		transform.header.stamp = ros::Time::now();
+		transform.header.frame_id = "base_pose_usbl";
 		broadcaster.sendTransform(transform);
 
 		rate.sleep();
