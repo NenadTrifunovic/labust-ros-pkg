@@ -21,8 +21,9 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 ## System dependencies are found with CMake's conventions
-# find_package(Boost REQUIRED COMPONENTS system)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/")
 find_package(Boost REQUIRED)
+find_package(GeographicLib REQUIRED)
 
 find_path(TinyXML2_INCLUDE_DIR tinyxml2.h
 	PATH_SUFFIXES include
@@ -116,74 +117,60 @@ include_directories(
   include
   ${catkin_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIRS}
-  ${TinyXML2_INCLUDE_DIR}
-)
+  ${GeographicLib_INCLUDE_DIRS})
 
-## Declare a cpp library
-# add_library(caddy_state_machine
-#   src/${PROJECT_NAME}/caddy_state_machine.cpp
-# )
-add_executable(mission_exec src/mission_exec.cpp)
-#add_executable(mission_exec_INTEGRATED src/mission_exec_INTEGRATED.cpp)
-add_executable(neptus_parser src/neptus_parser.cpp)
-add_executable(mission_parser src/mission_parser.cpp)
-add_executable(data_event_manager src/data_event_manager.cpp)
+if (TinyXML2_FOUND)
+	include_directories(${TinyXML2_INCLUDE_DIR})
+	
+	add_executable(mission_exec src/mission_exec.cpp)
+    add_executable(neptus_parser src/neptus_parser.cpp)
+	#add_executable(mission_exec_INTEGRATED src/mission_exec_INTEGRATED.cpp)
+	add_executable(mission_parser src/mission_parser.cpp)
+	add_executable(data_event_manager src/data_event_manager.cpp)
+	#add_executable(testSerialization src/serialization_test.cpp)
+	#add_executable(mission_control_test src/mission_control_test.cpp)
+	
+	if (DEFINED catkin_EXPORTED_TARGETS)
+	  add_dependencies(mission_exec ${catkin_EXPORTED_TARGETS})
+	  #add_dependencies(mission_exec_INTEGRATED ${catkin_EXPORTED_TARGETS})
+	  add_dependencies(mission_parser ${catkin_EXPORTED_TARGETS})
+	  add_dependencies(neptus_parser ${catkin_EXPORTED_TARGETS})
+	  add_dependencies(data_event_manager ${catkin_EXPORTED_TARGETS})
+	  #add_dependencies(testSerialization ${catkin_EXPORTED_TARGETS})
+	endif()
+	
+	target_link_libraries(mission_exec ${catkin_LIBRARIES} ${TinyXML2_LIBRARY})
+	#target_link_libraries(mission_exec_INTEGRATED ${catkin_LIBRARIES}  ${TinyXML2_LIBRARY})
+	target_link_libraries(mission_parser ${catkin_LIBRARIES} ${TinyXML2_LIBRARY})
+	target_link_libraries(data_event_manager ${catkin_LIBRARIES} ${TinyXML2_LIBRARY})
+	target_link_libraries(neptus_parser ${catkin_LIBRARIES} ${TinyXML2_LIBRARY} ${GeographicLib_LIBRARIES})
+	#target_link_libraries(testSerialization ${catkin_LIBRARIES} ${TinyXML2_LIBRARY})
+else()
+  message("WARNING" "Custom installation of TinyXML2 library is missing.")
+endif()
+
 add_executable(lod missions/lawnmower_on_demand.cpp)
 add_executable(ckt missions/course_keeping_turns.cpp)
 add_executable(mzos missions/mzos.cpp)
-#add_executable(testSerialization src/serialization_test.cpp)
 #add_executable(mission_control_test src/mission_control_test.cpp)
 
-## Declare a cpp executable
-# add_executable(caddy_state_machine_node src/caddy_state_machine_node.cpp)
-
-## Add cmake target dependencies of the executable/library
-## as an example, message headers may need to be generated before nodes
-# add_dependencies(caddy_state_machine_node caddy_state_machine_generate_messages_cpp)
-
-## Specify libraries to link a library or executable target against
-# target_link_libraries(caddy_state_machine_node
-#   ${catkin_LIBRARIES}
-# )
-
 if (DEFINED catkin_EXPORTED_TARGETS)
-  add_dependencies(mission_exec ${catkin_EXPORTED_TARGETS})
-#  add_dependencies(mission_exec_INTEGRATED ${catkin_EXPORTED_TARGETS})
-  add_dependencies(neptus_parser ${catkin_EXPORTED_TARGETS})
-  add_dependencies(mission_parser ${catkin_EXPORTED_TARGETS})
-  add_dependencies(data_event_manager ${catkin_EXPORTED_TARGETS})
   add_dependencies(lod ${catkin_EXPORTED_TARGETS})
   add_dependencies(ckt ${catkin_EXPORTED_TARGETS})
   add_dependencies(mzos ${catkin_EXPORTED_TARGETS})
-  #add_dependencies(testSerialization ${catkin_EXPORTED_TARGETS})
-#add_dependencies(mission_control_test ${catkin_EXPORTED_TARGETS})
+  #add_dependencies(mission_control_test ${catkin_EXPORTED_TARGETS})
 endif()
 
 #link_directories(/usr/include/)
-target_link_libraries(mission_exec ${catkin_LIBRARIES} ${TinyXML2_LIBRARY})
-#target_link_libraries(mission_exec_INTEGRATED ${catkin_LIBRARIES}  tinyxml2)
-target_link_libraries(neptus_parser ${catkin_LIBRARIES} ${TinyXML2_LIBRARY} Geographic)
-target_link_libraries(mission_parser ${catkin_LIBRARIES} ${TinyXML2_LIBRARY})
-target_link_libraries(data_event_manager ${catkin_LIBRARIES} ${TinyXML2_LIBRARY})
 target_link_libraries(lod ${catkin_LIBRARIES})
 target_link_libraries(ckt ${catkin_LIBRARIES})
 target_link_libraries(mzos ${catkin_LIBRARIES})
-#target_link_libraries(testSerialization ${catkin_LIBRARIES}  tinyxml2)
 
-
-#target_link_libraries(mission_control_test ${catkin_LIBRARIES})
-
-decision_making_parsing(
-	src/mission_exec.cpp
-)
+decision_making_parsing(src/mission_exec.cpp)
 
 #############
 ## Install ##
 #############
-
-install(TARGETS mission_exec
-	RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
 
 # all install targets should use catkin DESTINATION variables
 # See http://ros.org/doc/api/catkin/html/adv_user_guide/variables.html
