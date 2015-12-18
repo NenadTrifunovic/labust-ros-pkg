@@ -1,7 +1,40 @@
 #!/usr/bin/env python
 '''
+/*********************************************************************
+ * Software License Agreement (BSD License)
+ *
+ *  Copyright (c) 2010, LABUST, UNIZG-FER
+ *  All rights reserved.
+ *
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions
+ *  are met:
+ *
+ *   * Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *   * Redistributions in binary form must reproduce the above
+ *     copyright notice, this list of conditions and the following
+ *     disclaimer in the documentation and/or other materials provided
+ *     with the distribution.
+ *   * Neither the name of the LABUST nor the names of its
+ *     contributors may be used to endorse or promote products derived
+ *     from this software without specific prior written permission.
+ *
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ *  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ *  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ *  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ *  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ *  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ *  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ *  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ *  POSSIBILITY OF SUCH DAMAGE.
+ *********************************************************************/
+ 
 Created on Dec 15, 2015
- \todo Add license information here
 @author: Filip Mandic
 '''
 import rospy
@@ -10,23 +43,22 @@ import math
 from auv_msgs.msg import NavSts, BodyForceReq
 from gazebo_msgs.srv import SetModelState, SetModelStateRequest
 from gazebo_msgs.srv import ApplyBodyWrench, ApplyBodyWrenchRequest
-
 from geometry_msgs.msg import TransformStamped, Vector3Stamped, PoseStamped
 import tf
 
-
-     
 class MessageTransformer:
     def __init__(self):
+        
+        ''' Get parameters '''
+        self.model_name = rospy.get_param('~model_name','lupis')
+        ''' Initialize services '''
         rospy.wait_for_service('/gazebo/set_model_state')
         self.setState = rospy.ServiceProxy('/gazebo/set_model_state', SetModelState, True)
         rospy.wait_for_service('/gazebo/apply_body_wrench')
         self.applyWrench = rospy.ServiceProxy('/gazebo/apply_body_wrench', ApplyBodyWrench, True)
-        
-        self.model_name = rospy.get_param('~model_name','lupis')
-        
+        ''' Setup listener '''
         self.listener = tf.TransformListener()
-        
+        ''' Subscribers '''
         rospy.Subscriber("stateHat", NavSts, self.onNavSts)
         rospy.Subscriber("tauOut", BodyForceReq, self.onTauOut)
     
@@ -34,13 +66,12 @@ class MessageTransformer:
         req = SetModelStateRequest()
         req.model_state.model_name = self.model_name
         try:
-            pass
+            ''' Set desired frame for coversion '''
             child_frame= "gazebo_world"
+            ''' Set initial frame pose '''
             pose = PoseStamped()
-            #pose.header.frame_id = "local"
             pose.header.frame_id = data.header.frame_id
             pose.header.stamp = self.listener.getLatestCommonTime(child_frame,pose.header.frame_id)
-
             pose.pose.position.x = data.position.north
             pose.pose.position.y = data.position.east
             pose.pose.position.z = data.position.depth
@@ -51,103 +82,18 @@ class MessageTransformer:
             pose.pose.orientation.y = quat[1]
             pose.pose.orientation.z = quat[2]
             pose.pose.orientation.w = quat[3]
-            
+            ''' Get desired frame pose '''
             pose2 = self.listener.transformPose(child_frame, pose)
-            
-            #pose2.pose.position.z = 2
             req.model_state.pose.position = pose2.pose.position
             req.model_state.pose.orientation = pose2.pose.orientation
+            ''' Set model state service call '''
             self.setState(req)
                
         except (tf.Exception, tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
             rospy.logerr("Error on frame conversion.")
-                     
-             
+                              
     def onTauOut(self,data):
         pass
-#         return
-#         vrijeme = rospy.Time.now()
-#         try:      
-#             #trans = self.buffer.lookup_transform("base_link_sim", "lupis__base_link", rospy.Time(0))
-#             #trans = self.buffer.lookup_transform("base_link_sim","lupis__base_link", rospy.Time(0))
-#             
-#         
-#             #(trans,rot) = self.listener.lookupTransform("base_link","lupis__base_link", rospy.Time(0))
-#    
-#           
-#            
-#      
-#             #quat = trans.transform.rotation
-#             #rot = tf.transformations.quaternion_matrix([quat.x, quat.y, quat.z, quat.w])
-#             
-#             #tf.transformations.quaternion_from_euler(ai, aj, ak)
-#         
-#             pose = PoseStamped()
-#             pose.header.frame_id = "base_link"
-#             pose.header.stamp = rospy.Time(0)
-#             pose.pose.position.x = data.wrench.force.x
-#             pose.pose.position.y = data.wrench.force.y
-#             pose.pose.position.z = data.wrench.force.z
-#             
-#             quat = tf.transformations.quaternion_from_euler(data.wrench.torque.x,data.wrench.torque.y,data.wrench.torque.z)
-#     
-#             pose.pose.orientation.x = quat[0]
-#             pose.pose.orientation.y = quat[1]
-#             pose.pose.orientation.z = quat[2]
-#             pose.pose.orientation.w = quat[3]
-#             
-#             tf.transformations.quaternion_about_axis(3.14, (1,0,0))
-#             
-#             pose2 = self.listener.transformPose("lupis__base_link", pose)
-#             
-#             vec = Vector3Stamped()
-#             vec.header.frame_id = "base_link"
-#             vec.header.stamp = rospy.Time(0)
-#             vec.vector = data.wrench.force
-#     
-#             vec2 = self.listener.transformVector3("lupis__base_link", vec)
-#     
-#             print vec  
-#             print pose2
-#             
-#             req = ApplyBodyWrenchRequest()
-#             req.body_name = self.model_name+'::base_link'
-#             req.wrench.force = vec2.vector
-#             #req.wrench.torque = pose2.pose.orientation
-#             req.wrench.torque=data.wrench.torque
-#             req.duration = rospy.Duration(0.1)
-#     #              
-#             resp = self.applyWrench(req)
-# #             
-# #             #print rot[0:3,0:3] 
-# #             
-# #             #req.model_state.pose.position.x = data.position.north
-# #             #req.model_state.pose.position.y = data.position.east
-# #             #req.model_state.pose.position.z = data.position.depth*0
-# #             #req.model_state.pose.orientation = trans.transform.rotation
-# #             
-# #             tmp= numpy.array([data.wrench.force.x, data.wrench.force.y, data.wrench.force.z], dtype=numpy.float32).transpose()
-# #             
-# #             #print numpy.transpose(tmp)
-# # 
-# #             out = numpy.dot(rot[0:3,0:3],numpy.transpose(tmp))
-# #             #rospy.wait_for_service('add_two_ints')
-# #             req = ApplyBodyWrenchRequest()
-# #             req.body_name = self.model_name+'::base_link'
-# #             req.wrench.force.x = out[0]
-# #             req.wrench.force.y = out[1] 
-# #             req.wrench.force.z = out[2]  
-# #             #req.wrench.torque = numpy.dot(rot,data.wrench.torque, dtype=numpy.float32)
-# #             req.wrench.force = data.wrench.force
-# #             req.wrench.torque = data.wrench.torque
-# #             req.duration = rospy.Duration(0.1)
-# #              
-# #             resp = self.applyWrench(req)
-# #             print resp
-#         except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
-#             rospy.logerr("Error on frame conversion.")
-
-
 
 if __name__ == "__main__":
     rospy.init_node("navsts2gazebo");
