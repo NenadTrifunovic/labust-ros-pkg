@@ -60,6 +60,7 @@ public:
 		pubUSBLFix = nh.advertise<underwater_msgs::USBLFix>("usbl_fix",1);
 		pubRange = nh.advertise<std_msgs::Float32>("range",1);
 
+		tarPos << 15, 15, 0;
 	}
 
 	~USBLSim(){}
@@ -91,10 +92,11 @@ public:
 			usbl.elevation = elevation;
 
 			std_msgs::Float32 range;
-			range.data = usbl_past.range;
+ 			// Sends range without delay
+			range.data = usbl.range;
 			pubRange.publish(range);
 
-			if(usbl_past.range>0.1)		
+		//	if(usbl_past.range>0.1)		
 				pubUSBLFix.publish(usbl_past);
 
 			usbl_past = usbl;
@@ -114,7 +116,7 @@ public:
 	void onTargetPos(const auv_msgs::NavSts::ConstPtr& data){
 
 		//tarPos << data->position.north, data->position.east, data->position.depth;
-		tarPos << 0, 0, 0;
+		tarPos << data->position.north, data->position.east, data->position.depth;
 	}
 
 	/*

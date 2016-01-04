@@ -88,10 +88,10 @@ void SimpleRelativeLocalizationModel::step(const input_type& input){
 
   //xdot = x(u)*cos(x(psi));
   //ydot = x(u)*sin(x(psi));
-  x(xb) += Ts * input(x_dot);
-  x(yb) += Ts * input(y_dot);
- // x(xb) += 0;
- // x(yb) += 0;
+//  x(xb) += Ts * input(x_dot);
+//  x(yb) += Ts * input(y_dot);
+  x(xb) += 0;
+  x(yb) += 0;
   x(xp) += 0;
   x(yp) += 0;
 
@@ -219,7 +219,7 @@ double rng  = sqrt(pow((x(xp)-x(xb)),2)+pow((x(yp)-x(yb)),2));
 	double delta_x = (x(xp)-x(xb));
 	double delta_y = (x(yp)-x(yb));
 
-	double eps = 0.000000001;
+	double eps = 0.0000000000000001;
 
 	if(rng<eps)
 		rng = eps;
