@@ -112,9 +112,19 @@ void RBModel::step(const vector& tau)
 			nu(i) = (M(i,i)*nu(i) + dT*(tau(i)- g(i)))/(M(i,i) + dT*beta);
 		};
 	}
+
+    //Surface behavior
+	double surface_depth = 0.05;
+	if(eta(2) < surface_depth)
+	{
+		nu(2) = std::fabs(nu(2)); // Check this solution!!
+	}
+
 	vector grav;
 	grav<<lgacc,0,0,0;
 	nuacc = (nu - nu_old)/dT + grav;
+
+
 
 	//From body to world coordinates
 	eta.block<3,1>(0,0) += dT*(J1*nu.block<3,1>(0,0)+current);

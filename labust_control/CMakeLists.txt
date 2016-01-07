@@ -118,6 +118,9 @@ add_executable(velocity_control	src/VelocityControl.cpp)
 add_executable(navstsreq_navsts	src/navstsreq_navsts.cpp)
 add_executable(diver_navsts	src/diver_navsts.cpp)
 
+add_executable(lauv_manual src/LAUVManual.cpp)
+
+
 # ESC executables
 add_executable(esc_uv src/esc/ESCControlClassic_UV.cpp src/esctoolkit/esc_classic.cpp)
 add_executable(esc_ekf_uv src/esc/ESControlEKF_UV.cpp src/esctoolkit/esc_ekf_grad.cpp)
@@ -146,6 +149,8 @@ if (DEFINED catkin_EXPORTED_TARGETS)
  add_dependencies(async_merger ${catkin_EXPORTED_TARGETS})
  add_dependencies(velocity_control ${catkin_EXPORTED_TARGETS})
  add_dependencies(vt_controller ${catkin_EXPORTED_TARGETS})
+  add_dependencies(lauv_manual ${catkin_EXPORTED_TARGETS})
+ 
 
  add_dependencies(esc_uv ${catkin_EXPORTED_TARGETS})
  add_dependencies(esc_ekf_uv ${catkin_EXPORTED_TARGETS})
@@ -159,6 +164,8 @@ target_link_libraries(manual_control ${catkin_LIBRARIES})
 target_link_libraries(nu_manual ${catkin_LIBRARIES})
 target_link_libraries(ref_manual ${catkin_LIBRARIES})
 target_link_libraries(async_merger ${catkin_LIBRARIES})
+target_link_libraries(lauv_manual ${catkin_LIBRARIES})
+
 
 target_link_libraries(ualf_controller
   pidtoolkit2
