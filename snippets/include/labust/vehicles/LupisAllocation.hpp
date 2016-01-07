@@ -60,7 +60,7 @@ namespace labust
 			LupisAllocator():
 				_max_thrust(1.0),
 				_motor_friction(0.0),
-				_fin_lift(Eigen::VectorXd::Zero(5)){}
+				_fin_lift(Eigen::Vector6d::Zero()){}
 
 			/**
 			 * Performs allocation and necessary conversions.
@@ -74,20 +74,18 @@ namespace labust
 			/**
 			 * Performs inverse allocation and necessary conversions.
 			 */
-			void inverseAllocate(const labust::simulation::vector& thruster_act, labust::simulation::vector&nu_in,
+			void inverseAllocate(const labust::simulation::vector& thruster_act, labust::simulation::vector& nu_in,
 					labust::simulation::vector& servo_pos, labust::simulation::vector& tau_out)
 			{
 				double speed_u(nu_in(0));
 
-				Eigen::Vector3d deflections(0.0);
-				Eigen::Vector3d deflections(0.0);
-
+				Eigen::Vector3d deflections(Eigen::Vector3d::Zero());
 
 				deflections(0) = servo_pos(3) - servo_pos(0) + servo_pos(1) - servo_pos(2);
 				deflections(1) = servo_pos(1) + servo_pos(2);
 				deflections(2) = servo_pos(0) + servo_pos(3);
 
-				tau_out(0) = thruster_act * _max_thrust;
+				tau_out(0) = thruster_act(0) * _max_thrust;
 				tau_out(1) = _fin_lift(0) * speed_u * speed_u * deflections(2);
 				tau_out(2) = _fin_lift(1) * speed_u * speed_u * deflections(1);
 				tau_out(3) = _fin_lift(2) * speed_u * speed_u * deflections(0) + _motor_friction * tau_out(0);
@@ -98,13 +96,24 @@ namespace labust
 			}
 
 			/**
+			 * Performs initialization.
+			 */
+			void init(double max_thrust, double motor_friction, Eigen::Vector6d fin_lift)
+			{
+				_max_thrust = max_thrust;
+				_motor_friction = motor_friction;
+				_fin_lift = fin_lift;
+				return;
+			}
+
+			/**
 			 * Model parameters.
 			 */
 			double _motor_friction, _max_thrust;
 			/**
 			 * Fin lift model parameters.
 			 */
-			Eigen::VectorXd _fin_lift;
+			Eigen::Vector6d _fin_lift;
 		};
 	}
 }
