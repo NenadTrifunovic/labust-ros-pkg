@@ -80,13 +80,13 @@ namespace labust{
 					filtered_cost = (-(Ts_*high_pass_pole_-2)*pre_filter_output_old_+2*cost_signal-2*pre_filter_input_old_)/(2+high_pass_pole_*Ts_);
 				 // Check this limit
 
-				ROS_ERROR("filtered_cost: %f", filtered_cost);
+			//	ROS_ERROR("filtered_cost: %f", filtered_cost);
 
 
 
 				//filtered_cost = (abs(filtered_cost)> 0.5)?filtered_cost/abs(filtered_cost)*0.5:filtered_cost;
 
-				ROS_ERROR("filtered_cost after limit: %f", filtered_cost);
+			//	ROS_ERROR("filtered_cost after limit: %f", filtered_cost);
 
 				return filtered_cost;
 			}
@@ -130,8 +130,8 @@ namespace labust{
 
 			Base::vector Base::controllerGain(vector postFiltered){
 
-				ROS_ERROR("GAIN:");
-				ROS_ERROR_STREAM(gain_);
+			//	ROS_ERROR("GAIN:");
+			//	ROS_ERROR_STREAM(gain_);
 
 				control_ = gain_.cwiseProduct(postFiltered);
 				return control_;

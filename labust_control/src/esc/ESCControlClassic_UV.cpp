@@ -105,10 +105,10 @@ namespace labust{
 					//in = esc_controller.step(ref.data*ref.data);
 					tmp = esc_controller.step(ref.data);
 
-					ROS_ERROR("cost:");
-					ROS_ERROR_STREAM(ref.data);
-					ROS_ERROR("control:");
-					ROS_ERROR_STREAM(tmp);
+					//ROS_ERROR("cost:");
+					//ROS_ERROR_STREAM(ref.data);
+					//ROS_ERROR("control:");
+					//ROS_ERROR_STREAM(tmp);
 
 
 					auv_msgs::BodyVelocityReqPtr nu(new auv_msgs::BodyVelocityReq());

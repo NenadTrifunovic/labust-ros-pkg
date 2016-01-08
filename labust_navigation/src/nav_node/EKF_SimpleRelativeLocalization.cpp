@@ -317,7 +317,7 @@ void Estimator3D::calculateConditionNumber(){
 
 	KFNav::matrix P = nav.getStateCovariance();
 
-	//ROS_ERROR_STREAM(P);
+	ROS_ERROR_STREAM(P);
 	
 	Eigen::JacobiSVD<Eigen::MatrixXd> svd(P);
 	double cond1 = svd.singularValues()(0) / svd.singularValues()(svd.singularValues().size()-1);
