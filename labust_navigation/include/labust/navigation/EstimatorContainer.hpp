@@ -42,7 +42,7 @@
 #ifndef ESTIMATORCONTAINER_HPP_
 #define ESTIMATORCONTAINER_HPP_
 
-#include <labust/navigation/KFCore.hpp>
+#include <labust/navigation/KFCore2.hpp>
 #include <deque>
 #include <stack>
 
@@ -56,11 +56,11 @@ namespace labust
 
 		private:
 			typedef labust::navigation::KFCore<Model> Estimator;
-			typedef labust::navigation::KFCore<Model>::vector vector;
-			typedef labust::navigation::KFCore<Model>::vector matrix;
-			typedef labust::navigation::KFCore<Model>::measurement_vector measurement_vector;
-			typedef labust::navigation::KFCore<Model>::state_vector state_vector;
-			typedef labust::navigation::KFCore<Model>::input_vector input_vector;
+			typedef typename labust::navigation::KFCore<Model>::vector vector;
+			typedef typename labust::navigation::KFCore<Model>::vector matrix;
+			typedef typename labust::navigation::KFCore<Model>::measurement_vector measurement_vector;
+			typedef typename labust::navigation::KFCore<Model>::state_vector state_vector;
+			typedef typename labust::navigation::KFCore<Model>::input_vector input_vector;
 
 			struct FilterState
 			{
@@ -68,12 +68,12 @@ namespace labust
 
 				~FilterState(){}
 
-				Estimator::vector input;
-				Estimator::vector measurement;
-				Estimator::vector new_measurement; /* Value -1 denotes no measurement, values >=0 denote measurement delay. */
-				Estimator::vector state;
-				Estimator::matrix p_covariance;
-				Estimator::matrix r_covariance;
+				typename Estimator::vector input;
+				typename Estimator::vector measurement;
+				typename Estimator::vector new_measurement; /* Value -1 denotes no measurement, values >=0 denote measurement delay. */
+				typename Estimator::vector state;
+				typename Estimator::matrix p_covariance;
+				typename Estimator::matrix r_covariance;
 			};
 
 		public:
@@ -81,13 +81,15 @@ namespace labust
 
 			~EstimatorContainer(){}
 
+			void reset();
+
 			void setMeasurementVector(measurement_vector measurement, measurement_vector new_measurement);
 
 			void setStateVector(state_vector state);
 
 			void setInputVector(input_vector input);
 
-			int delayToSteps(double measurement_time, double arrival_time);
+			int delayToSteps();
 
 			state_vector getStateVector(double delay = 0.0);
 
@@ -96,6 +98,10 @@ namespace labust
 			FilterState getFilterState(double delay = 0.0);
 
 			void estimatorStep();
+
+			double calculateInovationVariance();
+
+			double caluclateConditionNumber();
 
 		private:
 
@@ -121,6 +127,12 @@ namespace labust
 using namespace labust::navigation;
 
 template <class Model>
+void EstimatorContainer<Model>::reset()
+{
+
+}
+
+template <class Model>
 void EstimatorContainer<Model>::setMeasurementVector(measurement_vector measurement, measurement_vector new_measurement)
 {
 	_state.measurement = measurement;
@@ -140,13 +152,13 @@ void EstimatorContainer<Model>::setInputVector(input_vector input)
 }
 
 template <class Model>
-int EstimatorContainer<Model>::delayToSteps(double measurement_time, double arrival_time)
+int EstimatorContainer<Model>::delayToSteps()
 {
-	return std::floor((arrival_time-measurement_time)/_ts);
+	return 1;//std::floor((arrival_time-measurement_time)/_ts);
 }
 
 template <class Model>
-EstimatorContainer::state_vector EstimatorContainer<Model>::getStateVector(double delay = 0.0)
+typename EstimatorContainer<Model>::state_vector EstimatorContainer<Model>::getStateVector(double delay)
 {
 	return;
 }
@@ -176,7 +188,7 @@ void EstimatorContainer<Model>::storeCurrentData()
 	{
 		_past_states.pop_front();
 	}
-	_past_states.push_back(state);
+	_past_states.push_back(_state);
 }
 
 template <class Model>
@@ -188,7 +200,7 @@ void EstimatorContainer<Model>::estimation(FilterState state)
 		if ((new_arrived = (state.new_measurement(i)>=0))) break;
 	if (new_arrived)
 	{
-		Estimator::vector new_meas(Estimator::vector::Zero(state.new_measurement.size()));
+		typename Estimator::vector new_meas(Estimator::vector::Zero(state.new_measurement.size()));
 		for(size_t i=0; i<state.new_measurement.size(); ++i)
 				if (state.new_measurement(i)>=0)
 					new_meas(i) = 1;
@@ -209,7 +221,7 @@ void EstimatorContainer<Model>::estimatorStep()
 	if(new_delayed && _enable_delay)
 	{
 		/*** Convert delay to discrete steps ***/
-		Estimator::vector delay_steps = ;
+		typename Estimator::vector delay_steps = delayToSteps();
 		/*** Check for maximum delay ***/
 		int max_delay_steps = _state.new_measurement.maxCoeff();
 
@@ -222,7 +234,7 @@ void EstimatorContainer<Model>::estimatorStep()
 		std::stack<FilterState> tmp_stack;
 		for(size_t i=0; i<=max_delay_steps; i++)
 		{
-			Estimator::vector tmp_cmp;
+			typename Estimator::vector tmp_cmp;
 			tmp_cmp.setConstant(Estimator::measSize, i);
 			if((delay_steps.array() == tmp_cmp.array()).any() && i != 0)
 			{
@@ -268,6 +280,40 @@ void EstimatorContainer<Model>::estimatorStep()
 	_state.new_measurement.setZero();
 	/*** Unlock mutex ***/
 	l.unlock();
+}
+
+
+void Estimator3D::calculateConditionNumber(){
+
+	KFNav::matrix P = nav.getStateCovariance();
+
+	Eigen::JacobiSVD<Eigen::MatrixXd> svd(P);
+	double cond1 = svd.singularValues()(0) / svd.singularValues()(svd.singularValues().size()-1);
+
+	Eigen::Matrix2d Pxy;
+	Pxy << P(KFNav::xp,KFNav::xp), P(KFNav::xp,KFNav::yp), P(KFNav::yp,KFNav::xp), P(KFNav::yp,KFNav::yp);
+
+
+	//double P(1,0)*P(0,1);
+
+	//ROS_ERROR_STREAM(Pxy);
+	double traceP = Pxy.trace();
+	double detP = Pxy.determinant();
+
+	double condCost = std::sqrt(traceP*traceP-4*detP);
+
+	Eigen::JacobiSVD<Eigen::MatrixXd> svd2(Pxy);
+	double cond2 = svd2.singularValues()(0) / svd2.singularValues()(svd2.singularValues().size()-1);
+
+	std_msgs::Float32::Ptr data(new std_msgs::Float32);
+
+	data->data = cond1;
+//	pubCondP.publish(data);
+	data->data = cond2;
+//	pubCondPxy.publish(data);
+	data->data = condCost;
+//	pubCost.publish(data);
+
 }
 
 #endif /* ESTIMATORCONTAINER_HPP_ */

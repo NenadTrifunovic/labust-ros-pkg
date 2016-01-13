@@ -84,7 +84,7 @@ namespace labust
 			GenericModel();
 
 			/*** Generic destructor. ***/
-			~GenericModel();
+			virtual ~GenericModel();
 
 			/*** Process model ***/
 			virtual void step() = 0;
@@ -93,12 +93,7 @@ namespace labust
 			virtual void derivativeHX() = 0;
 			virtual void derivativeHV()= 0;
 
-			/**
-			* Perform a prediction step based on the system input.
-			*
-			* \param u System input.
-			*/
-			void step(const input_type& input);
+
 			/**
 			* Calculates the estimated output of the model.
 			*
@@ -139,25 +134,25 @@ namespace labust
 			/**
 			* Return the speeds in the local frame.
 			*/
-			inline void getNEDSpeed(double& xdot, double& ydot)
+			/*inline void getNEDSpeed(double& xdot, double& ydot)
 			{
-			xdot = this->xdot;
-			ydot = this->ydot;
+				xdot = this->xdot;
+				ydot = this->ydot;
 			}
 
 			inline void useDvlModel(int flag){this->dvlModel = flag;};
 			inline void setDVLRotationTrustFactor(double trustf){this->trustf = trustf;};
 
 			inline void setSwayCorrection(bool use_sc,
-			double acc_port, double acc_starboard,
-			double vec_port, double vec_starboard)
+				double acc_port, double acc_starboard,
+				double vec_port, double vec_starboard)
 			{
-			this->use_sc = use_sc;
-			this->acc_port = acc_port;
-			this->acc_starboard = acc_starboard;
-			this->vec_port = vec_port;
-			this->vec_starboard = vec_starboard;
-			};
+				this->use_sc = use_sc;
+				this->acc_port = acc_port;
+				this->acc_starboard = acc_starboard;
+				this->vec_port = vec_port;
+				this->vec_starboard = vec_starboard;
+			};*/
 
 		protected:
 			/**
@@ -189,6 +184,8 @@ namespace labust
 			* The nonlinear and final y.
 			*/
 			vector ynl,y;
+
+			int state_num, measurement_num, input_num;
 
 		};
 	}

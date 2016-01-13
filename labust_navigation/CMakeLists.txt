@@ -87,7 +87,11 @@ add_library(labust_navigation
    src/labust_navigation/LDTravModelExtended.cpp
    src/labust_navigation/EKF_3D_USBLModel.cpp 
    src/labust_navigation/TwoVehicleLocalizationModel.cpp 
-   src/labust_navigation/SimpleRelativeLocalizationModel.cpp   
+   src/labust_navigation/SimpleRelativeLocalizationModel.cpp 
+   src/labust_navigation/GenericModel.cpp
+   #src/labust_navigation/EstimatorContainer.cpp   
+      
+     
 )
 
 ## Declare a cpp executable
@@ -108,6 +112,9 @@ add_executable(ekf_simple_relative_localization_node src/nav_node/EKF_SimpleRela
 add_executable(pressure2depth src/test/pressure2depth.cpp)
 #add_executable(geographiclib_test src/test/geographiclib_test.cpp)
 
+add_executable(ekf_node src/nav_node/EKFNode.cpp)
+
+
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
 # add_dependencies(labust_navigation_node labust_navigation_generate_messages_cpp)
@@ -124,6 +131,9 @@ if (DEFINED catkin_EXPORTED_TARGETS)
  add_dependencies(ekf_3d_usbl_node ${catkin_EXPORTED_TARGETS}) 
  add_dependencies(ekf_two_vehicle_localization_node ${catkin_EXPORTED_TARGETS})
  add_dependencies(ekf_simple_relative_localization_node ${catkin_EXPORTED_TARGETS}) 
+ 
+ add_dependencies(ekf_node ${catkin_EXPORTED_TARGETS})
+ 
 endif()
 
 ## Specify libraries to link a library or executable target against
@@ -148,6 +158,9 @@ target_link_libraries(ekf_simple_relative_localization_node ${catkin_LIBRARIES} 
 target_link_libraries(pressure2depth ${catkin_LIBRARIES})
 target_link_libraries(pressure2depth ${catkin_LIBRARIES})
 #target_link_libraries(geographiclib_test ${catkin_LIBRARIES} Geographic)
+
+target_link_libraries(ekf_node ${catkin_LIBRARIES} labust_navigation)
+
 
 #############
 ## Install ##

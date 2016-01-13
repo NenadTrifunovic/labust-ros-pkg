@@ -146,6 +146,8 @@ namespace labust
 			 * Outlier rejection coefficient.
 			 */
 			double outlierR;
+
+			typename Model::vector measurement;
 		};
 	}
 }
