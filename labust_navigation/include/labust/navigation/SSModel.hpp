@@ -76,10 +76,6 @@ namespace labust
 			typedef Eigen::Matrix<precission, Eigen::Dynamic, Eigen::Dynamic> matrix;
 			typedef Eigen::Matrix<precission, Eigen::Dynamic, 1> vector;
 
-			//typedef boost::numeric::ublas::identity_matrix<precission> eye;
-			//typedef boost::numeric::ublas::zero_vector<precission> zeros;
-			//typedef boost::numeric::ublas::zero_matrix<precission> mzeros;
-
 			/**
 			 * Main constructor.
 			 */

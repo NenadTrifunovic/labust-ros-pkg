@@ -70,6 +70,10 @@
 #include <boost/bind.hpp>
 #include <math.h>
 
+
+#include <labust/navigation/GenericModel.hpp>
+
+
 using namespace labust::navigation;
 
 
@@ -791,11 +795,15 @@ public:
 
 	void publishTransform();
 
-	labust::navigation::EstimatorCore _estimator;
+	labust::navigation::EstimatorContainer<labust::navigation::GenericModel> _estimator;
 
 	labust::navigation::MeasurementHandler _measurement_handler;
 
-	double _ts;
+	enum {u=0,v,w,p,q,r,xp,yp,zp,phi,theta,psi,xc,yc,b,buoyancy,roll_restore,pitch_restore,altitude,xb,yb,zb,stateNum};
+	enum {X=0,Y,Z,Kroll,M,N,inputSize};
+	enum {range=stateNum,bearing,elevation,measSize};
+
+
 
 };
 
@@ -811,7 +819,7 @@ void EKFNode::init(){
 void EKFNode::start()
 {
 	init();
-	ros::Rate rate(1/_ts);
+	ros::Rate rate(1/nav.getTs);
 
 	while (ros::ok())
 	{
@@ -886,229 +894,175 @@ void EKFNode::publishTransform()
 }
 
 /*********************************************************************
+ *** Model data
+ ********************************************************************/
+
+void GenericModel::step(const input_type& input)
+{
+	  x(u) += Ts*(-surge.Beta(x(u))/surge.alpha*x(u) + 1/surge.alpha * input(X));
+	  x(v) += Ts*(-sway.Beta(x(v))/sway.alpha*x(v) + 1/sway.alpha * input(Y));
+	  x(w) += Ts*(-heave.Beta(x(w))/heave.alpha*x(w) + 1/heave.alpha * (input(Z) + x(buoyancy)));
+	  //x(p) += Ts*(-roll.Beta(x(p))/roll.alpha*x(p) + 1/roll.alpha * (input(Kroll) + x(roll_restore)));
+	  //x(q) += Ts*(-pitch.Beta(x(p))/pitch.alpha*x(q) + 1/pitch.alpha * (input(M) + x(pitch_restore)));
+	  x(r) += Ts*(-yaw.Beta(x(r))/yaw.alpha*x(r) + 1/yaw.alpha * input(N) + x(b));
+
+	  xdot = x(u)*cos(x(psi)) - x(v)*sin(x(psi)) + x(xc);
+	  ydot = x(u)*sin(x(psi)) + x(v)*cos(x(psi)) + x(yc);
+	  x(xp) += Ts * xdot;
+	  x(yp) += Ts * ydot;
+	  x(zp) += Ts * x(w);
+	  x(altitude) += -Ts * x(w);
+	  //\todo This is not actually true since angles depend on each other
+	  //\todo Also x,y are dependent on the whole rotation matrix.
+	  //\todo We make a simplification here for testing with small angles ~10°
+	  //x(phi) += Ts * x(p);
+	  //x(theta) += Ts * x(q);
+	  x(psi) += Ts * x(r);
+
+	  ////!!!!!!!!!!!!!!!!!!!!!!xk_1 = x;
+
+	  ///!!!!!!!!!!!!!11derivativeAW();
+}
+
+void GenericModel::derivativeAX()
+{
+	A = matrix::Identity(stateNum, stateNum);
+
+	A(u,u) = 1-Ts*(surge.beta + 2*surge.betaa*fabs(x(u)))/surge.alpha;
+	A(v,v) = 1-Ts*(sway.beta + 2*sway.betaa*fabs(x(v)))/sway.alpha;
+	A(w,w) = 1-Ts*(heave.beta + 2*heave.betaa*fabs(x(w)))/heave.alpha;
+	A(w,buoyancy) = Ts/heave.alpha;
+	//A(p,p) = 1-Ts*(roll.beta + 2*roll.betaa*fabs(x(p)))/roll.alpha;
+	//A(p,roll_restore) = Ts/roll.alpha;
+	//A(q,q) = 1-Ts*(pitch.beta + 2*pitch.betaa*fabs(x(q)))/pitch.alpha;
+	//A(q,pitch_restore) = Ts/pitch.alpha;
+	A(r,r) = 1-Ts*(yaw.beta + 2*yaw.betaa*fabs(x(r)))/yaw.alpha;
+	A(r,b) = Ts;
+
+	A(xp,u) = Ts*cos(x(psi));
+	A(xp,v) = -Ts*sin(x(psi));
+	A(xp,psi) = Ts*(-x(u)*sin(x(psi)) - x(v)*cos(x(psi)));
+	A(xp,xc) = Ts;
+
+	A(yp,u) = Ts*sin(x(psi));
+	A(yp,v) = Ts*cos(x(psi));
+	A(yp,psi) = Ts*(x(u)*cos(x(psi)) - x(v)*sin(x(psi)));
+	A(yp,yc) = Ts;
+
+	A(zp,w) = Ts;
+	//\todo If you don't want the altitude to contribute comment this out.
+	A(altitude,w) = -Ts;
+
+	//A(phi,p) = Ts;
+	//A(theta,q) = Ts;
+	A(psi,r) = Ts;
+}
+void GenericModel::derivativeAW()
+{
+
+}
+void GenericModel::derivativeHX()
+{
+
+	Hnl = matrix::Zero(measSize,stateNum); // Prije je bilo identity
+		Hnl.topLeftCorner(stateNum,stateNum) = matrix::Identity(stateNum,stateNum);
+
+		ynl = vector::Zero(measSize);
+		ynl.head(stateNum) = matrix::Identity(stateNum,stateNum)*x;
+
+		switch (dvlModel){
+		case 1:
+			/*** Correct the nonlinear part ***/
+			ynl(u) = x(u)+x(xc)*cos(x(psi))+x(yc)*sin(x(psi));
+			ynl(v) = x(v)-x(xc)*sin(x(psi))+x(yc)*cos(x(psi));
+
+			//Correct for the nonlinear parts
+			Hnl(u,u) = 1;
+			Hnl(u,xc) = cos(x(psi));
+			Hnl(u,yc) = sin(x(psi));
+			Hnl(u,psi) = -x(xc)*sin(x(psi)) + x(yc)*cos(x(psi));
+
+			Hnl(v,v) = 1;
+			Hnl(v,xc) = -sin(x(psi));
+			Hnl(v,yc) = cos(x(psi));
+			Hnl(v,psi) = -x(xc)*cos(x(psi)) - x(yc)*sin(x(psi));
+			break;
+
+		case 2:
+			/*** Correct the nonlinear part ***/
+			y(u) = x(u)*cos(x(psi)) - x(v)*sin(x(psi)) + x(xc);
+			y(v) = x(u)*sin(x(psi)) + x(v)*cos(x(psi)) + x(yc);
+
+		    /*** Correct for the nonlinear parts ***/
+			Hnl(u,xc) = 1;
+			Hnl(u,u) = cos(x(psi));
+			Hnl(u,v) = -sin(x(psi));
+			Hnl(u,psi) = -x(u)*sin(x(psi)) - x(v)*cos(x(psi));
+
+			Hnl(v,yc) = 1;
+			Hnl(v,u) = sin(x(psi));
+			Hnl(v,v) = cos(x(psi));
+			Hnl(v,psi) = x(u)*cos(x(psi)) - x(v)*sin(x(psi));
+			break;
+		}
+
+
+
+		double rng  = sqrt(pow((x(xp)-x(xb)),2)+pow((x(yp)-x(yb)),2)+pow((x(zp)-x(zb)),2));
+		double delta_x = (x(xb)-x(xp));
+		double delta_y = (x(yb)-x(yp));
+
+		if(rng<0.00001)
+			rng = 0.00001;
+
+		if(abs(delta_x)<0.00001)
+			delta_x = (delta_x<0)?-0.00001:0.00001;
+
+		if(abs(delta_y)<0.00001)
+			delta_y = (delta_y<0)?-0.00001:0.00001;
+
+		ynl(range) = rng;
+		ynl(bearing) = atan2(delta_y,delta_x) -1*x(psi);
+		ynl(elevation) = asin((x(zp)-x(zb))/rng);
+
+		Hnl(range, xp)  = -(x(xb)-x(xp))/rng;
+		Hnl(range, yp)  = -(x(yb)-x(yp))/rng;
+		Hnl(range, zp)  = -(x(zb)-x(zp))/rng;
+
+		Hnl(range, xb)  = (x(xb)-x(xp))/rng;
+		Hnl(range, yb)  = (x(yb)-x(yp))/rng;
+		Hnl(range, zb)  = (x(zb)-x(zp))/rng;
+
+		Hnl(bearing, xp) = delta_y/(delta_x*delta_x+delta_y*delta_y);
+		Hnl(bearing, yp) = -delta_x/(delta_x*delta_x+delta_y*delta_y);
+		Hnl(bearing, xb) = -delta_y/(delta_x*delta_x+delta_y*delta_y);
+		Hnl(bearing, yb) = delta_x/(delta_x*delta_x+delta_y*delta_y);
+
+		Hnl(bearing, psi) = -1;
+
+
+
+		// Nadi gresku u elevationu i sredi singularitete
+	//	double part1 = (x(zb) - x(zp))/(sqrt(1 - pow((x(zb) - x(zp)),2)/pow(rng,2))*(pow((rng),3)));
+	//	double part2 = (x(xb)*x(xb) - 2*x(xb)*x(xp) + x(xp)*x(xp) + x(yb)*x(yb) - 2*x(yb)*x(yp) + x(yp)*x(yp))/(sqrt(1 - pow((x(zb) - x(zp)),2)/pow(rng,2))*(pow((rng),3)));
+	//
+	//	Hnl(elevation,xp) = -((x(xb) - x(xp))*part1);
+	//	Hnl(elevation,yp) = -((x(yb) - x(yp))*part1);
+	//	Hnl(elevation,zp) = part2;
+	//	Hnl(elevation,xb) = ((x(xb) - x(xp))*part1);
+	//	Hnl(elevation,yb) = ((x(yb) - x(yp))*part1);
+	//	Hnl(elevation,zb) = -part2;
+
+}
+void GenericModel::derivativeHV()
+{
+
+}
+
+/*********************************************************************
  *** Main loop
  ********************************************************************/
-void Estimator3D::start()
-{
-	ros::NodeHandle ph("~");
-	double Ts(0.1);
-	ph.param("Ts",Ts,Ts);
-	ros::Rate rate(1/Ts);
-	nav.setTs(Ts);
 
-	/*** Initialize time (for delay calculation) ***/
-	currentTime = ros::Time::now().toSec();
-
-	while (ros::ok()){
-
-		bool updateDVL;
-		/*** Process measurements ***/
-		processMeasurements();
-
-		/*** Store filter data ***/
-		FilterState state;
-		state.input = tauIn;
-		state.meas = measurements;
-		state.newMeas = newMeas;
-
-		/*** Check if there are delayed measurements, and disable them in current step ***/
-		bool newDelayed(false);
-		for(size_t i=0; i<measDelay.size(); ++i){
-			if(measDelay(i)){
-				state.newMeas(i) = 0;
-				newDelayed = true;
-			}
-		}
-
-		/*** Store x, P, R data ***/
-		state.state = nav.getState();
-		state.Pcov = nav.getStateCovariance();
-		//state.Rcov = ; // In case of time-varying measurement covariance
-
-		//ROS_ERROR_STREAM(state.Pcov);
-		/*** Limit queue size ***/
-		if(pastStates.size()>1000){
-			pastStates.pop_front();
-			//ROS_ERROR("Pop front");
-		}
-		pastStates.push_back(state);
-
-		if(newDelayed && enableDelay)
-		{
-			/*** Check for maximum delay ***/
-			int delaySteps = measDelay.maxCoeff();
-
-			/*** If delay is bigger then buffer size assume that it is max delay ***/
-			if(delaySteps >= pastStates.size())
-				delaySteps = pastStates.size()-1;
-
-			/*** Position delayed measurements in past states container
-			     and store past states data in temporary stack ***/
-			std::stack<FilterState> tmp_stack;
-			for(size_t i=0; i<=delaySteps; i++){
-
-				KFNav::vector tmp_cmp;
-				tmp_cmp.setConstant(KFNav::measSize, i);
-				if((measDelay.array() == tmp_cmp.array()).any() && i != 0){
-					FilterState tmp_state = pastStates.back();
-					for(size_t j=0; j<measDelay.size(); ++j){
-						if(measDelay(j) == i){
-							tmp_state.newMeas(j) = 1;
-							tmp_state.meas(j) = measurements(j);
-
-							if(enableRejection)
-							{
-							/////////////////////////////////////////
-							/// Outlier test
-							/////////////////////////////////////////
-							if(j == KFNav::range)
-							{
-								const KFNav::vector& x = tmp_state.state; ///// Treba li jos predikciju napravit?
-								double range = measurements(j);
-
-								Eigen::VectorXd input(Eigen::VectorXd::Zero(3));
-									//Eigen::VectorXd output(Eigen::VectorXd::Zero(1));
-
-
-								input << x(KFNav::xp)-x(KFNav::xb), x(KFNav::yp)-x(KFNav::yb), x(KFNav::zp)-x(KFNav::zb);
-								//input << x(KFNav::u), x(KFNav::yp)-x(KFNav::yb), x(KFNav::zp)-x(KFNav::zb);
-
-								//output << measurements(KFNav::range);
-								double y_filt, sigma, w;
-								OR.step(input, measurements(KFNav::range), &y_filt, &sigma, &w);
-								//ROS_INFO("Finished outlier rejection");
-
-								std_msgs::Float32 rng_msg;
-								//ROS_ERROR("w: %f",w);
-
-								double w_limit =  0.3*std::sqrt(float(sigma));
-								w_limit = (w_limit>1.0)?1.0:w_limit;
-								if(w>w_limit)
-								{
-									rng_msg.data = range;
-									pubRangeFiltered.publish(rng_msg);
-									//pubRangeFiltered.publish(rng_msg);
-
-								} else {
-									tmp_state.newMeas(j) = 0;
-								}
-								//std_msgs::Float32 rng_msg;
-
-								rng_msg.data = w_limit;
-								pubwk.publish(rng_msg);
-
-								rng_msg.data = range;
-								pubRange.publish(rng_msg);
-
-							}
-
-							if(j == KFNav::bearing && tmp_state.newMeas(j-1) == 0)
-							{
-								tmp_state.newMeas(j) = 0;
-
-							}
-							}
-
-							//////////////////////////////////////////
-
-							//ROS_ERROR("Dodano mjerenje. Delay:%d",i);
-						}
-					}
-					tmp_stack.push(tmp_state);
-				} else {
-					tmp_stack.push(pastStates.back());
-				}
-				pastStates.pop_back();
-			}
-
-			/*** Load past state and covariance for max delay time instant ***/
-			FilterState state_p = tmp_stack.top();
-			nav.setStateCovariance(state_p.Pcov);
-			nav.setState(state_p.state);
-
-			/*** Pass through stack data and recalculate filter states ***/
-			while(!tmp_stack.empty()){
-				state_p = tmp_stack.top();
-				tmp_stack.pop();
-				pastStates.push_back(state_p);
-
-				/*** Estimation ***/
-				nav.predict(state_p.input);
-				bool newArrived(false);
-				for(size_t i=0; i<state_p.newMeas.size(); ++i)	if ((newArrived = state_p.newMeas(i))) break;
-				if (newArrived)	nav.correct(nav.update(state_p.meas, state_p.newMeas));
-			}
-		}else{
-			/*** Estimation ***/
-			nav.predict(tauIn);
-			bool newArrived(false);
-			boost::mutex::scoped_lock l(meas_mux);
-			for(size_t i=0; i<newMeas.size(); ++i)	if ((newArrived = newMeas(i))) break;
-
-			//Update sensor flag
-			updateDVL = !newMeas(KFNav::r);
-
-			std::ostringstream out;
-			out<<newMeas;
-			ROS_DEBUG("Measurements %d:%s",KFNav::psi, out.str().c_str());
-
-			if (newArrived)	nav.correct(nav.update(measurements, newMeas));
-			KFNav::vector tcstate = nav.getState();
-			if (tcstate(KFNav::buoyancy) < -30) tcstate(KFNav::buoyancy) = -10;
-			if (tcstate(KFNav::buoyancy) > 0) tcstate(KFNav::buoyancy) = 0;
-			if (tcstate(KFNav::altitude) < 0) tcstate(KFNav::altitude) = 0;
-			nav.setState(tcstate);
-			l.unlock();
-		}
-
-		newMeas.setZero(); // razmisli kako ovo srediti
-		measDelay.setZero();
-		publishState();
-
-		//ROS_ERROR_STREAM(nav.getStateCovariance());
-
-		//Send the base-link transform
-		geometry_msgs::TransformStamped transform;
-		KFNav::vectorref cstate = nav.getState();
-		//Update DVL sensor
-		if (updateDVL) dvl.current_r(cstate(KFNav::r));
-
-		//local -> base_pose
-		transform.transform.translation.x = cstate(KFNav::xp);
-		transform.transform.translation.y = cstate(KFNav::yp);
-		transform.transform.translation.z = cstate(KFNav::zp);
-		labust::tools::quaternionFromEulerZYX(0, 0, 0, transform.transform.rotation);
-		if(absoluteEKF){
-			transform.child_frame_id = "base_pose_usbl_abs";
-		} else{
-			transform.child_frame_id = "base_pose_usbl";
-		}
-		transform.header.frame_id = "local";
-		transform.header.stamp = ros::Time::now();
-		broadcaster.sendTransform(transform);
-
-		//local -> base_pose
-		transform.transform.translation.x = 0;
-		transform.transform.translation.y = 0;
-		transform.transform.translation.z = 0;
-		labust::tools::quaternionFromEulerZYX(cstate(KFNav::phi),
-				cstate(KFNav::theta),
-				cstate(KFNav::psi),
-				transform.transform.rotation);
-		if(absoluteEKF){
-			transform.child_frame_id = "base_link_usbl_abs";
-		} else{
-			transform.child_frame_id = "base_link_usbl";
-		}
-		transform.header.frame_id = "base_pose_usbl";
-		broadcaster.sendTransform(transform);
-
-		rate.sleep();
-		/*** Get current time (for delay calculation) ***/
-		currentTime = ros::Time::now().toSec();
-		ros::spinOnce();
-	}
-}
 
 int main(int argc, char* argv[])
 {

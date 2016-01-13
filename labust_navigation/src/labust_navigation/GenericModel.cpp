@@ -1,10 +1,10 @@
 /*********************************************************************
- *  EKF3D_USBLModel.cpp
+ *  GenericModel.cpp
  *
  *  Created on: Mar 26, 2013
  *      Author: Dula Nad
  *
- *   Modified on: Feb 27, 2015
+ *   Modified on: Jan 13, 2015
  *      Author: Filip Mandic
  *
  ********************************************************************/
@@ -12,7 +12,7 @@
 /*********************************************************************
 * Software License Agreement (BSD License)
 *
-*  Copyright (c) 2010, LABUST, UNIZG-FER
+*  Copyright (c) 2016, LABUST, UNIZG-FER
 *  All rights reserved.
 *
 *  Redistribution and use in source and binary forms, with or without
@@ -42,179 +42,8 @@
 *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 *  POSSIBILITY OF SUCH DAMAGE.
 *********************************************************************/
-#include <labust/navigation/EKF_3D_USBLModel.hpp>
+#include <labust/navigation/GenericModel.hpp>
 
-#include <labust/navigation/SSModel.hpp>
-
-namespace labust
-{
-  namespace navigation
-  {
-    /**
-     * This class implements a EKF filter for the LDTravOcean ROV.
-     */
-    class GenericModel : public SSModel<double>
-    {
-    	typedef SSModel<double> Base;
-    public:
-      typedef vector input_type;
-      typedef vector output_type;
-
-      struct ModelParams
-      {
-    	  ModelParams():
-    		  alpha(1),
-    		  beta(1),
-    		  betaa(0){};
-
-    	  ModelParams(double alpha, double beta, double betaa):
-    		  alpha(alpha),
-    		  beta(beta),
-    		  betaa(betaa){}
-
-    	  inline double Beta(double val)
-    	  {
-    		  return beta + betaa*fabs(val);
-    	  }
-
-    	  double alpha, beta, betaa;
-      };
-
-      enum {u=0,v,w,p,q,r,xp,yp,zp,phi,theta,psi,xc,yc,b,buoyancy,roll_restore,pitch_restore,altitude,xb,yb,zb,stateNum};
-      enum {X=0,Y,Z,Kroll,M,N,inputSize};
-      enum {range=stateNum,bearing,elevation,measSize};
-
-      //const char *VarNames[]  = {"u","v","w","p","q","r","xp","yp","zp","phi","theta","psi","xc","yc","b","buoyancy","roll_restore","pitch_restore","altitude","xb","yb","zb","range","bearing","elevation"};
-
-
-      /*** The default constructor. ***/
-      GenericModel();
-
-      /*** Generic destructor. ***/
-      ~GenericModel();
-
-      /*** Process model ***/
-      void derivativeAX();
-      void derivativeAW();
-      void derivativeHX();
-      void derivativeHV();
-
-    };
-  }
-}
-
-      /**
-       * Perform a prediction step based on the system input.
-       *
-       * \param u System input.
-       */
-      void step(const input_type& input);
-      /**
-       * Calculates the estimated output of the model.
-       *
-       * \param y Inserts the estimated output values here.
-       */
-      void estimate_y(output_type& y);
-      /**
-       * Initialize the model to default values
-       */
-      void initModel();
-
-      /**
-       * Setup the measurement matrix for available measurements.
-       */
-      const output_type& update(vector& measurements, vector& newMeas);
-
-      /**
-       * Set the model parameters.
-       */
-      void setParameters(const ModelParams& surge,
-    		  const ModelParams& sway,
-    		  const ModelParams& heave,
-    		  const ModelParams& roll,
-    		  const ModelParams& pitch,
-    		  const ModelParams& yaw)
-      {
-    	  this->surge = surge;
-    	  this->sway = sway;
-    	  this->heave = heave;
-    	  this->roll = roll;
-    	  this->pitch = pitch;
-    	  this->yaw = yaw;
-      }
-
-      void calculateXYInovationVariance(const matrix& P, double& xin,double &yin);
-      void calculateUVInovationVariance(const matrix& P, double& uin,double &vin);
-      double calculateAltInovationVariance(const matrix& P);
-
-      /**
-       * Return the speeds in the local frame.
-       */
-      inline void getNEDSpeed(double& xdot, double& ydot)
-      {
-      	xdot = this->xdot;
-      	ydot = this->ydot;
-      }
-
-      inline void useDvlModel(int flag){this->dvlModel = flag;};
-      inline void setDVLRotationTrustFactor(double trustf){this->trustf = trustf;};
-
-      inline void setSwayCorrection(bool use_sc,
-      		double acc_port, double acc_starboard,
-					double vec_port, double vec_starboard)
-      {
-      	this->use_sc = use_sc;
-      	this->acc_port = acc_port;
-      	this->acc_starboard = acc_starboard;
-      	this->vec_port = vec_port;
-      	this->vec_starboard = vec_starboard;
-      };
-
-    protected:
-     /**
-       * Calculate the Jacobian matrices.
-       */
-      void derivativeAW();
-      /**
-        * Calculate the Jacobian matrices.
-        */
-       void derivativeHV(int num);
-       /**
-        * Calculate the nonlinear H derivative.
-        */
-       void derivativeH();
-      /**
-       * The model parameters.
-       */
-      ModelParams surge,sway,heave,roll,pitch,yaw;
-      /**
-       * The newest measurement.
-       */
-      output_type measurement;
-      /**
-       * The NED speeds.
-       */
-      double xdot,ydot;
-      ///DVL rotation trust factor
-      double trustf;
-      ///The sway correction factors
-      double use_sc, acc_port, acc_starboard,
-			vec_port, vec_starboard;
-      /**
-       * The DVL linear/nonlinear flag.
-       */
-      int dvlModel;
-      /**
-       * The nonlinear H.
-       */
-      matrix Hnl;
-      /**
-       * The nonlinear and final y.
-       */
-      vector ynl,y;
-    };
-  }
-}
 
 using namespace labust::navigation;
 
@@ -222,7 +51,7 @@ using namespace labust::navigation;
 
 #include <ros/ros.h>
 
-EKF_3D_USBLModel::EKF_3D_USBLModel():
+GenericModel::GenericModel():
 		dvlModel(0),
 		xdot(0),
 		ydot(0){
@@ -230,9 +59,9 @@ EKF_3D_USBLModel::EKF_3D_USBLModel():
 	this->initModel();
 };
 
-EKF_3D_USBLModel::~EKF_3D_USBLModel(){};
+GenericModel::~GenericModel(){};
 
-void EKF_3D_USBLModel::initModel(){
+void GenericModel::initModel(){
 
   x = vector::Zero(stateNum);
   xdot = 0;
@@ -244,24 +73,24 @@ void EKF_3D_USBLModel::initModel(){
   //std::cout<<"R:"<<R<<"\n"<<V<<std::endl;
 }
 
-void EKF_3D_USBLModel::calculateXYInovationVariance(const EKF_3D_USBLModel::matrix& P, double& xin,double &yin){
+void GenericModel::calculateXYInovationVariance(const GenericModel::matrix& P, double& xin,double &yin){
 
 	xin = sqrt(P(xp,xp)) + sqrt(R0(xp,xp));
 	yin = sqrt(P(yp,yp)) + sqrt(R0(yp,yp));
 }
 
-double EKF_3D_USBLModel::calculateAltInovationVariance(const EKF_3D_USBLModel::matrix& P){
+double GenericModel::calculateAltInovationVariance(const GenericModel::matrix& P){
 
 	return sqrt(P(altitude,altitude)) + sqrt(R0(altitude,altitude));
 }
 
-void EKF_3D_USBLModel::calculateUVInovationVariance(const EKF_3D_USBLModel::matrix& P, double& uin,double &vin){
+void GenericModel::calculateUVInovationVariance(const GenericModel::matrix& P, double& uin,double &vin){
 
 	uin = sqrt(P(u,u)) + sqrt(R0(v,v));
 	vin = sqrt(P(v,v)) + sqrt(R0(v,v));
 }
 
-void EKF_3D_USBLModel::step(const input_type& input){
+void GenericModel::step(const input_type& input){
 
   x(u) += Ts*(-surge.Beta(x(u))/surge.alpha*x(u) + 1/surge.alpha * input(X));
   x(v) += Ts*(-sway.Beta(x(v))/sway.alpha*x(v) + 1/sway.alpha * input(Y));
@@ -288,7 +117,7 @@ void EKF_3D_USBLModel::step(const input_type& input){
   derivativeAW();
 }
 
-void EKF_3D_USBLModel::derivativeAW(){
+void GenericModel::derivativeAW(){
 
 	A = matrix::Identity(stateNum, stateNum);
 
@@ -322,7 +151,7 @@ void EKF_3D_USBLModel::derivativeAW(){
 	A(psi,r) = Ts;
 }
 
-const EKF_3D_USBLModel::output_type& EKF_3D_USBLModel::update(vector& measurements, vector& newMeas){
+const GenericModel::output_type& GenericModel::update(vector& measurements, vector& newMeas){
 
 	std::vector<size_t> arrived;
 	std::vector<double> dataVec;
@@ -375,11 +204,11 @@ const EKF_3D_USBLModel::output_type& EKF_3D_USBLModel::update(vector& measuremen
 	return measurement;
 }
 
-void EKF_3D_USBLModel::estimate_y(output_type& y){
+void GenericModel::estimate_y(output_type& y){
 	y=this->y;
 }
 
-void EKF_3D_USBLModel::derivativeH(){
+void GenericModel::derivativeH(){
 
 	Hnl = matrix::Zero(measSize,stateNum); // Prije je bilo identity
 	Hnl.topLeftCorner(stateNum,stateNum) = matrix::Identity(stateNum,stateNum);
