@@ -129,7 +129,7 @@ endif()
 ## Specify libraries to link a library or executable target against
 target_link_libraries(labust_navigation
    ${catkin_LIBRARIES}
-   Geographic
+   ${GeographicLib_LIBRARIES}
 )
 
 target_link_libraries(eigen_test ${catkin_LIBRARIES} labust_navigation)
@@ -137,7 +137,7 @@ target_link_libraries(euler_quat ${catkin_LIBRARIES} labust_navigation)
 target_link_libraries(tf_comp_test ${catkin_LIBRARIES} labust_navigation)
 target_link_libraries(quat_to_euler ${catkin_LIBRARIES})
 #target_link_libraries(nav_node2 ${catkin_LIBRARIES} labust_navigation)
-target_link_libraries(llnode ${catkin_LIBRARIES} Geographic)
+target_link_libraries(llnode ${catkin_LIBRARIES} ${GeographicLib_LIBRARIES})
 target_link_libraries(ltp_node ${catkin_LIBRARIES})
 target_link_libraries(static_transform_publisher ${catkin_LIBRARIES})
 target_link_libraries(ekf3d_node ${catkin_LIBRARIES} labust_navigation)
@@ -145,7 +145,6 @@ target_link_libraries(ekf_3d_usbl_node ${catkin_LIBRARIES} labust_navigation)
 target_link_libraries(ekf_two_vehicle_localization_node ${catkin_LIBRARIES} labust_navigation)
 target_link_libraries(ekf_simple_relative_localization_node ${catkin_LIBRARIES} labust_navigation)
 
-target_link_libraries(pressure2depth ${catkin_LIBRARIES})
 target_link_libraries(pressure2depth ${catkin_LIBRARIES})
 #target_link_libraries(geographiclib_test ${catkin_LIBRARIES} Geographic)
 
