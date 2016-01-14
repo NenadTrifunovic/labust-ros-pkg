@@ -5,8 +5,8 @@ geolib_dir=/usr/share/geographiclib
 mkdir -p $geolib_dir
 cd $geolib_dir 
 
-wget $geolib_link/magnetic-distrib/emm2015.tar.bz2 
-tar xvjf emm2015.tar.bz2
+wget $geolib_link/magnetic-distrib/wmm2015.tar.bz2 
+tar xvjf wmm2015.tar.bz2
 
 wget $geolib_link/geoids-distrib/egm96-15.tar.bz2 
 tar xvjf egm96-15.tar.bz2
