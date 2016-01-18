@@ -106,8 +106,8 @@ void GPSHandler::onGps(const sensor_msgs::NavSatFix::ConstPtr& data)
 		//Set the data
  		posxy.first = ned(0);
  		posxy.second = ned(1);
-		originLL.first = lon0;
-		originLL.second = lat0;
+		originLL.first = lat0;
+		originLL.second = lon0;
 		
 		double lat, lon;
 		proj.Reverse(enu(0), enu(1), enu(2), lat, lon, originh);
