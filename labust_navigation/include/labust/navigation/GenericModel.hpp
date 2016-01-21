@@ -44,7 +44,9 @@
 *********************************************************************/
 #ifndef GENERICMODEL_HPP_
 #define GENERICMODEL_HPP_
+
 #include <labust/navigation/SSModel.hpp>
+#include <math.h>
 
 namespace labust
 {
@@ -53,7 +55,7 @@ namespace labust
 		/**
 		* This class implements a generic vehicle model for state estimator.
 		*/
-		class GenericModel : public SSModel<double>
+		class GenericModel: public SSModel<double>
 		{
 			typedef SSModel<double> Base;
 		public:
@@ -80,6 +82,11 @@ namespace labust
 				double alpha, beta, betaa;
 			};
 
+
+			enum {u=0,v,w,p,q,r,xp,yp,zp,phi,theta,psi,xc,yc,b,buoyancy,roll_restore,pitch_restore,altitude,xb,yb,zb,stateNum};
+			enum {X=0,Y,Z,K,M,N,inputSize};
+			enum {range=stateNum,bearing,elevation,measSize};
+
 			/*** The default constructor. ***/
 			GenericModel();
 
@@ -87,32 +94,21 @@ namespace labust
 			virtual ~GenericModel();
 
 			/*** Process model ***/
-			virtual void step() = 0;
-			virtual void derivativeAX() = 0;
-			virtual void derivativeAW() = 0;
-			virtual void derivativeHX() = 0;
-			virtual void derivativeHV()= 0;
+			 void step(const input_type& input);
+			 void derivativeAX();
+			 void derivativeAW();
+			 void derivativeHX();
+			 void derivativeHV();
 
-
-			/**
-			* Calculates the estimated output of the model.
-			*
-			* \param y Inserts the estimated output values here.
-			*/
-			void estimate_y(output_type& y);
 			/**
 			* Initialize the model to default values
 			*/
-			void initModel();
-			/**
-			* Setup the measurement matrix for available measurements.
-			*/
-			const output_type& update(vector& measurements, vector& newMeas);
+			void initializeModel();
 
 			/**
 			* Set the model parameters.
 			*/
-			void setParameters(const ModelParams& surge,
+			void setModelParameters(const ModelParams& surge,
 				const ModelParams& sway,
 				const ModelParams& heave,
 				const ModelParams& roll,
@@ -127,9 +123,9 @@ namespace labust
 				this->yaw = yaw;
 			}
 
-			void calculateXYInovationVariance(const matrix& P, double& xin,double &yin);
-			void calculateUVInovationVariance(const matrix& P, double& uin,double &vin);
-			double calculateAltInovationVariance(const matrix& P);
+			//void calculateXYInovationVariance(const matrix& P, double& xin,double &yin);
+			//void calculateUVInovationVariance(const matrix& P, double& uin,double &vin);
+			//double calculateAltInovationVariance(const matrix& P);
 
 			/**
 			* Return the speeds in the local frame.
@@ -162,30 +158,30 @@ namespace labust
 			/**
 			* The newest measurement.
 			*/
-			output_type measurement;
+			//output_type measurement;
 			/**
 			* The NED speeds.
 			*/
 			double xdot,ydot;
-			///DVL rotation trust factor
-			double trustf;
-			///The sway correction factors
-			double use_sc, acc_port, acc_starboard,
-			vec_port, vec_starboard;
-			/**
-			* The DVL linear/nonlinear flag.
-			*/
-			int dvlModel;
-			/**
-			* The nonlinear H.
-			*/
+//			///DVL rotation trust factor
+//			double trustf;
+//			///The sway correction factors
+//			double use_sc, acc_port, acc_starboard,
+//			vec_port, vec_starboard;
+//			/**
+//			* The DVL linear/nonlinear flag.
+//			*/
+//			int dvlModel;
+//			/**
+//			* The nonlinear H.
+//			*/
 			matrix Hnl;
-			/**
-			* The nonlinear and final y.
-			*/
+//			/**
+//			* The nonlinear and final y.
+//			*/
 			vector ynl,y;
-
-			int state_num, measurement_num, input_num;
+//
+//			int state_num, measurement_num, input_num;
 
 		};
 	}

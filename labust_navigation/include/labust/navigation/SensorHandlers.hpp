@@ -39,6 +39,8 @@
 #include <sensor_msgs/Imu.h>
 #include <std_msgs/Bool.h>
 #include <std_msgs/Float64.h>
+#include <std_msgs/Float32.h>
+#include <underwater_msgs/USBLFix.h>
 #include <geometry_msgs/TwistStamped.h>
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
@@ -158,6 +160,98 @@ namespace labust
 			double uvw[3], r;
 			bool bottom_lock;
 			ros::Subscriber nu_dvl, dvl_bottom;
+			tf2_ros::Buffer buffer;
+			tf2_ros::TransformListener listener;
+		};
+
+		class DepthHandler : public NewArrived
+		{
+		public:
+			enum {u=0,v,w};
+
+			DepthHandler():r(0),listener(buffer),bottom_lock(false){};
+
+			void configure(ros::NodeHandle& nh);
+
+			inline const double* body_speeds() const {return uvw;};
+
+			inline void current_r(double yaw_rate) {r = yaw_rate;};
+
+		private:
+			void onDepth(const std_msgs::Float32::ConstPtr& data);
+			void onBottomLock(const std_msgs::Bool::ConstPtr& data);
+			double uvw[3], r;
+			bool bottom_lock;
+			ros::Subscriber sub_depth;
+			tf2_ros::Buffer buffer;
+			tf2_ros::TransformListener listener;
+		};
+
+		class AltitudeHandler : public NewArrived
+		{
+		public:
+			enum {u=0,v,w};
+
+			AltitudeHandler():r(0),listener(buffer),bottom_lock(false){};
+
+			void configure(ros::NodeHandle& nh);
+
+			inline const double* body_speeds() const {return uvw;};
+
+			inline void current_r(double yaw_rate) {r = yaw_rate;};
+
+		private:
+			void onAltitude(const std_msgs::Float32::ConstPtr& data);
+			void onBottomLock(const std_msgs::Bool::ConstPtr& data);
+			double uvw[3], r;
+			bool bottom_lock;
+			ros::Subscriber sub_altitude;
+			tf2_ros::Buffer buffer;
+			tf2_ros::TransformListener listener;
+		};
+
+		class USBLHandler : public NewArrived
+		{
+		public:
+			enum {u=0,v,w};
+
+			USBLHandler():r(0),listener(buffer),bottom_lock(false){};
+
+			void configure(ros::NodeHandle& nh);
+
+			inline const double* body_speeds() const {return uvw;};
+
+			inline void current_r(double yaw_rate) {r = yaw_rate;};
+
+		private:
+			void onUSBL(const underwater_msgs::USBLFix::ConstPtr& data);
+			void onBottomLock(const std_msgs::Bool::ConstPtr& data);
+			double uvw[3], r;
+			bool bottom_lock;
+			ros::Subscriber sub_usbl;
+			tf2_ros::Buffer buffer;
+			tf2_ros::TransformListener listener;
+		};
+
+		class BeaconHandler : public NewArrived
+		{
+		public:
+			enum {u=0,v,w};
+
+			BeaconHandler():r(0),listener(buffer),bottom_lock(false){};
+
+			void configure(ros::NodeHandle& nh);
+
+			inline const double* body_speeds() const {return uvw;};
+
+			inline void current_r(double yaw_rate) {r = yaw_rate;};
+
+		private:
+			void onBeacon(const auv_msgs::NavSts::ConstPtr& data);
+			void onBottomLock(const std_msgs::Bool::ConstPtr& data);
+			double uvw[3], r;
+			bool bottom_lock;
+			ros::Subscriber sub_beacon;
 			tf2_ros::Buffer buffer;
 			tf2_ros::TransformListener listener;
 		};

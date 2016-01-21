@@ -31,9 +31,10 @@
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
-#ifndef KFCORE_HPP_
-#define KFCORE_HPP_
-#include <labust/navigation/KFBase.hpp>
+
+#ifndef KFCORE2_HPP_
+#define KFCORE2_HPP_
+#include <labust/navigation/KFBase2.hpp>
 #include <Eigen/Dense>
 
 #include <vector>
@@ -47,22 +48,22 @@ namespace labust
 		/**
 		 * This class combines models with different prediction and correction approaches.
 		 */
-		template <class Model>
-		class KFCore : public KFBase< Model >
+		template <typename Model>
+		class KFCore2 : public KFBase2<Model>
 		{
-			typedef KFBase< Model > Base;
+			typedef KFBase2<Model> Base;
 		public:
 			/**
 			 * Generic constructor.
 			 */
-			KFCore(){};
+			KFCore2(int state_num, int measurement_num):KFBase2<Model>(state_num,measurement_num){};
 
 			/**
 			 * Perform the prediction step based on the system input.
 			 *
 			 * \param u Input vector.
 			 */
-			void predict(typename Base::inputref u = typename Model::input_type())
+			void predict(typename Base::inputref u = typename Base::input_type())
 			{
 				assert((this->Ts) && "KFCore: Sampling time set to zero." );
 				/**
@@ -70,6 +71,10 @@ namespace labust
 				 * x_(k) = f(x(k-1),u(k),0)
 				 */
 				this->step(u);
+				this->xk_1 = this->x;
+
+				this->derivativeAX();
+				this->derivativeAW();
 				/**
 				 * Update the innovation matrix:
 				 * P_(k) = A(k)*P(k-1)*A'(k) + W(k)*Q(k-1)*W'(k)
@@ -144,11 +149,14 @@ namespace labust
 
 				//if (dvlModel != 0) derivativeH();
 
+				this->derivativeHX();
+				this->derivativeHV();
+
 				this->measurement.resize(arrived.size());
 				this->H = Base::matrix::Zero(arrived.size(),this->state_num);
-				this->y = typename Base::vector::Zero(arrived.size());
-				this->R = typename Base::matrix::Zero(arrived.size(),arrived.size());
-				this->V = typename Base::matrix::Zero(arrived.size(),arrived.size());
+				this->y = Base::vector::Zero(arrived.size());
+				this->R = Base::matrix::Zero(arrived.size(),arrived.size());
+				this->V = Base::matrix::Zero(arrived.size(),arrived.size());
 
 				for (size_t i=0; i<arrived.size();++i)
 				{
@@ -180,6 +188,8 @@ namespace labust
 				return this->measurement;
 			}
 
+//// !!!!!!!!!!!!!! Move to measurement handler
+
 			/**
 			 * Update the matrices V and H to accommodate for available measurements.
 			 * Perform per element outlier rejection and correct the state with the
@@ -193,53 +203,56 @@ namespace labust
 					NewMeasVector& newMeas,
 					bool reject_outliers = true)
 			{
-				//Check invariant.
-				assert(measurements.size() == Model::stateNum &&
-						newMeas.size() == Model::stateNum);
-
-				std::vector<size_t> arrived;
-				std::vector<typename Model::numericprecission> dataVec;
-
-				for (size_t i=0; i<newMeas.size(); ++i)
-				{
-					//Outlier rejection
-					if (newMeas(i) && reject_outliers)
-					{
-						double dist=fabs(this->x(i) - measurements(i));
-						newMeas(i) = (dist <= sqrt(this->P(i,i)) + sqrt(this->R0(i,i)));
-
-						///\todo Remove this after debugging
-						if (!newMeas(i))
-						{
-							std::cerr<<"Outlier rejected: x(i)="<<this->x(i);
-							std::cerr<<", m(i)="<<measurements(i);
-							std::cerr<<", r(i)="<<sqrt(this->P(i,i)) + sqrt(this->R0(i,i));
-						}
-					}
-
-					if (newMeas(i))
-					{
-						arrived.push_back(i);
-						dataVec.push_back(measurements(i));
-						newMeas(i) = 0;
-					}
-				}
-
-				typename Base::output_type y_meas(arrived.size());
-				this->H = Model::matrix::Zero(arrived.size(),Model::stateNum);
-				this->V = Model::matrix::Zero(arrived.size(),Model::stateNum);
-
-				for (size_t i=0; i<arrived.size();++i)
-				{
-					y_meas(i) = dataVec[i];
-					this->H.row(i) = this->H0.row(arrived[i]);
-					this->V.row(i) = this->V0.row(arrived[i]);
-				}
-
-				return this->correct(y_meas);
+//				//Check invariant.
+//				assert(measurements.size() == this->state_num &&
+//						newMeas.size() == this->state_num);
+//
+//				std::vector<size_t> arrived;
+//				std::vector<typename Base::numericprecission> dataVec;
+//
+//				for (size_t i=0; i<newMeas.size(); ++i)
+//				{
+//					//Outlier rejection
+//					if (newMeas(i) && reject_outliers)
+//					{
+//						double dist=fabs(this->x(i) - measurements(i));
+//						newMeas(i) = (dist <= sqrt(this->P(i,i)) + sqrt(this->R0(i,i)));
+//
+//						///\todo Remove this after debugging
+//						if (!newMeas(i))
+//						{
+//							std::cerr<<"Outlier rejected: x(i)="<<this->x(i);
+//							std::cerr<<", m(i)="<<measurements(i);
+//							std::cerr<<", r(i)="<<sqrt(this->P(i,i)) + sqrt(this->R0(i,i));
+//						}
+//					}
+//
+//					if (newMeas(i))
+//					{
+//						arrived.push_back(i);
+//						dataVec.push_back(measurements(i));
+//						newMeas(i) = 0;
+//					}
+//				}
+//
+//				typename Base::output_type y_meas(arrived.size());
+//				this->H = Base::matrix::Zero(arrived.size(),this->state_num);
+//				this->V = Base::matrix::Zero(arrived.size(),this->state_num);
+//
+//				for (size_t i=0; i<arrived.size();++i)
+//				{
+//					y_meas(i) = dataVec[i];
+//					this->H.row(i) = this->H0.row(arrived[i]);
+//					this->V.row(i) = this->V0.row(arrived[i]);
+//				}
+//
+//				return this->correct(y_meas);
+				return measurements;
 			}
 		};
 	};
 }
-/* KFCORE_HPP_ */
+/* KFCORE2_HPP_ */
 #endif
+
+

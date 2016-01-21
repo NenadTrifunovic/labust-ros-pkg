@@ -301,3 +301,49 @@ void DvlHandler::onDvl(const geometry_msgs::TwistStamped::ConstPtr& data)
 
 	isNew = true;
 }
+
+void DepthHandler::configure(ros::NodeHandle& nh)
+{
+	sub_depth = nh.subscribe<std_msgs::Float32>("depth", 1, &DepthHandler::onDepth, this);
+}
+
+void DepthHandler::onDepth(const std_msgs::Float32::ConstPtr& data)
+{
+
+}
+
+void AltitudeHandler::configure(ros::NodeHandle& nh)
+{
+	sub_altitude = nh.subscribe<std_msgs::Float32>("altitude", 1,
+			&AltitudeHandler::onAltitude, this);
+}
+
+void AltitudeHandler::onAltitude(const std_msgs::Float32::ConstPtr& data)
+{
+
+}
+
+
+void USBLHandler::configure(ros::NodeHandle& nh)
+{
+	sub_usbl = nh.subscribe<underwater_msgs::USBLFix>("usbl", 1,
+			&USBLHandler::onUSBL, this);
+}
+
+void USBLHandler::onUSBL(const underwater_msgs::USBLFix::ConstPtr& data)
+{
+
+}
+
+
+void BeaconHandler::configure(ros::NodeHandle& nh)
+{
+	sub_beacon = nh.subscribe<auv_msgs::NavSts>("beacon", 1,
+			&BeaconHandler::onBeacon, this);
+}
+
+void BeaconHandler::onBeacon(const auv_msgs::NavSts::ConstPtr& data)
+{
+
+}
+
