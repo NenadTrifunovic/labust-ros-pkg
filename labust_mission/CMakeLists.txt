@@ -119,7 +119,7 @@ include_directories(
   ${Boost_INCLUDE_DIRS}
   ${GeographicLib_INCLUDE_DIRS})
 
-if (TinyXML2_FOUND)
+if (TinyXML2_LIBRARY)
 	include_directories(${TinyXML2_INCLUDE_DIR})
 	
 	add_executable(mission_exec src/mission_exec.cpp)
