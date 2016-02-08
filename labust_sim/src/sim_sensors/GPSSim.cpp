@@ -52,7 +52,8 @@ struct GPSSim
 		last_gps(ros::Time::now()),
 		rate(10),
 		listener(buffer),
-		gps_z(0)
+		gps_z(0),
+		tf_prefix("")
 	{
 		ros::NodeHandle nh,ph("~");
 		ph.param("gps_pub",rate,rate);
@@ -65,6 +66,9 @@ struct GPSSim
 				M_PI*orot[2]/180,
 				this->orot);
 
+		std::string key;
+		if (nh.searchParam("tf_prefix", key)) nh.getParam(key, tf_prefix);
+
 		odom = nh.subscribe<nav_msgs::Odometry>("meas_odom",1,&GPSSim::onOdom, this);
 		gps_pub = nh.advertise<sensor_msgs::NavSatFix>("fix",1);
 	}
@@ -73,13 +77,13 @@ struct GPSSim
 	{
 		sensor_msgs::NavSatFix::Ptr fix(new sensor_msgs::NavSatFix());
 		fix->header.stamp = msg->header.stamp;
-		fix->header.frame_id = "geodetic";
+		fix->header.frame_id = tf_prefix + "geodetic";
 
 		geometry_msgs::TransformStamped transformLocal, transformGps, transformDeg;
 		try
 		{
 			//Get the simulated vehicle position
-			transformLocal = buffer.lookupTransform("world", "base_link_sim", ros::Time(0));
+			transformLocal = buffer.lookupTransform(tf_prefix + "world", tf_prefix + "base_link_sim", ros::Time(0));
 			//Add the sensor offset
 			Eigen::Quaternion<double> qrot(
 					transformLocal.transform.rotation.w,
@@ -104,7 +108,7 @@ struct GPSSim
 			transformLocal.transform.translation.y = enu(1);
 			transformLocal.transform.translation.z = enu(2);
 			//In case the origin changes
-			transformDeg = buffer.lookupTransform("ecef", "world",
+			transformDeg = buffer.lookupTransform("ecef", tf_prefix + "world",
 					ros::Time(0), ros::Duration(5.0));
 			//Set the projection origin
 			double lat0,lon0,h0;
@@ -147,6 +151,7 @@ private:
 	double gps_z;
 	//The ENU frame
 	GeographicLib::LocalCartesian proj;
+	std::string tf_prefix;
 };
 
 int main(int argc, char* argv[])

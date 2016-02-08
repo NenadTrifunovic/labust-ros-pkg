@@ -66,7 +66,8 @@ namespace labust
 				dr_p(Eigen::Vector3d::Zero()),
 				kpi(1.0),
 				kpierr(5),
-				listener(buffer){};
+				listener(buffer),
+				tf_prefix(""){};
 
 			void init()
 			{
@@ -94,7 +95,7 @@ namespace labust
 				try
 				{
 					//Get the transform frames
-					td = buffer.lookupTransform("sf_frame", "base_link", ros::Time(0));
+					td = buffer.lookupTransform(tf_prefix + "sf_frame", tf_prefix + "base_link", ros::Time(0));
 					d << td.transform.translation.x,
 							td.transform.translation.y,
 							td.transform.translation.z;
@@ -142,13 +143,13 @@ namespace labust
 				geometry_msgs::TwistStamped::Ptr piref_out(new geometry_msgs::TwistStamped());
 				piref_out->twist.linear.x = dpi_r;
 				piref_out->header.stamp = nu->header.stamp;
-				piref_out->header.frame_id = "sf_frame";
+				piref_out->header.frame_id = tf_prefix + "sf_frame";
 				piref.publish(piref_out);
 
 				auv_msgs::NavSts::Ptr psiref_out(new auv_msgs::NavSts());
 				psiref_out->orientation.yaw = psi_r;
 				psiref_out->header.stamp = nu->header.stamp;
-				psiref_out->header.frame_id = "local";
+				psiref_out->header.frame_id = tf_prefix + "local";
 				psiref.publish(psiref_out);
 
 				return nu;
@@ -163,6 +164,9 @@ namespace labust
 				nh.param("vt_controller/state_gain", stateg, stateg);
 				nh.param("vt_controller/path_gain", pathg, pathg);
 				nh.param("vt_controller/sampling",Ts,Ts);
+
+				std::string key;
+				if (nh.searchParam("tf_prefix", key)) nh.getParam(key, tf_prefix);
 
 				//Setup gains
 				for(int i=0; i<stateg.size(); ++i)
@@ -220,6 +224,8 @@ namespace labust
 			tf2_ros::Buffer buffer;
 			//The transform frame listener
 			tf2_ros::TransformListener listener;
+			//The transform frame prefix for multi-vehicle operations
+			std::string tf_prefix;
 		};
 	}
 }

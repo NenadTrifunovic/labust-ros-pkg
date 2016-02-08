@@ -300,6 +300,9 @@ namespace labust
 			labust::tools::OutlierRejection OR;
 
 			void calculateConditionNumber();
+
+			//
+			std::string tf_prefix;
 		};
 	}
 }

@@ -81,7 +81,7 @@ namespace labust
 
 			void init()
 			{
-				ros::NodeHandle ph("~");
+				ros::NodeHandle nh,ph("~");
 
 				/*** Initialize controller names ***/
 				controllers.name.resize(numcnt);
@@ -153,8 +153,8 @@ namespace labust
 					transform.transform.translation.z = T1(zp);
 					labust::tools::quaternionFromEulerZYX(0, 0, line.gamma(),
 							transform.transform.rotation);
-					transform.child_frame_id = "course_frame";
-					transform.header.frame_id = "local";
+					transform.child_frame_id = tf_prefix + "course_frame";
+					transform.header.frame_id = tf_prefix + "local";
 					transform.header.stamp = ros::Time::now();
 					broadcaster.sendTransform(transform);
 
@@ -291,7 +291,7 @@ namespace labust
 				ref->position.east = 0;
 				ref->body_velocity.x = goal->speed;
 				ref->orientation.yaw = goal->heading;
-				ref->header.frame_id = "course_frame";
+				ref->header.frame_id = tf_prefix + "course_frame";
 
 				/*** Calculate bearing to endpoint ***/
 				Eigen::Vector3d T1,T2;
@@ -312,8 +312,8 @@ namespace labust
 					transform.transform.translation.z = T1(zp);
 					labust::tools::quaternionFromEulerZYX(0, 0, line.gamma(),
 							transform.transform.rotation);
-					transform.child_frame_id = "course_frame";
-					transform.header.frame_id = "local";
+					transform.child_frame_id = tf_prefix + "course_frame";
+					transform.header.frame_id = tf_prefix + "local";
 					transform.header.stamp = ros::Time::now();
 					broadcaster.sendTransform(transform);
 				}
@@ -332,7 +332,7 @@ namespace labust
 							controllers.state[hdg] = false;
 							controllers.state[ualf] = true;
 							this->updateControllers();
-							ref->header.frame_id = "course_frame";
+							ref->header.frame_id = tf_prefix + "course_frame";
 					}
 					else if (std::abs(delta) >= M_PI/2)
 					{
@@ -340,7 +340,7 @@ namespace labust
 							controllers.state[hdg] = true;
 							controllers.state[ualf] = false;
 							this->updateControllers();
-							ref->header.frame_id = "local";
+							ref->header.frame_id = tf_prefix + "local";
 					}
 
 				}

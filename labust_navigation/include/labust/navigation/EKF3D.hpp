@@ -239,6 +239,9 @@ namespace labust
 
 			//DVL filter params
 			double dvl_fp;
+
+			//The transform frame prefix for multi-vehicle scenarios
+			std::string tf_prefix;
 		};
 	}
 }

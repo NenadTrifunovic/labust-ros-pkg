@@ -169,6 +169,9 @@ namespace labust
 			 * Model parameters
 			 */
 			KFNav::ModelParams params[DoF];
+
+			//
+			std::string tf_prefix;
 		};
 	}
 }

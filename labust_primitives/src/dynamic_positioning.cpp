@@ -199,7 +199,7 @@ namespace labust
 				ref->position.north = goal->T1.point.x;
 				ref->position.east = goal->T1.point.y;
 				ref->orientation.yaw = goal->yaw;
-				ref->header.frame_id = "local";
+				ref->header.frame_id = tf_prefix + "local";
 				ref->header.stamp = ros::Time::now();
 
 				return ref;

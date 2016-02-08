@@ -78,7 +78,7 @@ namespace labust
 		class GPSHandler : public NewArrived
 		{
 		public:
-			GPSHandler():listener(buffer),originh(0){};
+			GPSHandler():listener(buffer),originh(0),tf_prefix(""){};
 			void configure(ros::NodeHandle& nh);
 
 			inline const std::pair<double, double>&
@@ -104,6 +104,7 @@ namespace labust
 			GeographicLib::LocalCartesian proj;
 			Eigen::Quaternion<double> rot;
 			double originh;
+			std::string tf_prefix;
 		};
 
 		/**
@@ -116,7 +117,7 @@ namespace labust
 			enum {p=0,q,r};
 			enum {ax,ay,az};
 
-			ImuHandler():listener(buffer),gps(0),magdec(0){};
+			ImuHandler():listener(buffer),gps(0),magdec(0),tf_prefix(""){};
 			
 			void setGpsHandler(GPSHandler* gps){this->gps = gps;};
 
@@ -137,6 +138,7 @@ namespace labust
 			ros::Subscriber imu, mag_dec;
 			double rpy[3], pqr[3], axyz[3], magdec;
 			GPSHandler* gps;
+			std::string tf_prefix;
 		};
 
 		class DvlHandler : public NewArrived
@@ -144,7 +146,7 @@ namespace labust
 		public:
 			enum {u=0,v,w};
 
-			DvlHandler():r(0),listener(buffer),bottom_lock(false){};
+			DvlHandler():r(0),listener(buffer),bottom_lock(false),tf_prefix(""){};
 
 			void configure(ros::NodeHandle& nh);
 
@@ -160,6 +162,7 @@ namespace labust
 			ros::Subscriber nu_dvl, dvl_bottom;
 			tf2_ros::Buffer buffer;
 			tf2_ros::TransformListener listener;
+			std::string tf_prefix;
 		};
 	}
 }

@@ -42,6 +42,9 @@ using namespace labust::navigation;
 
 void GPSHandler::configure(ros::NodeHandle& nh)
 {
+	std::string key;
+	if (nh.searchParam("tf_prefix", key)) nh.getParam(key, tf_prefix);
+
 	gps = nh.subscribe<sensor_msgs::NavSatFix>("gps", 1,
 			&GPSHandler::onGps, this);
 }
@@ -53,7 +56,7 @@ void GPSHandler::onGps(const sensor_msgs::NavSatFix::ConstPtr& data)
 	try
 	{
 		//Get the ENU coordinates
-		transformDeg = buffer.lookupTransform("ecef", "world", ros::Time(0));
+		transformDeg = buffer.lookupTransform("ecef", tf_prefix + "world", ros::Time(0));
 		//Set the projection origin
 		double lat0,lon0,h0;
 		GeographicLib::Geocentric::WGS84.Reverse(
@@ -79,14 +82,14 @@ void GPSHandler::onGps(const sensor_msgs::NavSatFix::ConstPtr& data)
 			//Try to get the transform at the exact time or the latest
 			try
 			{
-				transformLocal = buffer.lookupTransform("local", "base_link", data->header.stamp);
+				transformLocal = buffer.lookupTransform(tf_prefix + "local", tf_prefix + "base_link", data->header.stamp);
 			}
 			catch (tf2::TransformException& ex)
 			{
-				transformLocal = buffer.lookupTransform("local", "base_link", ros::Time(0));
+				transformLocal = buffer.lookupTransform(tf_prefix + "local", tf_prefix + "base_link", ros::Time(0));
 			}
 			//Get GPS offset
-			transformGPS = buffer.lookupTransform("base_link", "gps_frame", data->header.stamp);
+			transformGPS = buffer.lookupTransform(tf_prefix + "base_link", tf_prefix + "gps_frame", data->header.stamp);
 			Eigen::Vector3d gps_b;
 			gps_b<<transformGPS.transform.translation.x,
 					transformGPS.transform.translation.y,
@@ -123,6 +126,9 @@ void GPSHandler::onGps(const sensor_msgs::NavSatFix::ConstPtr& data)
 
 void ImuHandler::configure(ros::NodeHandle& nh)
 {
+	std::string key;
+	if (nh.searchParam("tf_prefix", key)) nh.getParam(key, tf_prefix);
+
 	imu = nh.subscribe<sensor_msgs::Imu>("imu", 1,
 			&ImuHandler::onImu, this);
 	mag_dec = nh.subscribe<std_msgs::Float64>("magnetic_declination",1,
@@ -134,7 +140,7 @@ void ImuHandler::onImu(const sensor_msgs::Imu::ConstPtr& data)
 	geometry_msgs::TransformStamped transform;
 	try
 	{
-		transform = buffer.lookupTransform("base_link", data->header.frame_id, ros::Time(0));
+		transform = buffer.lookupTransform(tf_prefix + "base_link", data->header.frame_id, ros::Time(0));
 		Eigen::Quaternion<double> meas(data->orientation.w, data->orientation.x,
 				data->orientation.y, data->orientation.z);
 		Eigen::Quaternion<double> rot(transform.transform.rotation.w,
@@ -180,6 +186,9 @@ void ImuHandler::onImu(const sensor_msgs::Imu::ConstPtr& data)
 
 void DvlHandler::configure(ros::NodeHandle& nh)
 {
+	std::string key;
+	if (nh.searchParam("tf_prefix", key)) nh.getParam(key, tf_prefix);
+
 	nu_dvl = nh.subscribe<geometry_msgs::TwistStamped>("dvl", 1,
 			&DvlHandler::onDvl, this);
 	dvl_bottom = nh.subscribe<std_msgs::Bool>("dvl_bottom", 1,
@@ -200,12 +209,12 @@ void DvlHandler::onDvl(const geometry_msgs::TwistStamped::ConstPtr& data)
 	//Ignore water lock data (?)
 	if (!bottom_lock)	ROS_WARN("No bottom lock.");
 
-	if (data->header.frame_id == "dvl_frame")
+	if (data->header.frame_id.find("dvl_frame") != std::string::npos)
 	{
 		try
 		{
 			geometry_msgs::TransformStamped transform;
-			transform = buffer.lookupTransform("base_link", "dvl_frame", ros::Time(0));
+			transform = buffer.lookupTransform(tf_prefix + "base_link", tf_prefix + "dvl_frame", ros::Time(0));
 
 			Eigen::Vector3d speed(data->twist.linear.x, data->twist.linear.y, data->twist.linear.z);
 			Eigen::Quaternion<double> rot(transform.transform.rotation.w,
@@ -236,13 +245,13 @@ void DvlHandler::onDvl(const geometry_msgs::TwistStamped::ConstPtr& data)
 			return;
 		}
 	}
-	else if (data->header.frame_id == "base_link")
+	else if (data->header.frame_id.find("base_link") != std::string::npos)
 	{
 		uvw[u] = data->twist.linear.x;
 		uvw[v] = data->twist.linear.y;
 		uvw[w] = data->twist.linear.z;
 	}
-	else if (data->header.frame_id == "local")
+	else if (data->header.frame_id.find("local") != std::string::npos)
 	{
 		geometry_msgs::TransformStamped transform;
 		Eigen::Vector3d meas(data->twist.linear.x,
@@ -252,18 +261,18 @@ void DvlHandler::onDvl(const geometry_msgs::TwistStamped::ConstPtr& data)
 				transform.transform.rotation.x,
 				transform.transform.rotation.y,
 				transform.transform.rotation.z);
-		transform = buffer.lookupTransform("local", "base_link", ros::Time(0));
+		transform = buffer.lookupTransform(tf_prefix + "local", tf_prefix + "base_link", ros::Time(0));
 		Eigen::Vector3d result = rot.matrix()*meas;
 		uvw[u] = result.x();
 		uvw[v] = result.y();
 		uvw[w] = result.z();
 	}
-	else if (data->header.frame_id == "gps_frame")
+	else if (data->header.frame_id.find("gps_frame") != std::string::npos)
 	{
 		try
 		{
 			geometry_msgs::TransformStamped transform;
-			transform = buffer.lookupTransform("base_link", "gps_frame", ros::Time(0));
+			transform = buffer.lookupTransform(tf_prefix + "base_link", tf_prefix + "gps_frame", ros::Time(0));
 
 			Eigen::Vector3d speed(data->twist.linear.x, data->twist.linear.y, data->twist.linear.z);
 			Eigen::Quaternion<double> rot(transform.transform.rotation.w,

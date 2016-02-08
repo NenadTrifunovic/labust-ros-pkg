@@ -59,7 +59,8 @@ struct LLNode
 		proj(originLat,originLon,originH),
 		fixValidated(false),
 		fixCount(0),
-		use_mag(false)
+		use_mag(false),
+		tf_prefix("")
 	{
 		ros::NodeHandle nh,ph("~");
 		nh.param("LocalOriginLat",originLat,originLat);
@@ -71,6 +72,10 @@ struct LLNode
 		std::string magnetic_path("/usr/share/geographiclib/magnetic");
 		ph.param("magnetic_data_path", magnetic_path, magnetic_path);
 		ph.param("magnetic_model", magnetic_model, magnetic_model);
+
+		std::string key;
+		if (nh.searchParam("tf_prefix", key)) nh.getParam(key, tf_prefix);
+
 		try
 		{
 			mag.reset(new GeographicLib::MagneticModel(magnetic_model, magnetic_path));
@@ -169,7 +174,7 @@ struct LLNode
 						0,
 						M_PI/2 + M_PI*originLon/180,
 						transform.transform.rotation);
-				transform.child_frame_id = "world";
+				transform.child_frame_id = tf_prefix + "world";
 				transform.header.frame_id = "ecef";
 				transform.header.stamp = ct;
 				broadcaster.sendTransform(transform);
@@ -181,8 +186,8 @@ struct LLNode
 			Eigen::Quaternion<double> q;
 			labust::tools::quaternionFromEulerZYX(M_PI,0,M_PI/2,
 					transform.transform.rotation);
-			transform.child_frame_id = "local";
-			transform.header.frame_id = "world";
+			transform.child_frame_id = tf_prefix + "local";
+			transform.header.frame_id = tf_prefix + "world";
 			transform.header.stamp = ct;
 			broadcaster.sendTransform(transform);
 
@@ -203,6 +208,7 @@ private:
 	//The magnetic model
 	boost::shared_ptr<GeographicLib::MagneticModel> mag;
 	bool use_mag;
+	std::string tf_prefix;
 };
 
 int main(int argc, char* argv[])

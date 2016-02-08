@@ -84,7 +84,8 @@ SimCore::SimCore():
 		enablePublishWorld(true),
 		enablePublishSimBaseLink(true),
 		originLat(0),
-		originLon(0)
+		originLon(0),
+		tf_prefix("")
 {
 	this->onInit();
 }
@@ -128,6 +129,10 @@ void SimCore::onInit()
 	ph.param("publish_sim_base", enablePublishSimBaseLink, enablePublishSimBaseLink);
 	ph.param("originLat", originLat, originLat);
 	ph.param("originLon", originLon, originLon);
+
+	std::string key;
+	if (nh.searchParam("tf_prefix", key)) nh.getParam(key, tf_prefix);
+
 	runner = boost::thread(boost::bind(&SimCore::start, this));
 }
 
@@ -210,7 +215,8 @@ void SimCore::etaNuToOdom(const vector& eta, const vector& nu, nav_msgs::Odometr
 
 void SimCore::publishWorld()
 {
-	geometry_msgs::TransformStamped transform;
+	///Deprecated
+	/*geometry_msgs::TransformStamped transform;
 	transform.transform.translation.x = originLon;
 	transform.transform.translation.y = originLat;
 	transform.transform.translation.z = 0;
@@ -229,7 +235,7 @@ void SimCore::publishWorld()
 	transform.child_frame_id = "local";
 	transform.header.frame_id = "world";
 	transform.header.stamp = ros::Time::now();
-	broadcast.sendTransform(transform);
+	broadcast.sendTransform(transform);*/
 }
 
 void SimCore::publishSimBaseLink()
@@ -242,8 +248,8 @@ void SimCore::publishSimBaseLink()
 	transform.transform.translation.y = eta(RBModel::y);
 	transform.transform.translation.z = eta(RBModel::z);
 	labust::tools::quaternionFromEulerZYX(0,0,0,transform.transform.rotation);
-	transform.child_frame_id = "base_pose_sim";
-	transform.header.frame_id = "local";
+	transform.child_frame_id = tf_prefix + "base_pose_sim";
+	transform.header.frame_id = tf_prefix + "local";
 	transform.header.stamp = ros::Time::now();
 	broadcast.sendTransform(transform);
 
@@ -254,8 +260,8 @@ void SimCore::publishSimBaseLink()
 			eta(RBModel::theta),
 			eta(RBModel::psi),
 			transform.transform.rotation);
-	transform.child_frame_id = "base_link_sim";
-	transform.header.frame_id = "base_pose_sim";
+	transform.child_frame_id = tf_prefix + "base_link_sim";
+	transform.header.frame_id = tf_prefix + "base_pose_sim";
 	broadcast.sendTransform(transform);
 }
 

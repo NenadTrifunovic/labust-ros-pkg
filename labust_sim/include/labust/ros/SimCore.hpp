@@ -259,6 +259,8 @@ namespace labust
 			 * The origin latitude and longitude position.
 			 */
 			double originLat, originLon;
+			///The transform frame prefix for multi-vehicles
+			std::string tf_prefix;
 		};
 	}
 }
