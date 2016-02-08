@@ -67,6 +67,7 @@ class Structure:
         self.assert_size = None  
         self.serialization = 'object_serializable'
         self.bitfield = False
+        self.bitfield2 = False
         
         self.variables = []
         self.methods = []
@@ -96,6 +97,8 @@ class Structure:
         self.serialization = xmlnode.get('serialization', self.serialization)
         bitfield = xmlnode.get('bitfield', '')
         self.bitfield = (bitfield == "1") or (bitfield.upper() == "TRUE")
+        bitfield2 = xmlnode.get('bitfield2', '')
+        self.bitfield2 = (bitfield2 == "1") or (bitfield2.upper() == "TRUE")
           
         for node in xmlnode.findall('.//'+Variable._XMLTAG):
             self.variables.append(Variable(node))

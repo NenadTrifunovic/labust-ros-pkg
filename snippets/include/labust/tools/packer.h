@@ -34,10 +34,11 @@
  *  Author: Dula Nad
  *  Created: 29.04.2013.
  *********************************************************************/
-#ifndef USBL_COMMS_PACKER_H
-#define USBL_COMMS_PACKER_H
+#ifndef SNIPPETS_PACKER_H
+#define SNIPPETS_PACKER_H
 #include <vector>
 #include <boost/archive/binary_oarchive.hpp>
+#include <boost/archive/binary_iarchive.hpp>
 #include <boost/iostreams/device/back_inserter.hpp>
 #include <boost/iostreams/device/array.hpp>
 #include <boost/iostreams/stream.hpp>
@@ -71,7 +72,7 @@ namespace labust
 			using namespace boost::iostreams;
 			array_source source(reinterpret_cast<const char*>(binary.data()),
 					binary.size());
-		  stream<array_source> is(source);
+			stream<array_source> is(source);
 			boost::archive::binary_iarchive inser(is, boost::archive::no_header);
 			data->unpack(inser);
 			return true;
@@ -82,7 +83,7 @@ namespace labust
 		}
 	}
 }
-/* USBL_COMMS_PACKER_H*/
+/* SNIPPETS_PACKER_H */
 #endif
 
 

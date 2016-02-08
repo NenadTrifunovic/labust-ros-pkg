@@ -63,6 +63,8 @@ class Variable:
         self.vdefault = None
         self.vcond = None
         self.vbits = None
+        self.vmin = 0
+        self.vmax = 1.0
         
         if xmlnode != None: self.from_xml(xmlnode)
         
@@ -83,7 +85,21 @@ class Variable:
         self.vtype = xmlnode.get('type',self.vtype)
         self.default = xmlnode.get('default', self.vdefault)
         self.vcond = xmlnode.get('if', self.vcond)
-        self.vbits = xmlnode.get('bits', self.vbits)         
+        self.vbits = xmlnode.get('bits', self.vbits)
+        
+        if self.vbits <= 0:
+            print "Number of bits should be larger than zero !"
+        
+        self.vmin = xmlnode.get('min', self.vmin)
+        self.vmax = xmlnode.get('max', self.vmax)
+        
+        if self.vmax == self.vmin:
+            print "Minimum and maximum values should not be the same in variable " + self.name + "!"
+        if self.vmin > self.vmax:
+            print "Minimum value is larger than maximum value in variable " + self.name + "!"
+            temp = self.vmax
+            self.vmax = self.vmin
+            self.vmin = temp
         
     def gen_code(self, bindent = '', indent = '  '):
         """
