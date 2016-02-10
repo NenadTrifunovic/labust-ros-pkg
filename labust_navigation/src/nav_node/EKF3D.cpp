@@ -130,6 +130,7 @@ void Estimator3D::onInit()
 	dvl.configure(nh);
 	imu.configure(nh);
 	imu.setGpsHandler(&gps);
+	iusbl.configure(nh);
 
   Pstart = nav.getStateCovariance();
   nav.setDVLRotationTrustFactor(trustf);
@@ -467,6 +468,13 @@ void Estimator3D::processMeasurements()
 		}
 	}
 	l.unlock();
+
+	//USBL measurements
+	if ((newMeas(KFNav::xp) = newMeas(KFNav::yp) = iusbl.newArrived()))
+	{
+		measurements(KFNav::xp) = iusbl.position()[0];
+		measurements(KFNav::yp) = iusbl.position()[1];
+	}
 
 	//Publish measurements
 	auv_msgs::NavSts::Ptr meas(new auv_msgs::NavSts());

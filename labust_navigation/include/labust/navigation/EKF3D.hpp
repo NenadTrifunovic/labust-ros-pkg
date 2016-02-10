@@ -171,6 +171,8 @@ namespace labust
 			 * The DVL handler.
 			 */
 			DvlHandler dvl;
+			///Inverse usbl handler.
+			iUSBLHandler iusbl;
 			/// Maximum dvl speed for sanity checks
 			double max_dvl;
 			/// Minimum safe altitude that is accepted as measurement

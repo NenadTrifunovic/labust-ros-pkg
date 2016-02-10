@@ -40,6 +40,7 @@
 #include <std_msgs/Bool.h>
 #include <std_msgs/Float64.h>
 #include <geometry_msgs/TwistStamped.h>
+#include <underwater_msgs/USBLFix.h>
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
 
@@ -163,6 +164,38 @@ namespace labust
 			tf2_ros::Buffer buffer;
 			tf2_ros::TransformListener listener;
 			std::string tf_prefix;
+		};
+
+		class iUSBLHandler : public NewArrived
+		{
+		public:
+			enum {x=0,y,z};
+
+			iUSBLHandler():depth(0),listener(buffer),tf_prefix(""),fix_arrived(false),
+					remote_arrived(false){};
+
+			void configure(ros::NodeHandle& nh);
+
+			inline const double* position() const {return pos;};
+
+		private:
+			void onUSBL(const underwater_msgs::USBLFix::ConstPtr& data);
+			void onSurfacePos(const auv_msgs::NavSts::ConstPtr& data);
+
+			inline void current_z(double z) { depth = z;};
+
+			void merge();
+
+			double pos[3], depth;
+
+			ros::Subscriber usbl_sub, remote_pos_sub;
+			tf2_ros::Buffer buffer;
+			tf2_ros::TransformListener listener;
+			std::string tf_prefix;
+			auv_msgs::NavSts remote_position;
+			underwater_msgs::USBLFix fix;
+			bool fix_arrived;
+			bool remote_arrived;
 		};
 	}
 }

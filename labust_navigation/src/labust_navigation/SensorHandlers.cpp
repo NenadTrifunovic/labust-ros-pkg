@@ -310,3 +310,46 @@ void DvlHandler::onDvl(const geometry_msgs::TwistStamped::ConstPtr& data)
 
 	isNew = true;
 }
+
+void iUSBLHandler::configure(ros::NodeHandle& nh)
+{
+	std::string key;
+	if (nh.searchParam("tf_prefix", key)) nh.getParam(key, tf_prefix);
+
+	usbl_sub = nh.subscribe<underwater_msgs::USBLFix>("usbl_fix", 1,
+			&iUSBLHandler::onUSBL, this);
+	remote_pos_sub = nh.subscribe<auv_msgs::NavSts>("remote_position", 1,
+			&iUSBLHandler::onSurfacePos, this);
+
+	pos[x] = pos[y] = pos[z] = 0;
+}
+
+void iUSBLHandler::onSurfacePos(const auv_msgs::NavSts::ConstPtr& data)
+{
+	remote_position = *data;
+	remote_arrived = true;
+	if (fix_arrived) merge();
+}
+
+void iUSBLHandler::onUSBL(const underwater_msgs::USBLFix::ConstPtr& data)
+{
+	fix = *data;
+	fix_arrived = true;
+	if (remote_arrived) merge();
+}
+
+void iUSBLHandler::merge()
+{
+	//Reset arrivals
+	fix_arrived = remote_arrived = false;
+	//TODO Add frame checking/compensation
+	//This is actually delayed position
+	//TODO add conversion to horizontal range for improved position
+	//TODO add depth
+	pos[x] = remote_position.position.north - fix.range * sin(fix.bearing);
+	pos[y] = remote_position.position.east - fix.range * cos(fix.bearing);
+
+	ROS_INFO("Received new position: %f %f", pos[x], pos[y]);
+
+	isNew = true;
+}
