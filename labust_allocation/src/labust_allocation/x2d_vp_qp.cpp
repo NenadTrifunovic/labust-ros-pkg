@@ -131,7 +131,9 @@ const std::vector<double>& X2dVPQP::allocate(const Eigen::VectorXd& tau)
 
 	//Separate vertical handling
 	Eigen::Matrix2d Bv;
-	double l5(0.31),l6(0.48);
+	//double l5(0.31),l6(0.48);
+	//double l5(0.395),l6(0.395);
+	double l5(0.43),l6(0.36);
 	Bv<<1.0,1.0,
 			-l5,l6;
 	Eigen::Vector2d tauv;
