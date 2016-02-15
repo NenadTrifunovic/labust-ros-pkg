@@ -61,7 +61,7 @@ find_package(GeographicLib REQUIRED)
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-  INCLUDE_DIRS include
+  INCLUDE_DIRS include 
   LIBRARIES labust_navigation
   CATKIN_DEPENDS auv_msgs roscpp snippets
 #  DEPENDS system_lib
@@ -92,37 +92,37 @@ add_library(labust_navigation
 
 ## Declare a cpp executable
 # add_executable(labust_navigation_node src/labust_navigation_node.cpp)
-add_executable(eigen_test src/test/eigen_test.cpp)
-add_executable(decomposition_test src/test/decomposition_test.cpp)
-add_executable(euler_quat src/test/euler_quat.cpp)
-add_executable(tf_comp_test src/test/tf_comp_test.cpp)
-add_executable(quat_to_euler src/test/quat_to_euler.cpp)
+#add_executable(eigen_test src/test/eigen_test.cpp)
+#add_executable(decomposition_test src/test/decomposition_test.cpp)
+#add_executable(euler_quat src/test/euler_quat.cpp)
+#add_executable(tf_comp_test src/test/tf_comp_test.cpp)
+#add_executable(quat_to_euler src/test/quat_to_euler.cpp)
 #add_executable(nav_node2 src/nav_node/nav_node2.cpp)
 add_executable(llnode src/latlon_node/LLNode.cpp)
 add_executable(ltp_node src/latlon_node/ltp_node.cpp)
 add_executable(static_transform_publisher src/static_transform_publisher/static_transform_publisher.cpp)
-add_executable(ekf3d_node src/nav_node/EKF3D.cpp)
-add_executable(ekf_3d_usbl_node src/nav_node/EKF_3D_USBL.cpp)
-add_executable(ekf_two_vehicle_localization_node src/nav_node/EKF_TwoVehicleLocalization.cpp)
+#add_executable(ekf3d_node src/nav_node/EKF3D.cpp)
+#add_executable(ekf_3d_usbl_node src/nav_node/EKF_3D_USBL.cpp)
+#add_executable(ekf_two_vehicle_localization_node src/nav_node/EKF_TwoVehicleLocalization.cpp)
 add_executable(ekf_simple_relative_localization_node src/nav_node/EKF_SimpleRelativeLocalization.cpp)
-add_executable(pressure2depth src/test/pressure2depth.cpp)
+#add_executable(pressure2depth src/test/pressure2depth.cpp)
 #add_executable(geographiclib_test src/test/geographiclib_test.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
 # add_dependencies(labust_navigation_node labust_navigation_generate_messages_cpp)
 if (DEFINED catkin_EXPORTED_TARGETS)
- add_dependencies(decomposition_test ${catkin_EXPORTED_TARGETS})
- add_dependencies(eigen_test ${catkin_EXPORTED_TARGETS})
- add_dependencies(euler_quat ${catkin_EXPORTED_TARGETS})
- add_dependencies(quat_to_euler ${catkin_EXPORTED_TARGETS})
+ #add_dependencies(decomposition_test ${catkin_EXPORTED_TARGETS})
+ #add_dependencies(eigen_test ${catkin_EXPORTED_TARGETS})
+ #add_dependencies(euler_quat ${catkin_EXPORTED_TARGETS})
+ #add_dependencies(quat_to_euler ${catkin_EXPORTED_TARGETS})
  #add_dependencies(nav_node2 ${catkin_EXPORTED_TARGETS})
  add_dependencies(llnode ${catkin_EXPORTED_TARGETS})
  add_dependencies(ltp_node ${catkin_EXPORTED_TARGETS})
  add_dependencies(static_transform_publisher ${catkin_EXPORTED_TARGETS})
- add_dependencies(ekf3d_node ${catkin_EXPORTED_TARGETS})
- add_dependencies(ekf_3d_usbl_node ${catkin_EXPORTED_TARGETS}) 
- add_dependencies(ekf_two_vehicle_localization_node ${catkin_EXPORTED_TARGETS})
+ #add_dependencies(ekf3d_node ${catkin_EXPORTED_TARGETS})
+ #add_dependencies(ekf_3d_usbl_node ${catkin_EXPORTED_TARGETS}) 
+ #add_dependencies(ekf_two_vehicle_localization_node ${catkin_EXPORTED_TARGETS})
  add_dependencies(ekf_simple_relative_localization_node ${catkin_EXPORTED_TARGETS}) 
 endif()
 
@@ -132,20 +132,20 @@ target_link_libraries(labust_navigation
    ${GeographicLib_LIBRARIES}
 )
 
-target_link_libraries(eigen_test ${catkin_LIBRARIES} labust_navigation)
-target_link_libraries(euler_quat ${catkin_LIBRARIES} labust_navigation)
-target_link_libraries(tf_comp_test ${catkin_LIBRARIES} labust_navigation)
-target_link_libraries(quat_to_euler ${catkin_LIBRARIES})
+#target_link_libraries(eigen_test ${catkin_LIBRARIES} labust_navigation)
+#target_link_libraries(euler_quat ${catkin_LIBRARIES} labust_navigation)
+#target_link_libraries(tf_comp_test ${catkin_LIBRARIES} labust_navigation)
+#target_link_libraries(quat_to_euler ${catkin_LIBRARIES})
 #target_link_libraries(nav_node2 ${catkin_LIBRARIES} labust_navigation)
 target_link_libraries(llnode ${catkin_LIBRARIES} ${GeographicLib_LIBRARIES})
 target_link_libraries(ltp_node ${catkin_LIBRARIES})
 target_link_libraries(static_transform_publisher ${catkin_LIBRARIES})
-target_link_libraries(ekf3d_node ${catkin_LIBRARIES} labust_navigation)
-target_link_libraries(ekf_3d_usbl_node ${catkin_LIBRARIES} labust_navigation)
-target_link_libraries(ekf_two_vehicle_localization_node ${catkin_LIBRARIES} labust_navigation)
+#target_link_libraries(ekf3d_node ${catkin_LIBRARIES} labust_navigation)
+#target_link_libraries(ekf_3d_usbl_node ${catkin_LIBRARIES} labust_navigation)
+#target_link_libraries(ekf_two_vehicle_localization_node ${catkin_LIBRARIES} labust_navigation)
 target_link_libraries(ekf_simple_relative_localization_node ${catkin_LIBRARIES} labust_navigation)
 
-target_link_libraries(pressure2depth ${catkin_LIBRARIES})
+#target_link_libraries(pressure2depth ${catkin_LIBRARIES})
 #target_link_libraries(geographiclib_test ${catkin_LIBRARIES} Geographic)
 
 #############

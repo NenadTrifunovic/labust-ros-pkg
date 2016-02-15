@@ -1,5 +1,5 @@
 /*********************************************************************
- * EKF_3D_USBL.cpp
+ * SimpleRelativeLocalization.hpp
  *
  *  Created on: Mar 26, 2013
  *      Author: Dula Nad
@@ -11,7 +11,7 @@
 /*********************************************************************
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2014, LABUST, UNIZG-FER
+ *  Copyright (c) 2016, LABUST, UNIZG-FER
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -55,6 +55,7 @@
 #include <std_msgs/Float32.h>
 #include <std_msgs/Bool.h>
 #include <auv_msgs/BodyForceReq.h>
+#include <auv_msgs/NavSts.h>
 #include <underwater_msgs/USBLFix.h>
 
 #include <auv_msgs/NED.h>
@@ -112,21 +113,13 @@ namespace labust
 			 */
 			void configureNav(KFNav& nav, ros::NodeHandle& nh);
 			/**
-			 * Handle the local stateHat measurement.
+			 * Handle the beacon stateHat measurement.
 			 */
-			void onLocalStateHat(const auv_msgs::NavSts::ConstPtr& data);
+			void onBeaconStateHat(const auv_msgs::NavSts::ConstPtr& data);
 			/**
-			 * Handle the second vehicle heading measurement.
+			 * Handle the target stateHat measurement.
 			 */
-			void onSecond_heading(const std_msgs::Float32::ConstPtr& data);
-			/**
-			 * Handle the second vehicle position measurement.
-			 */
-			void onSecond_position(const geometry_msgs::Point::ConstPtr& data);
-			/**
-			 * Handle the second vehicle speed measurement.
-			 */
-			void onSecond_speed(const std_msgs::Float32::ConstPtr& data);
+			void onTargetStateHat(const auv_msgs::NavSts::ConstPtr& data);
 			/**
 			 * Handle the USBL measurement.
 			 */
@@ -170,14 +163,13 @@ namespace labust
 			/**
 			 * Estimated and measured state publisher.
 			 */
-			ros::Publisher pubLocalStateHat, pubSecondStateHat, pubLocalStateMeas, pubSecondStateMeas;
+			ros::Publisher pubTargetStateHat, pubSecondStateHat, pubLocalStateMeas, pubSecondStateMeas;
 			ros::Publisher pubRange, pubBearing, pubRangeFiltered, pubwk;
 			ros::Publisher pubCondP, pubCondPxy, pubCost;
-
 			/**
 			 * Sensors and input subscribers.
 			 */
-			ros::Subscriber subLocalStateHat, resetTopic;
+			ros::Subscriber subBeaconState, subTargetState, resetTopic, subRange;
 			ros::Subscriber subSecond_heading, subSecond_position, subSecond_speed, subSecond_usbl_fix;
 			/**
 			 * The transform broadcaster.
@@ -209,6 +201,8 @@ namespace labust
 			std::deque<FilterState> pastStates;
 
 			labust::tools::OutlierRejection OR;
+
+			double target_depth;
 		};
 	}
 }

@@ -88,10 +88,13 @@ void SimpleRelativeLocalizationModel::step(const input_type& input){
 
   //xdot = x(u)*cos(x(psi));
   //ydot = x(u)*sin(x(psi));
-//  x(xb) += Ts * input(x_dot);
-//  x(yb) += Ts * input(y_dot);
-  x(xb) += 0;
-  x(yb) += 0;
+  //x(xp) += Ts * input(x_dot);
+  //x(yp) += Ts * input(y_dot);
+
+  x(xb) += Ts * input(x_dot);
+  x(yb) += Ts * input(y_dot);
+ // x(xb) += 0;
+ // x(yb) += 0;
   x(xp) += 0;
   x(yp) += 0;
 
@@ -186,63 +189,34 @@ void SimpleRelativeLocalizationModel::estimate_y(output_type& y){
 	y=this->y;
 }
 
-void SimpleRelativeLocalizationModel::derivativeH(){
+void SimpleRelativeLocalizationModel::derivativeH()
+{
 	Hnl = matrix::Zero(measSize,stateNum);
 	Hnl.topLeftCorner(stateNum,stateNum) = matrix::Identity(stateNum,stateNum);
 
 	ynl = vector::Zero(measSize);
 	ynl.head(stateNum) = matrix::Identity(stateNum,stateNum)*x;
 
-/*
-	double rng  = sqrt(pow(x(xp),2)+pow(x(yp),2));
-	double delta_x = x(xp);
-	double delta_y = x(yp);
 
-	double eps = 0.000000001;
-
-	if(rng<eps)
-		rng = eps;
-
-	if(abs(delta_x)<eps)
-		delta_x = (delta_x<0)?-eps:eps;
-
-	if(abs(delta_y)<eps)
-		delta_y = (delta_y<0)?-eps:eps;
-
-	ynl(range) = rng;
-
-	Hnl(range, xp)  = x(xp)/rng;
-	Hnl(range, yp)  = x(yp)/rng;
-*/
-
-double rng  = sqrt(pow((x(xp)-x(xb)),2)+pow((x(yp)-x(yb)),2));
+	double rng  = sqrt(pow((x(xp)-x(xb)),2)+pow((x(yp)-x(yb)),2));
 	double delta_x = (x(xp)-x(xb));
 	double delta_y = (x(yp)-x(yb));
 
-	double eps = 0.0000000000000001;
+	double eps = 1.0e-25;
 
 	if(rng<eps)
+	{
 		rng = eps;
-
-	if(abs(delta_x)<eps)
-		delta_x = (delta_x<0)?-eps:eps;
-
-	if(abs(delta_y)<eps)
-		delta_y = (delta_y<0)?-eps:eps;
+		delta_x = (delta_x<0)?-0.5*eps:0.5*eps;
+		delta_y = (delta_y<0)?-0.5*eps:0.5*eps;
+	}
 
 	ynl(range) = rng;
-
-	//Hnl(range, xp)  = -(x(xb)-x(xp))/rng;
-	//Hnl(range, yp)  = -(x(yb)-x(yp))/rng;
-
-	//Hnl(range, xb)  = (x(xb)-x(xp))/rng;
-	//Hnl(range, yb)  = (x(yb)-x(yp))/rng;
 
 	Hnl(range, xp)  = delta_x/rng;
 	Hnl(range, yp)  = delta_y/rng;
 
 	Hnl(range, xb)  = -delta_x/rng;
 	Hnl(range, yb)  = -delta_y/rng;
-
 }
 
