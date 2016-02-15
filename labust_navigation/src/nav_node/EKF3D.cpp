@@ -482,6 +482,12 @@ void Estimator3D::processMeasurements()
 	meas->body_velocity.y = measurements(KFNav::v);
 	meas->body_velocity.z = measurements(KFNav::w);
 
+	meas->gbody_velocity.x = measurements(KFNav::u);
+	meas->gbody_velocity.y = measurements(KFNav::v);
+	meas->gbody_velocity.z = measurements(KFNav::w);
+
+	meas->status = dvl.has_bottom_lock()?auv_msgs::NavSts::STATUS_GROUND_VELOCITY_OK:auv_msgs::NavSts::STATUS_WATER_VELOCITY_OK;
+
 	meas->position.north = measurements(KFNav::xp);
 	meas->position.east = measurements(KFNav::yp);
 	meas->position.depth = measurements(KFNav::zp);

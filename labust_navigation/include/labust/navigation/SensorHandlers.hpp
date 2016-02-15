@@ -155,6 +155,8 @@ namespace labust
 
 			inline void current_r(double yaw_rate) {r = yaw_rate;};
 
+			inline bool has_bottom_lock() const {return bottom_lock;};
+
 		private:
 			void onDvl(const geometry_msgs::TwistStamped::ConstPtr& data);
 			void onBottomLock(const std_msgs::Bool::ConstPtr& data);
