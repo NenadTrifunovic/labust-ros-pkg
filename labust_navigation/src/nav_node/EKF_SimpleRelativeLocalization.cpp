@@ -159,7 +159,8 @@ void Estimator3D::configureNav(KFNav& nav, ros::NodeHandle& nh)
 
 void Estimator3D::onTargetStateHat(const auv_msgs::NavSts::ConstPtr& data)
 {
-	target_depth = data->position.depth;
+	double depth_offset = 1;
+	target_depth = data->position.depth - depth_offset;
 
 	Eigen::Matrix2d R;
 	double yaw = labust::math::wrapRad(data->orientation.yaw);
@@ -168,8 +169,8 @@ void Estimator3D::onTargetStateHat(const auv_msgs::NavSts::ConstPtr& data)
 	in << data->body_velocity.x, data->body_velocity.y;  ///////
 	out = R*in;
 
-	//tauIn(KFNav::x_dot) = 0*out(0);
-	//tauIn(KFNav::y_dot) = 0*out(1);
+	tauIn(KFNav::xp_dot) = out(0);
+	tauIn(KFNav::yp_dot) = out(1);
 };
 
 void Estimator3D::onBeaconStateHat(const auv_msgs::NavSts::ConstPtr& data)
@@ -187,8 +188,8 @@ void Estimator3D::onBeaconStateHat(const auv_msgs::NavSts::ConstPtr& data)
 	in << data->body_velocity.x, data->body_velocity.y;  ///////
 	out = R*in;
 
-	tauIn(KFNav::x_dot) = out(0);
-	tauIn(KFNav::y_dot) = out(1);
+	tauIn(KFNav::xb_dot) = out(0);
+	tauIn(KFNav::yb_dot) = out(1);
 
 	ROS_ERROR("Beacon position - x= %f, y= %f", measurements(KFNav::xb), measurements(KFNav::yb));
 };
@@ -201,7 +202,7 @@ void Estimator3D::onSecond_usbl_fix(const underwater_msgs::USBLFix::ConstPtr& da
 	double delay = double(calculateDelaySteps(currentTime-delay_time, currentTime));
 
 	double range = std::sqrt(std::pow(data->range,2)-std::pow(target_depth,2));
-	range = (range > 0.1)?range:0.1;
+	range = (range > 1e-3)?range:1e-3;
 
 	measurements(KFNav::range) = range;
 	newMeas(KFNav::range) = enableRange;

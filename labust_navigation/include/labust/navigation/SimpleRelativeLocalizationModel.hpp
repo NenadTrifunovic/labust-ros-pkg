@@ -82,7 +82,7 @@ namespace labust
 
       enum {xp = 0,yp,xb,yb,stateNum};
       //enum {X=0,Y,Z,Kroll,M,N,inputSize};
-      enum {x_dot=0,y_dot,inputSize};
+      enum {xp_dot=0,yp_dot,xb_dot,yb_dot,inputSize};
       enum {range=stateNum,measSize};
 
       //const char *VarNames[]  = {"u","v","w","p","q","r","xp","yp","zp","phi","theta","psi","xc","yc","b","buoyancy","roll_restore","pitch_restore","altitude","xb","yb","zb","range","bearing","elevation"};
