@@ -342,13 +342,53 @@ void iUSBLHandler::merge()
 {
 	//Reset arrivals
 	fix_arrived = remote_arrived = false;
-	//TODO Add frame checking/compensation
+	//Offset compensation
+	//if (fix.header.frame_id.find("usbl_frame") != std::string::npos)
+	{
+		try
+		{
+			geometry_msgs::TransformStamped transform, transformDeg, transformDegUSBL;
+			transform = buffer.lookupTransform(tf_prefix + "base_link", tf_prefix + "usbl_frame", ros::Time(0));
+			transformDeg = buffer.lookupTransform(tf_prefix + "local", tf_prefix + "base_link", ros::Time(0));
+			transformDegUSBL = buffer.lookupTransform(tf_prefix + "local", tf_prefix + "usbl_frame", ros::Time(0));
+
+			Eigen::Vector3d offset_base(transform.transform.translation.x, 
+					transform.transform.translation.y, 
+					transform.transform.translation.z);
+			Eigen::Quaternion<double> rot(transformDeg.transform.rotation.w,
+					transformDeg.transform.rotation.x,
+					transformDeg.transform.rotation.y,
+					transformDeg.transform.rotation.z);
+			Eigen::Vector3d offset_ned = rot.matrix()*offset_base;
+
+			Eigen::Vector3d rpos(fix.relative_position.x, 
+				fix.relative_position.y, 
+				fix.relative_position.z);
+			Eigen::Quaternion<double> rrot(transformDegUSBL.transform.rotation.w,
+					transformDegUSBL.transform.rotation.x,
+					transformDegUSBL.transform.rotation.y,
+					transformDegUSBL.transform.rotation.z);
+			Eigen::Vector3d pos_ned = rrot.matrix()*rpos;
+			pos[0] = remote_position.position.north - pos_ned(0) - offset_ned(0);
+			pos[1] = remote_position.position.east - pos_ned(1) - offset_ned(1);
+
+			ROS_INFO("Received new position: %f %f", pos[x], pos[y]);
+
+			isNew = true;
+		}
+		catch (std::exception& e)
+		{
+		   ROS_WARN("%s",e.what());
+		}
+	}
+
+	
 	//This is actually delayed position
 	//TODO add conversion to horizontal range for improved position
 	//TODO add depth
-	pos[x] = remote_position.position.north - fix.range * sin(fix.bearing);
-	pos[y] = remote_position.position.east - fix.range * cos(fix.bearing);
-
+	double bearing = fix.bearing*M_PI/180;
+	pos[x] = remote_position.position.north - fix.range * cos(bearing);
+	pos[y] = remote_position.position.east - fix.range * sin(bearing);
 	ROS_INFO("Received new position: %f %f", pos[x], pos[y]);
 
 	isNew = true;
