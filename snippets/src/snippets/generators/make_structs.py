@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from snippets.generators.cppgen.cppgen import CppGen
+from snippets.generators.javagen.javagen import JavaGen
 from snippets.generators.elements.structure import Structure
 from snippets.generators.elements.function import Function
 from snippets.generators.elements.variable import Variable
@@ -142,7 +143,25 @@ def cpp_create_structs(gen, definition, folder, name):
 
         
     return structs
+
+def java_create_structs(gen, definition, folder, package):
+    structs = []
     
+    xmlroot = ET.parse(definition).getroot()
+    
+    for node in xmlroot.findall('struct'):
+        structs.append(Structure(node))
+        
+    for struct in structs:
+        gen.packable_types.append(struct.name)
+                
+    for struct in structs:
+        fdt = open(folder + '/' + struct.name + '.java','w')
+        fdt.write(gen.gen_class(struct, package))
+        fdt.close()
+
+    return structs
+
 
 if __name__ == '__main__':
     import argparse
@@ -153,12 +172,25 @@ if __name__ == '__main__':
                         help='directory where to save the files (default: .)')
     parser.add_argument('--output-name', default='datatype',
                         help='base name of the definition and implementation file (default: datatype)')
+    parser.add_argument('--java-package', default='hr.fer.labust',
+                        help='the java package into which to group the classes (default: hr.fer.labust)')
+    parser.add_argument('--gen-cpp', help="Generate CPP implementation headers.", action='store_true')
+    parser.add_argument('--gen-java', help="Generate Java implementation classes.", action='store_true')
 
     args = parser.parse_args()
     
     
-    gen = CppGen()
-    cpp_create_structs(gen, args.definition, args.output_dir, args.output_name)
+    if args.gen_cpp:
+        print('Genertaing CPP headers...')
+        gen = CppGen()
+        cpp_create_structs(gen, args.definition, args.output_dir, args.output_name)
+        print('Done.')
+        
+    if args.gen_java:
+        print('Genertaing Java headers...')
+        gen = JavaGen()
+        java_create_structs(gen, args.definition, args.output_dir, args.java_package)
+        print('Done.')
     
 #     
 #     gen = CppGen()

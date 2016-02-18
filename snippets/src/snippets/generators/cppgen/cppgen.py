@@ -210,7 +210,12 @@ class CppGen():
             if var.bits == None: 
                 print('All variables need a bit size in a bitfield.')
                 return ''
-            code = code + indent + 'st.put(' + var.name 
+            if self.is_array_type(var.type):
+                code = code + indent + 'for(int i=0; i<' + self.get_array_len(var.type)
+                code = code + '; ++i) st.put(' + var.name + '[i]'
+            else:
+                code = code + indent + 'st.put(' + var.name 
+                
             code = code + ',' + var.min + ',' + var.max + ','
             code = code + var.bits + ');\n'
         
@@ -268,7 +273,12 @@ class CppGen():
             if var.bits == None: 
                 print('All variables need a bit size in a bitfield.')
                 return ''
-            code = code + indent + 'st.get(' + var.name 
+            if self.is_array_type(var.type):
+                code = code + indent + 'for(int i=0; i<' + self.get_array_len(var.type)
+                code = code + '; ++i) st.get(' + var.name + '[i]'
+            else:
+                code = code + indent + 'st.get(' + var.name 
+            
             code = code + ',' + var.min + ',' + var.max + ','
             code = code + var.bits + ');\n'
                 

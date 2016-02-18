@@ -16,7 +16,8 @@ class JavaGen():
         'int32_t': 'int',
         'uint32_t': 'long',
         'int64_t': 'long',
-        'uint64_t': 'float'
+        'uint64_t': 'float',
+        'double': 'double'
         }
         
         self.type_unsigned_corr = {
@@ -34,7 +35,9 @@ class JavaGen():
         'int32_t': 'int',
         'uint32_t': 'int',
         'int64_t': 'long',
-        'uint64_t': 'long'
+        'uint64_t': 'long',
+        'float': 'float',
+        'double': 'double'
         }
         
         self.type_size = {
@@ -302,6 +305,7 @@ class JavaGen():
     def gen_serializer_body(self, struct, indent):
         # Specially handle bitfields          
         if struct.bitfield: return self.gen_bitfield_serializer(struct, indent)
+        if struct.bitfield: return self.gen_bitfield2_serializer(struct, indent)
                         
         # Serialize each memeber variable
         code = ''
@@ -332,6 +336,7 @@ class JavaGen():
     def gen_deserializer_body(self, struct, indent):
         # Specially handle bitfields          
         if struct.bitfield: return self.gen_bitfield_deserializer(struct, indent)
+        if struct.bitfield2: return self.gen_bitfield2_deserializer(struct, indent)
                         
                 # Serialize each memeber variable
         code = ''
