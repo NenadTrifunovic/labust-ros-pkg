@@ -104,7 +104,6 @@ namespace labust
 				//Init data
 				uint64_t xw(0);
 
-				std::cout<<"Params:"<<(_storage.size() - bytept)*8-bitpt<<">"<<int(bitsz)<<std::endl;
 				//Check if enough size is available
 				if (((_storage.size() - bytept)*8-bitpt) < bitsz) return false;
 
