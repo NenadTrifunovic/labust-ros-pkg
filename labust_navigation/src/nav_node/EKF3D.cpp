@@ -470,10 +470,13 @@ void Estimator3D::processMeasurements()
 	l.unlock();
 
 	//USBL measurements
-	if ((newMeas(KFNav::xp) = newMeas(KFNav::yp) = iusbl.newArrived()))
+	if (!(newMeas(KFNav::xp) || newMeas(KFNav::yp)))
 	{
+	  if ((newMeas(KFNav::xp) = newMeas(KFNav::yp) = iusbl.newArrived()))
+	  {
 		measurements(KFNav::xp) = iusbl.position()[0];
 		measurements(KFNav::yp) = iusbl.position()[1];
+	  }
 	}
 
 	//Publish measurements

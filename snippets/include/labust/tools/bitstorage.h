@@ -137,6 +137,9 @@ namespace labust
 			///Clear storage
 			void clear(){_storage.clear();reset();}
 
+			///Remaining bytes in storage
+			int remaining(){return _storage.size() - bytept;}
+
 		public:
 			//The continuous byte storage
 			std::vector<uint8_t> _storage;

@@ -68,7 +68,8 @@ class Structure:
         self.serialization = 'object_serializable'
         self.bitfield = False
         self.bitfield2 = False
-        
+        self.bitfield3 = False
+                
         self.variables = []
         self.methods = []
         self.enums = []
@@ -99,6 +100,8 @@ class Structure:
         self.bitfield = (bitfield == "1") or (bitfield.upper() == "TRUE")
         bitfield2 = xmlnode.get('bitfield2', '')
         self.bitfield2 = (bitfield2 == "1") or (bitfield2.upper() == "TRUE")
+        bitfield3 = xmlnode.get('bitfield3', '')
+        self.bitfield3 = (bitfield3 == "1") or (bitfield3.upper() == "TRUE")
           
         for node in xmlnode.findall('.//'+Variable._XMLTAG):
             self.variables.append(Variable(node))
