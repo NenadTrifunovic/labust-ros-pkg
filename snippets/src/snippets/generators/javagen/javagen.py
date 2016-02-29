@@ -16,7 +16,8 @@ class JavaGen():
         'int32_t': 'int',
         'uint32_t': 'long',
         'int64_t': 'long',
-        'uint64_t': 'float'
+        'uint64_t': 'float',
+        'double': 'double'
         }
         
         self.type_unsigned_corr = {
@@ -34,7 +35,9 @@ class JavaGen():
         'int32_t': 'int',
         'uint32_t': 'int',
         'int64_t': 'long',
-        'uint64_t': 'long'
+        'uint64_t': 'long',
+        'float': 'float',
+        'double': 'double'
         }
         
         self.type_size = {
@@ -58,7 +61,8 @@ class JavaGen():
         if cinit == None:
             if self.is_array_type(var.type):
                 len = self.get_array_len(var.type)
-                etype = self.type_equiv.get(var.type,var.type)
+                etype = self.get_array_type(var.type)
+                etype = self.type_equiv.get(etype,etype)
                 if len == '':
                     cinit = 'new ' + etype + '[0]'
                 else:
@@ -110,6 +114,7 @@ class JavaGen():
             imports_ser = [
                 'com.google.common.io.LittleEndianDataInputStream',
                 'com.google.common.io.LittleEndianDataOutputStream',
+                'hr.fer.labust.comms.BitStorage',
                 'java.io.IOException']
         
             for im in imports_ser:
@@ -211,6 +216,27 @@ class JavaGen():
         
         return code
     
+    def gen_bitfield2_serializer(self, struct, indent):       
+        code = indent + 'BitStorage st = new BitStorage();\n'
+        shift = 0  
+        for var in struct.variables:
+            if var.bits == None: 
+                print('All variables need a bit size in a bitfield.')
+                return ''
+            if self.is_array_type(var.type):
+                code = code + indent + 'for(int i=0; i<' + self.get_array_len(var.type)
+                code = code + '; ++i) st.put(' + var.name + '[i]'
+            else:
+                code = code + indent + 'st.put(' + var.name 
+                
+            code = code + ',' +var.min + ',' + var.max + ','
+            code = code + var.bits + ');\n'
+            
+        # Write minimal byte count
+        code = code + indent + 'for(int i=0; i<st.storage().length; ++i) out.writeByte(st.storage()[i]);\n'
+                
+        return code
+    
     def gen_bitfield_deserializer(self, struct, indent):
         store_type = ''
         sz = int(struct.assert_size)
@@ -248,6 +274,37 @@ class JavaGen():
             code = code + indent + 'storage >>>= ' + str(var.bits) + ';\n'
         
         return code
+      
+    def gen_bitfield2_deserializer(self, struct, indent):
+        sz = int(struct.assert_size)
+        
+        code = indent + 'byte[] buffer = new byte[' + str(sz) + '];\n'
+        code = code + indent + 'for(int i=0; i<' + str(sz) + ';++i) buffer[i] = in.readByte();\n'
+        
+        code = code + indent + 'BitStorage st = new BitStorage(buffer);\n'
+        
+       
+        shift = 0  
+        for var in struct.variables:
+            type = self.get_array_type(var.type)
+            type = self.type_equiv.get(type,type)
+            
+            print(var.type)
+            print(type)
+            
+            if var.bits == None: 
+                print('All variables need a bit size in a bitfield.')
+                return ''
+            if self.is_array_type(var.type):
+                code = code + indent + 'for(int i=0; i<' + self.get_array_len(var.type)
+                code = code + '; ++i) ' + var.name +'[i] = st.get' + type.title() + '('
+            else:
+                code = code + indent + var.name + ' = st.get' + type.title() + '('
+            
+            code = code + var.min + ',' + var.max + ','
+            code = code + var.bits + ');\n'
+        
+        return code
         
     def is_array_type(self, type):
         return ((type.find('[') != -1) and
@@ -260,7 +317,10 @@ class JavaGen():
     
     def get_array_type(self, type):
         sidx = type.find('[')
-        return type[:sidx]
+        if sidx < 0:
+            return type
+        else:
+            return type[:sidx]
             
     def gen_array_serializer(self, var, indent):
         code = indent
@@ -302,6 +362,7 @@ class JavaGen():
     def gen_serializer_body(self, struct, indent):
         # Specially handle bitfields          
         if struct.bitfield: return self.gen_bitfield_serializer(struct, indent)
+        if struct.bitfield2: return self.gen_bitfield2_serializer(struct, indent)
                         
         # Serialize each memeber variable
         code = ''
@@ -332,6 +393,7 @@ class JavaGen():
     def gen_deserializer_body(self, struct, indent):
         # Specially handle bitfields          
         if struct.bitfield: return self.gen_bitfield_deserializer(struct, indent)
+        if struct.bitfield2: return self.gen_bitfield2_deserializer(struct, indent)
                         
                 # Serialize each memeber variable
         code = ''

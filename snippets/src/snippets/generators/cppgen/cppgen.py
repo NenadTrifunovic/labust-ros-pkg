@@ -202,6 +202,63 @@ class CppGen():
         
         return code
     
+    def gen_bitfield2_serializer(self, struct, indent):
+        code = ''
+        code = indent + 'labust::tools::BitStorage st;\n'
+        shift = 0  
+        for var in struct.variables:
+            if var.bits == None: 
+                print('All variables need a bit size in a bitfield.')
+                return ''
+            if self.is_array_type(var.type):
+                code = code + indent + 'for(int i=0; i<' + self.get_array_len(var.type)
+                code = code + '; ++i) st.put(' + var.name + '[i]'
+            else:
+                code = code + indent + 'st.put(' + var.name 
+                
+            code = code + ',' + var.min + ',' + var.max + ','
+            code = code + var.bits + ');\n'
+        
+        #Minimum byte rounding to avoid having zeros
+        code = code + indent + 'for(int i=0; i<st.storage().size(); ++i) out << st.storage()[i];\n'
+        
+        return code
+    
+    def gen_bitfield3_serializer(self, struct, indent):
+        code = ''
+        code = indent + 'labust::tools::BitStorage st;\n'
+        shift = 0  
+        for var in struct.variables:
+            if var.bits == None: 
+                print('All variables need a bit size in a bitfield.')
+                return ''
+            if var.cond != None:
+                code = code + indent + 'if (' + var.cond + '){\n'
+                
+            if self.is_array_type(var.type):
+                len = self.get_array_len(var.type)
+                               
+                if len == '':
+                    # WARNING LENGTH IS NOT SAVED, IT IS ASSUMED THIS IS AT THE END OF BITFIELD 
+                    code = code + indent + 'for(int i=0; i<' + var.name + '.size(); ++i) '
+                else:
+                    code = code + indent + 'for(int i=0; i<' + len + '; ++i) '
+                    
+                code = code + 'st.put(' + var.name + '[i]'
+            else:
+                code = code + indent + 'st.put(' + var.name 
+                
+            code = code + ',' + var.min + ',' + var.max + ','
+            code = code + var.bits + ');\n'
+        
+            if var.cond != None:
+                code = code + indent + '}\n'
+        
+        #Minimum byte rounding to avoid having zeros
+        code = code + indent + 'for(int i=0; i<st.storage().size(); ++i) out << st.storage()[i];\n'
+        
+        return code
+    
     def gen_bitfield_deserializer(self, struct, indent):
         store_type = ''
         sz = int(struct.assert_size)
@@ -231,6 +288,82 @@ class CppGen():
             code = code + indent + 'storage >>= ' + str(var.bits) + ';\n'
         
         return code
+    
+    def gen_bitfield2_deserializer(self, struct, indent):
+        sz = int(struct.assert_size)
+        
+        code = ''
+        code = code + indent + 'std::vector<uint8_t> data;\n'
+        code = code + indent + 'for(int i=0; i<' + str(sz) + '; ++i)\n'
+        code = code + indent + '{\n'
+        code = code + indent + 'uint8_t temp;\n'
+        code = code + indent + 'in >> temp;\n'
+        code = code + indent + 'data.push_back(temp);\n'
+        code = code + indent + '}\n'
+                
+        code = code + indent + 'labust::tools::BitStorage st(data);\n'
+        shift = 0  
+        for var in struct.variables:
+            if var.bits == None: 
+                print('All variables need a bit size in a bitfield.')
+                return ''
+            if self.is_array_type(var.type):
+                code = code + indent + 'for(int i=0; i<' + self.get_array_len(var.type)
+                code = code + '; ++i) st.get(' + var.name + '[i]'
+            else:
+                code = code + indent + 'st.get(' + var.name 
+            
+            code = code + ',' + var.min + ',' + var.max + ','
+            code = code + var.bits + ');\n'
+                
+        return code
+    
+    def gen_bitfield3_deserializer(self, struct, indent):
+       
+        code = ''
+        code = code + indent + 'std::vector<uint8_t> data;\n'
+        code = code + indent + 'try{\n'
+        code = code + indent + 'while(true)\n'
+        #code = code + indent + 'for(int i=0; i<' + str(sz) + '; ++i)\n'
+        code = code + indent + '{\n'
+        code = code + indent + 'uint8_t temp;\n'
+        code = code + indent + 'in >> temp;\n'
+        code = code + indent + 'data.push_back(temp);\n'
+        code = code + indent + '}\n'
+        code = code + indent + '} catch (std::exception& e){};\n'
+                
+        code = code + indent + 'labust::tools::BitStorage st(data);\n'
+        shift = 0  
+        for var in struct.variables:
+            if var.bits == None: 
+                print('All variables need a bit size in a bitfield.')
+                return ''
+            
+            if var.cond != None:
+                code = code + indent + 'if (' + var.cond + '){\n'
+                        
+            if self.is_array_type(var.type):
+                len = self.get_array_len(var.type)
+                
+                if len == '':
+                    # WARNING LENGTH IS NOT SAVED, IT IS ASSUMED THIS IS AT THE END OF BITFIELD
+                    code = code + indent + var.name + '.resize(st.remaining());\n'
+                    code = code + indent + 'for(int i=0; i<st.remaining()'
+                else:
+                    code = code + indent + 'for(int i=0; i<' + len
+                    
+                code = code + '; ++i) st.get(' + var.name + '[i]'
+            else:
+                code = code + indent + 'st.get(' + var.name 
+            
+            code = code + ',' + var.min + ',' + var.max + ','
+            code = code + var.bits + ');\n'
+            
+            if var.cond != None:
+                code = code + indent + '}\n'
+                
+        return code
+    
     
     def is_array_type(self, type):
         return ((type.find('[') != -1) and
@@ -282,6 +415,8 @@ class CppGen():
     def gen_serializer_body(self, struct, indent):
         # Specially handle bitfields          
         if struct.bitfield: return self.gen_bitfield_serializer(struct, indent)
+        if struct.bitfield2: return self.gen_bitfield2_serializer(struct, indent)
+        if struct.bitfield3: return self.gen_bitfield3_serializer(struct, indent)
                         
         # Serialize each memeber variable
         code = ''
@@ -308,6 +443,8 @@ class CppGen():
     def gen_deserializer_body(self, struct, indent):
         # Specially handle bitfields          
         if struct.bitfield: return self.gen_bitfield_deserializer(struct, indent)
+        if struct.bitfield2: return self.gen_bitfield2_deserializer(struct, indent)
+        if struct.bitfield3: return self.gen_bitfield3_deserializer(struct, indent)
                         
                 # Serialize each memeber variable
         code = ''

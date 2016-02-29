@@ -42,6 +42,9 @@ using namespace labust::navigation;
 
 void GPSHandler::configure(ros::NodeHandle& nh)
 {
+	std::string key;
+	if (nh.searchParam("tf_prefix", key)) nh.getParam(key, tf_prefix);
+
 	gps = nh.subscribe<sensor_msgs::NavSatFix>("gps", 1,
 			&GPSHandler::onGps, this);
 }
@@ -53,7 +56,7 @@ void GPSHandler::onGps(const sensor_msgs::NavSatFix::ConstPtr& data)
 	try
 	{
 		//Get the ENU coordinates
-		transformDeg = buffer.lookupTransform("ecef", "world", ros::Time(0));
+		transformDeg = buffer.lookupTransform("ecef", tf_prefix + "world", ros::Time(0));
 		//Set the projection origin
 		double lat0,lon0,h0;
 		GeographicLib::Geocentric::WGS84.Reverse(
@@ -79,14 +82,14 @@ void GPSHandler::onGps(const sensor_msgs::NavSatFix::ConstPtr& data)
 			//Try to get the transform at the exact time or the latest
 			try
 			{
-				transformLocal = buffer.lookupTransform("local", "base_link", data->header.stamp);
+				transformLocal = buffer.lookupTransform(tf_prefix + "local", tf_prefix + "base_link", data->header.stamp);
 			}
 			catch (tf2::TransformException& ex)
 			{
-				transformLocal = buffer.lookupTransform("local", "base_link", ros::Time(0));
+				transformLocal = buffer.lookupTransform(tf_prefix + "local", tf_prefix + "base_link", ros::Time(0));
 			}
 			//Get GPS offset
-			transformGPS = buffer.lookupTransform("base_link", "gps_frame", data->header.stamp);
+			transformGPS = buffer.lookupTransform(tf_prefix + "base_link", tf_prefix + "gps_frame", data->header.stamp);
 			Eigen::Vector3d gps_b;
 			gps_b<<transformGPS.transform.translation.x,
 					transformGPS.transform.translation.y,
@@ -106,8 +109,8 @@ void GPSHandler::onGps(const sensor_msgs::NavSatFix::ConstPtr& data)
 		//Set the data
  		posxy.first = ned(0);
  		posxy.second = ned(1);
-		originLL.first = lon0;
-		originLL.second = lat0;
+		originLL.first = lat0;
+		originLL.second = lon0;
 		
 		double lat, lon;
 		proj.Reverse(enu(0), enu(1), enu(2), lat, lon, originh);
@@ -123,6 +126,9 @@ void GPSHandler::onGps(const sensor_msgs::NavSatFix::ConstPtr& data)
 
 void ImuHandler::configure(ros::NodeHandle& nh)
 {
+	std::string key;
+	if (nh.searchParam("tf_prefix", key)) nh.getParam(key, tf_prefix);
+
 	imu = nh.subscribe<sensor_msgs::Imu>("imu", 1,
 			&ImuHandler::onImu, this);
 	mag_dec = nh.subscribe<std_msgs::Float64>("magnetic_declination",1,
@@ -134,7 +140,7 @@ void ImuHandler::onImu(const sensor_msgs::Imu::ConstPtr& data)
 	geometry_msgs::TransformStamped transform;
 	try
 	{
-		transform = buffer.lookupTransform("base_link", data->header.frame_id, ros::Time(0));
+		transform = buffer.lookupTransform(tf_prefix + "base_link", data->header.frame_id, ros::Time(0));
 		Eigen::Quaternion<double> meas(data->orientation.w, data->orientation.x,
 				data->orientation.y, data->orientation.z);
 		Eigen::Quaternion<double> rot(transform.transform.rotation.w,
@@ -180,6 +186,9 @@ void ImuHandler::onImu(const sensor_msgs::Imu::ConstPtr& data)
 
 void DvlHandler::configure(ros::NodeHandle& nh)
 {
+	std::string key;
+	if (nh.searchParam("tf_prefix", key)) nh.getParam(key, tf_prefix);
+
 	nu_dvl = nh.subscribe<geometry_msgs::TwistStamped>("dvl", 1,
 			&DvlHandler::onDvl, this);
 	dvl_bottom = nh.subscribe<std_msgs::Bool>("dvl_bottom", 1,
@@ -200,12 +209,12 @@ void DvlHandler::onDvl(const geometry_msgs::TwistStamped::ConstPtr& data)
 	//Ignore water lock data (?)
 	if (!bottom_lock)	ROS_WARN("No bottom lock.");
 
-	if (data->header.frame_id == "dvl_frame")
+	if (data->header.frame_id.find("dvl_frame") != std::string::npos)
 	{
 		try
 		{
 			geometry_msgs::TransformStamped transform;
-			transform = buffer.lookupTransform("base_link", "dvl_frame", ros::Time(0));
+			transform = buffer.lookupTransform(tf_prefix + "base_link", tf_prefix + "dvl_frame", ros::Time(0));
 
 			Eigen::Vector3d speed(data->twist.linear.x, data->twist.linear.y, data->twist.linear.z);
 			Eigen::Quaternion<double> rot(transform.transform.rotation.w,
@@ -236,13 +245,13 @@ void DvlHandler::onDvl(const geometry_msgs::TwistStamped::ConstPtr& data)
 			return;
 		}
 	}
-	else if (data->header.frame_id == "base_link")
+	else if (data->header.frame_id.find("base_link") != std::string::npos)
 	{
 		uvw[u] = data->twist.linear.x;
 		uvw[v] = data->twist.linear.y;
 		uvw[w] = data->twist.linear.z;
 	}
-	else if (data->header.frame_id == "local")
+	else if (data->header.frame_id.find("local") != std::string::npos)
 	{
 		geometry_msgs::TransformStamped transform;
 		Eigen::Vector3d meas(data->twist.linear.x,
@@ -252,18 +261,18 @@ void DvlHandler::onDvl(const geometry_msgs::TwistStamped::ConstPtr& data)
 				transform.transform.rotation.x,
 				transform.transform.rotation.y,
 				transform.transform.rotation.z);
-		transform = buffer.lookupTransform("local", "base_link", ros::Time(0));
+		transform = buffer.lookupTransform(tf_prefix + "local", tf_prefix + "base_link", ros::Time(0));
 		Eigen::Vector3d result = rot.matrix()*meas;
 		uvw[u] = result.x();
 		uvw[v] = result.y();
 		uvw[w] = result.z();
 	}
-	else if (data->header.frame_id == "gps_frame")
+	else if (data->header.frame_id.find("gps_frame") != std::string::npos)
 	{
 		try
 		{
 			geometry_msgs::TransformStamped transform;
-			transform = buffer.lookupTransform("base_link", "gps_frame", ros::Time(0));
+			transform = buffer.lookupTransform(tf_prefix + "base_link", tf_prefix + "gps_frame", ros::Time(0));
 
 			Eigen::Vector3d speed(data->twist.linear.x, data->twist.linear.y, data->twist.linear.z);
 			Eigen::Quaternion<double> rot(transform.transform.rotation.w,
@@ -298,6 +307,89 @@ void DvlHandler::onDvl(const geometry_msgs::TwistStamped::ConstPtr& data)
 		isNew = false;
 		return;
 	}
+
+	isNew = true;
+}
+
+void iUSBLHandler::configure(ros::NodeHandle& nh)
+{
+	std::string key;
+	if (nh.searchParam("tf_prefix", key)) nh.getParam(key, tf_prefix);
+
+	usbl_sub = nh.subscribe<underwater_msgs::USBLFix>("usbl_fix", 1,
+			&iUSBLHandler::onUSBL, this);
+	remote_pos_sub = nh.subscribe<auv_msgs::NavSts>("remote_position", 1,
+			&iUSBLHandler::onSurfacePos, this);
+
+	pos[x] = pos[y] = pos[z] = 0;
+}
+
+void iUSBLHandler::onSurfacePos(const auv_msgs::NavSts::ConstPtr& data)
+{
+	remote_position = *data;
+	remote_arrived = true;
+	if (fix_arrived) merge();
+}
+
+void iUSBLHandler::onUSBL(const underwater_msgs::USBLFix::ConstPtr& data)
+{
+	fix = *data;
+	fix_arrived = true;
+	if (remote_arrived) merge();
+}
+
+void iUSBLHandler::merge()
+{
+	//Reset arrivals
+	fix_arrived = remote_arrived = false;
+	//Offset compensation
+	//if (fix.header.frame_id.find("usbl_frame") != std::string::npos)
+	{
+		try
+		{
+			geometry_msgs::TransformStamped transform, transformDeg, transformDegUSBL;
+			transform = buffer.lookupTransform(tf_prefix + "base_link", tf_prefix + "usbl_frame", ros::Time(0));
+			transformDeg = buffer.lookupTransform(tf_prefix + "local", tf_prefix + "base_link", ros::Time(0));
+			transformDegUSBL = buffer.lookupTransform(tf_prefix + "local", tf_prefix + "usbl_frame", ros::Time(0));
+
+			Eigen::Vector3d offset_base(transform.transform.translation.x, 
+					transform.transform.translation.y, 
+					transform.transform.translation.z);
+			Eigen::Quaternion<double> rot(transformDeg.transform.rotation.w,
+					transformDeg.transform.rotation.x,
+					transformDeg.transform.rotation.y,
+					transformDeg.transform.rotation.z);
+			Eigen::Vector3d offset_ned = rot.matrix()*offset_base;
+
+			Eigen::Vector3d rpos(fix.relative_position.x, 
+				fix.relative_position.y, 
+				fix.relative_position.z);
+			Eigen::Quaternion<double> rrot(transformDegUSBL.transform.rotation.w,
+					transformDegUSBL.transform.rotation.x,
+					transformDegUSBL.transform.rotation.y,
+					transformDegUSBL.transform.rotation.z);
+			Eigen::Vector3d pos_ned = rrot.matrix()*rpos;
+			pos[0] = remote_position.position.north - pos_ned(0) - offset_ned(0);
+			pos[1] = remote_position.position.east - pos_ned(1) - offset_ned(1);
+
+			ROS_INFO("Received new position: %f %f", pos[x], pos[y]);
+
+			isNew = true;
+		}
+		catch (std::exception& e)
+		{
+		   ROS_WARN("%s",e.what());
+		}
+	}
+
+	
+	//This is actually delayed position
+	//TODO add conversion to horizontal range for improved position
+	//TODO add depth
+	double bearing = fix.bearing*M_PI/180;
+	pos[x] = remote_position.position.north - fix.range * cos(bearing);
+	pos[y] = remote_position.position.east - fix.range * sin(bearing);
+	ROS_INFO("Received new position: %f %f", pos[x], pos[y]);
 
 	isNew = true;
 }

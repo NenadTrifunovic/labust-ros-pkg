@@ -76,7 +76,8 @@ Estimator3D::Estimator3D():
 		alt_sample(true),
 		nsamples_alt(10),
 		altok_var(2),
-		dvl_fp(0.1){this->onInit();};
+		dvl_fp(0.1),
+		tf_prefix(""){this->onInit();};
 
 void Estimator3D::onInit()
 {
@@ -121,11 +122,15 @@ void Estimator3D::onInit()
 	ph.param("altitude_cov_timeout",altitude_timeout, altitude_timeout);
 	ph.param("altitude_sampling",alt_sample, alt_sample);
 
+	std::string key;
+	if (nh.searchParam("tf_prefix", key)) nh.getParam(key, tf_prefix);
+
 	//Configure handlers.
 	gps.configure(nh);
 	dvl.configure(nh);
 	imu.configure(nh);
 	imu.setGpsHandler(&gps);
+	iusbl.configure(nh);
 
   Pstart = nav.getStateCovariance();
   nav.setDVLRotationTrustFactor(trustf);
@@ -464,11 +469,27 @@ void Estimator3D::processMeasurements()
 	}
 	l.unlock();
 
+	//USBL measurements
+	if (!(newMeas(KFNav::xp) || newMeas(KFNav::yp)))
+	{
+	  if ((newMeas(KFNav::xp) = newMeas(KFNav::yp) = iusbl.newArrived()))
+	  {
+		measurements(KFNav::xp) = iusbl.position()[0];
+		measurements(KFNav::yp) = iusbl.position()[1];
+	  }
+	}
+
 	//Publish measurements
 	auv_msgs::NavSts::Ptr meas(new auv_msgs::NavSts());
 	meas->body_velocity.x = measurements(KFNav::u);
 	meas->body_velocity.y = measurements(KFNav::v);
 	meas->body_velocity.z = measurements(KFNav::w);
+
+	meas->gbody_velocity.x = measurements(KFNav::u);
+	meas->gbody_velocity.y = measurements(KFNav::v);
+	meas->gbody_velocity.z = measurements(KFNav::w);
+
+	meas->status = dvl.has_bottom_lock()?auv_msgs::NavSts::STATUS_GROUND_VELOCITY_OK:auv_msgs::NavSts::STATUS_WATER_VELOCITY_OK;
 
 	meas->position.north = measurements(KFNav::xp);
 	meas->position.east = measurements(KFNav::yp);
@@ -615,11 +636,11 @@ void Estimator3D::start()
 		transform.transform.translation.z = cstate(KFNav::zp);
 		labust::tools::quaternionFromEulerZYX(0, 0, 0, transform.transform.rotation);
 		if(absoluteEKF){
-			transform.child_frame_id = "base_pose_abs";
+			transform.child_frame_id = tf_prefix + "base_pose_abs";
 		} else{
-			transform.child_frame_id = "base_pose";
+			transform.child_frame_id = tf_prefix + "base_pose";
 		}
-		transform.header.frame_id = "local";
+		transform.header.frame_id = tf_prefix + "local";
 		transform.header.stamp = ros::Time::now();
 		broadcaster.sendTransform(transform);
 
@@ -632,11 +653,11 @@ void Estimator3D::start()
 				cstate(KFNav::psi),
 				transform.transform.rotation);
 		if(absoluteEKF){
-			transform.child_frame_id = "base_link_abs";
+			transform.child_frame_id = tf_prefix + "base_link_abs";
 		} else{
-			transform.child_frame_id = "base_link";
+			transform.child_frame_id = tf_prefix + "base_link";
 		}
-		transform.header.frame_id = "base_pose";
+		transform.header.frame_id = tf_prefix + "base_pose";
 		broadcaster.sendTransform(transform);
 
 		rate.sleep();

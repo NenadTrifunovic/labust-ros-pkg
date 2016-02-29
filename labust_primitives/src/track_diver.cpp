@@ -329,8 +329,8 @@ void TrackDiver::step()
 			path.orientation.pitch,
 			path.orientation.yaw,
 			tfs.transform.rotation);
-	tfs.child_frame_id = "sf_frame";
-	tfs.header.frame_id = "local";
+	tfs.child_frame_id = tf_prefix + "sf_frame";
+	tfs.header.frame_id = tf_prefix + "local";
 	tfs.header.stamp = ros::Time::now();
 	broadcaster.sendTransform(tfs);
 
@@ -377,8 +377,8 @@ void TrackDiver::onDiverState(const auv_msgs::NavSts::ConstPtr& diver_state)
 			diver_pos.orientation.pitch,
 			diver_pos.orientation.yaw,
 			tfs.transform.rotation);
-	tfs.child_frame_id = "diver_frame";
-	tfs.header.frame_id = "local";
+	tfs.child_frame_id = tf_prefix + "diver_frame";
+	tfs.header.frame_id = tf_prefix + "local";
 	tfs.header.stamp = ros::Time::now();
 	l.unlock();
 	broadcaster.sendTransform(tfs);

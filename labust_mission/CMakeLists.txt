@@ -22,7 +22,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 ## System dependencies are found with CMake's conventions
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/")
-find_package(Boost REQUIRED)
+find_package(Boost REQUIRED COMPONENTS filesystem)
 find_package(GeographicLib REQUIRED)
 
 find_path(TinyXML2_INCLUDE_DIR tinyxml2.h
@@ -119,7 +119,7 @@ include_directories(
   ${Boost_INCLUDE_DIRS}
   ${GeographicLib_INCLUDE_DIRS})
 
-if (TinyXML2_FOUND)
+if (TinyXML2_LIBRARY)
 	include_directories(${TinyXML2_INCLUDE_DIR})
 	
 	add_executable(mission_exec src/mission_exec.cpp)
@@ -150,6 +150,7 @@ else()
 endif()
 
 add_executable(lod missions/lawnmower_on_demand.cpp)
+add_executable(caddy_missions src/caddy_missions.cpp)
 add_executable(ckt missions/course_keeping_turns.cpp)
 add_executable(mzos missions/mzos.cpp)
 #add_executable(mission_control_test src/mission_control_test.cpp)
@@ -165,6 +166,7 @@ endif()
 target_link_libraries(lod ${catkin_LIBRARIES})
 target_link_libraries(ckt ${catkin_LIBRARIES})
 target_link_libraries(mzos ${catkin_LIBRARIES})
+target_link_libraries(caddy_missions  ${catkin_LIBRARIES})
 
 decision_making_parsing(src/mission_exec.cpp)
 

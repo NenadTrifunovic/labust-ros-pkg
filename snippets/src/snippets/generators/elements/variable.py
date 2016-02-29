@@ -93,6 +93,18 @@ class Variable:
         self.bits = xmlnode.get('bits', self.bits)
         self.min = xmlnode.get('min', self.min)
         self.max = xmlnode.get('max', self.max)
-        self.quant = xmlnode.get('quant', self.quant)        
+        self.quant = xmlnode.get('quant', self.quant)
+        
+        if self.max != None and self.max == self.min:
+            print "Minimum and maximum values should not be the same in variable " + self.name + "!"
+            print self.max
+            
+        if self.min > self.max:
+            print "Minimum value is larger than maximum value in variable " + self.name + "!"
+            temp = self.max
+            self.max = self.min
+            self.min = temp        
+        if self.bits <= 0:
+            print "Number of bits should be larger than zero !"
         
         

@@ -142,8 +142,8 @@ namespace labust
 					transform.transform.translation.z = T1(zp);
 					labust::tools::quaternionFromEulerZYX(0, 0, line.gamma(),
 							transform.transform.rotation);
-					transform.child_frame_id = "course_frame";
-					transform.header.frame_id = "local";
+					transform.child_frame_id = tf_prefix + "course_frame";
+					transform.header.frame_id = tf_prefix + "local";
 					transform.header.stamp = ros::Time::now();
 					broadcaster.sendTransform(transform);
 

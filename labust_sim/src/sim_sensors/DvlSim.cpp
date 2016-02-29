@@ -50,7 +50,8 @@ struct DvlSim
 		maxBottomLock(40),
 		maxDepth(30),
 		dvl_pub(1),
-		lastPubTime(ros::Time::now())
+		lastPubTime(ros::Time::now()),
+		tf_prefix("")
 	{
 		ros::NodeHandle nh,ph("~");
 
@@ -65,6 +66,9 @@ struct DvlSim
 				M_PI*orot[1]/180,
 				M_PI*orot[2]/180,
 				this->orot);
+
+		std::string key;
+		if (nh.searchParam("tf_prefix", key)) nh.getParam(key, tf_prefix);
 
 		odom = nh.subscribe<nav_msgs::Odometry>("meas_odom",1,&DvlSim::onOdom, this);
 		dvl_nu = nh.advertise<geometry_msgs::TwistStamped>("dvl",1);
@@ -121,12 +125,12 @@ struct DvlSim
 			lastPubTime = ros::Time::now();
 			geometry_msgs::TwistStamped::Ptr dvl(new geometry_msgs::TwistStamped());
 			dvl->header.stamp = msg->header.stamp;
-			dvl->header.frame_id = msg->header.frame_id;
+			dvl->header.frame_id = tf_prefix + msg->header.frame_id;
 			labust::tools::vectorToPoint(nu_l, dvl->twist.linear);
 			dvl_ned.publish(dvl);
 			dvl.reset(new geometry_msgs::TwistStamped());
 			dvl->header.stamp = msg->header.stamp;
-			dvl->header.frame_id = "dvl_frame";
+			dvl->header.frame_id = tf_prefix + "dvl_frame";
 			labust::tools::vectorToPoint(nu_b, dvl->twist.linear);
 			dvl_nu.publish(dvl);
 
@@ -158,6 +162,7 @@ private:
 	double dvl_pub;
 	ros::Time lastPubTime;
 	double maxBottomLock, maxDepth;
+	std::string tf_prefix;
 };
 
 int main(int argc, char* argv[])

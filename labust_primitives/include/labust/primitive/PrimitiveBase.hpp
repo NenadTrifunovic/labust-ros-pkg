@@ -58,7 +58,12 @@ namespace labust
 			 * Main constructor
 			 */
 			ExecutorBase(const std::string& name):
-				primitiveName(name){};
+				primitiveName(name)
+			{
+				ros::NodeHandle nh;
+				std::string key;
+				if (nh.searchParam("tf_prefix", key)) nh.getParam(key, tf_prefix);
+			};
 			/**
 			 * The name identifier.
 			 */
@@ -79,6 +84,9 @@ namespace labust
 		   * The service client for controller activation/deactivation
 		   */
 		  ros::ServiceClient control_manager;
+
+			///The transform frame prefix for multi-vehicle operations
+			std::string tf_prefix;
 		};
 
 		template <class Executor,
@@ -98,6 +106,7 @@ namespace labust
 			void onInit()
 			{
 				ros::NodeHandle nh,ph("~");
+
 				this->aserver.reset(new typename Executor::ActionServer(nh, this->primitiveName,	false));
 
 				this->aserver->registerGoalCallback(boost::bind(&Base::onGoal, this));

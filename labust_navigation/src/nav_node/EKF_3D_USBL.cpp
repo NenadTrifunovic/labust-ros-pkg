@@ -101,11 +101,15 @@ Estimator3D::Estimator3D():
 		alt_sample(true),
 		nsamples_alt(10),
 		altok_var(2),
-		dvl_fp(0.1){this->onInit();};
+		dvl_fp(0.1),
+		tf_prefix(""){this->onInit();};
 
 void Estimator3D::onInit()
 {
 	ros::NodeHandle nh, ph("~");
+
+	std::string key;
+	if (nh.searchParam("tf_prefix", key)) nh.getParam(key, tf_prefix);
 
 	/*** Configure the navigation ***/
 	configureNav(nav,nh);
@@ -962,11 +966,11 @@ void Estimator3D::start()
 		transform.transform.translation.z = cstate(KFNav::zp);
 		labust::tools::quaternionFromEulerZYX(0, 0, 0, transform.transform.rotation);
 		if(absoluteEKF){
-			transform.child_frame_id = "base_pose_usbl_abs";
+			transform.child_frame_id = tf_prefix + "base_pose_usbl_abs";
 		} else{
-			transform.child_frame_id = "base_pose_usbl";
+			transform.child_frame_id = tf_prefix + "base_pose_usbl";
 		}
-		transform.header.frame_id = "local";
+		transform.header.frame_id = tf_prefix + "local";
 		transform.header.stamp = ros::Time::now();
 		broadcaster.sendTransform(transform);
 
@@ -979,11 +983,11 @@ void Estimator3D::start()
 				cstate(KFNav::psi),
 				transform.transform.rotation);
 		if(absoluteEKF){
-			transform.child_frame_id = "base_link_usbl_abs";
+			transform.child_frame_id = tf_prefix + "base_link_usbl_abs";
 		} else{
-			transform.child_frame_id = "base_link_usbl";
+			transform.child_frame_id = tf_prefix + "base_link_usbl";
 		}
-		transform.header.frame_id = "base_pose_usbl";
+		transform.header.frame_id = tf_prefix + "base_pose_usbl";
 		broadcaster.sendTransform(transform);
 
 		rate.sleep();

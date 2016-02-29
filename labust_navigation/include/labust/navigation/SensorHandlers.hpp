@@ -40,6 +40,7 @@
 #include <std_msgs/Bool.h>
 #include <std_msgs/Float64.h>
 #include <geometry_msgs/TwistStamped.h>
+#include <underwater_msgs/USBLFix.h>
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
 
@@ -78,7 +79,7 @@ namespace labust
 		class GPSHandler : public NewArrived
 		{
 		public:
-			GPSHandler():listener(buffer),originh(0){};
+			GPSHandler():listener(buffer),originh(0),tf_prefix(""){};
 			void configure(ros::NodeHandle& nh);
 
 			inline const std::pair<double, double>&
@@ -104,6 +105,7 @@ namespace labust
 			GeographicLib::LocalCartesian proj;
 			Eigen::Quaternion<double> rot;
 			double originh;
+			std::string tf_prefix;
 		};
 
 		/**
@@ -116,7 +118,7 @@ namespace labust
 			enum {p=0,q,r};
 			enum {ax,ay,az};
 
-			ImuHandler():listener(buffer),gps(0),magdec(0){};
+			ImuHandler():listener(buffer),gps(0),magdec(0),tf_prefix(""){};
 			
 			void setGpsHandler(GPSHandler* gps){this->gps = gps;};
 
@@ -137,6 +139,7 @@ namespace labust
 			ros::Subscriber imu, mag_dec;
 			double rpy[3], pqr[3], axyz[3], magdec;
 			GPSHandler* gps;
+			std::string tf_prefix;
 		};
 
 		class DvlHandler : public NewArrived
@@ -144,13 +147,15 @@ namespace labust
 		public:
 			enum {u=0,v,w};
 
-			DvlHandler():r(0),listener(buffer),bottom_lock(false){};
+			DvlHandler():r(0),listener(buffer),bottom_lock(false),tf_prefix(""){};
 
 			void configure(ros::NodeHandle& nh);
 
 			inline const double* body_speeds() const {return uvw;};
 
 			inline void current_r(double yaw_rate) {r = yaw_rate;};
+
+			inline bool has_bottom_lock() const {return bottom_lock;};
 
 		private:
 			void onDvl(const geometry_msgs::TwistStamped::ConstPtr& data);
@@ -160,6 +165,39 @@ namespace labust
 			ros::Subscriber nu_dvl, dvl_bottom;
 			tf2_ros::Buffer buffer;
 			tf2_ros::TransformListener listener;
+			std::string tf_prefix;
+		};
+
+		class iUSBLHandler : public NewArrived
+		{
+		public:
+			enum {x=0,y,z};
+
+			iUSBLHandler():depth(0),listener(buffer),tf_prefix(""),fix_arrived(false),
+					remote_arrived(false){};
+
+			void configure(ros::NodeHandle& nh);
+
+			inline const double* position() const {return pos;};
+
+		private:
+			void onUSBL(const underwater_msgs::USBLFix::ConstPtr& data);
+			void onSurfacePos(const auv_msgs::NavSts::ConstPtr& data);
+
+			inline void current_z(double z) { depth = z;};
+
+			void merge();
+
+			double pos[3], depth;
+
+			ros::Subscriber usbl_sub, remote_pos_sub;
+			tf2_ros::Buffer buffer;
+			tf2_ros::TransformListener listener;
+			std::string tf_prefix;
+			auv_msgs::NavSts remote_position;
+			underwater_msgs::USBLFix fix;
+			bool fix_arrived;
+			bool remote_arrived;
 		};
 	}
 }

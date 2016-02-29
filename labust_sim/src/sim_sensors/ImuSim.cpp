@@ -51,7 +51,8 @@ struct ImuSim
 	ImuSim():
 		last_time(ros::Time::now()),
 		last_omega(Eigen::Matrix3d::Zero()),
-		magdec(0)
+		magdec(0),
+		tf_prefix("")
 	{
 		ros::NodeHandle nh,ph("~");
 
@@ -63,6 +64,9 @@ struct ImuSim
 				M_PI*orot[1]/180,
 				M_PI*orot[2]/180,
 				this->orot);
+
+		std::string key;
+		if (nh.searchParam("tf_prefix", key)) nh.getParam(key, tf_prefix);
 
 		odom = nh.subscribe<nav_msgs::Odometry>("meas_odom",1,&ImuSim::onOdom, this);
 		acc = nh.subscribe<geometry_msgs::Vector3>("nuacc_ideal",1,&ImuSim::onAcc, this);
@@ -83,7 +87,7 @@ struct ImuSim
 		double dT = (ros::Time::now() - last_time).toSec();
 		sensor_msgs::Imu::Ptr imu(new sensor_msgs::Imu());
 		imu->header.stamp = ros::Time::now();
-		imu->header.frame_id = "imu_frame";
+		imu->header.frame_id = tf_prefix + "imu_frame";
 		//Calculate angular velocities
 		Eigen::Vector3d nua;
 		labust::tools::pointToVector(msg->twist.twist.angular, nua);
@@ -141,8 +145,8 @@ struct ImuSim
 		transform.transform.translation.z = 0;
 		labust::tools::quaternionFromEulerZYX(0, 0, 0,
 				transform.transform.rotation);
-		transform.child_frame_id = "imu_frame";
-		transform.header.frame_id = "base_link";
+		transform.child_frame_id = tf_prefix + "imu_frame";
+		transform.header.frame_id = tf_prefix + "base_link";
 		transform.header.stamp = ros::Time::now();
 		//broadcaster.sendTransform(transform);
 	}
@@ -164,6 +168,7 @@ private:
 	geometry_msgs::Vector3 nuacc;
 	tf2_ros::TransformBroadcaster broadcaster;
 	double magdec;
+	std::string tf_prefix;
 };
 
 int main(int argc, char* argv[])
