@@ -98,6 +98,8 @@ namespace labust
 			ros::ServiceClient hdgcon;
 			/// Altitude controller services.
 			ros::ServiceClient altcon;
+			/// Depth controller service.
+			ros::ServiceClient depthcon;
 
 			/// The reference IP address on network
 			std::string ipaddress;

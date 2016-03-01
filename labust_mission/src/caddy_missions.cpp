@@ -64,9 +64,10 @@ void CaddyMissions::onInit()
 	lawnmower_pub = nh.advertise<std_msgs::Bool>("stop_follow_section", 1);
 
 	//Initialize service clients
-	velcon = nh.serviceClient<navcon_msgs::ConfigureVelocityController>("ConfigureVelocityController", true);
-	hdgcon = nh.serviceClient<navcon_msgs::EnableControl>("HDG_enable", true);
-	altcon = nh.serviceClient<navcon_msgs::EnableControl>("ALT_enable", true);
+	hdgcon = nh.serviceClient<navcon_msgs::EnableControl>("HDG_enable");
+	altcon = nh.serviceClient<navcon_msgs::EnableControl>("ALT_enable");
+	depthcon = nh.serviceClient<navcon_msgs::EnableControl>("DEPTH_enable");
+    velcon = nh.serviceClient<navcon_msgs::ConfigureVelocityController>("ConfigureVelocityController");
 
 	//Initialze subscribers
     position_sub = nh.subscribe<auv_msgs::NavSts>("position", 1, &CaddyMissions::onPosition,this);
@@ -89,14 +90,16 @@ void CaddyMissions::onSurfaceCmd(const std_msgs::UInt8::ConstPtr& cmd)
       for(int i=0; i<6; ++i) srv.request.desired_mode[i] = DONT_CARE;
       srv.request.desired_mode[u] = VELCON;
       srv.request.desired_mode[v] = DISABLED;
+      srv.request.desired_mode[w] = VELCON;
       srv.request.desired_mode[r] = VELCON;
       bool velconOK = velcon.call(srv);
       navcon_msgs::EnableControl flag;
       flag.request.enable = true;
       bool hdgconOK = hdgcon.call(flag);
       bool altconOK = altcon.call(flag);
+      bool depthconOK = depthcon.call(flag);
 
-      if (altconOK && hdgconOK && velconOK)
+      if (altconOK && hdgconOK && velconOK && depthconOK)
       {
         ROS_INFO("Lawn-mower setup complete.");
       }
@@ -142,7 +145,7 @@ void CaddyMissions::stopControllers()
 
 bool CaddyMissions::testControllers()
 {
-  bool retVal = velcon.exists() && hdgcon.exists() && altcon.exists();
+  bool retVal = velcon.exists() && hdgcon.exists() && altcon.exists() && depthcon.exists();
   return retVal && ((ros::Time::now() - last_position).toSec() < POSITION_UPDATE);
 }
 
@@ -158,6 +161,9 @@ void CaddyMissions::onTimer(const ros::TimerEvent& event)
   if (noac_update && nonet_update)
   {
     ROS_WARN("Timeout triggered - stopping controllers.");
+    std_msgs::Bool timeout;
+    timeout.data = true;
+    timeout_pub.publish(timeout);
     this->stopControllers();
   }
 }
