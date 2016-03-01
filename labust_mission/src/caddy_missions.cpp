@@ -67,14 +67,14 @@ void CaddyMissions::onInit()
 	hdgcon = nh.serviceClient<navcon_msgs::EnableControl>("HDG_enable");
 	altcon = nh.serviceClient<navcon_msgs::EnableControl>("ALT_enable");
 	depthcon = nh.serviceClient<navcon_msgs::EnableControl>("DEPTH_enable");
-    velcon = nh.serviceClient<navcon_msgs::ConfigureVelocityController>("ConfigureVelocityController");
+ 	velcon = nh.serviceClient<navcon_msgs::ConfigureVelocityController>("ConfigureVelocityController");
 
 	//Initialze subscribers
     position_sub = nh.subscribe<auv_msgs::NavSts>("position", 1, &CaddyMissions::onPosition,this);
     surfacecmd_sub = nh.subscribe<std_msgs::UInt8>("surface_cmd", 1, &CaddyMissions::onSurfaceCmd,this);
 
     //Initialize timer
-    safety = nh.createTimer(ros::Duration(0.5),&CaddyMissions::onTimer, this, false, true);
+    safety = nh.createTimer(ros::Duration(1.0),&CaddyMissions::onTimer, this, false, true);
 }
 
 void CaddyMissions::onSurfaceCmd(const std_msgs::UInt8::ConstPtr& cmd)
@@ -121,26 +121,24 @@ void CaddyMissions::onSurfaceCmd(const std_msgs::UInt8::ConstPtr& cmd)
     std_msgs::Bool flag;
     flag.data = false;
     //Added a hack to kill the lawnmower
-    for(int i=0; i<10; ++i)
+    for(int i=0; i<50; ++i)
     {
       lawnmower_pub.publish(flag);
-      ros::Duration(0.1).sleep();
+      ros::Duration(0.01).sleep();
     }
   }
 }
 
 void CaddyMissions::stopControllers()
 {
-  if (testControllers())
-  {
-    navcon_msgs::ConfigureVelocityController srv;
+  navcon_msgs::ConfigureVelocityController srv;
     for(int i=0; i<6; ++i) srv.request.desired_mode[i] = DISABLED;
     velcon.call(srv);
     navcon_msgs::EnableControl flag;
     flag.request.enable = false;
-    hdgcon.call(flag);
-    altcon.call(flag);
-  }
+  hdgcon.call(flag);
+  altcon.call(flag);
+  depthcon.call(flag);
 }
 
 bool CaddyMissions::testControllers()
@@ -173,7 +171,7 @@ bool CaddyMissions::checkNetwork()
   FILE* in;
   char buff[512];
 
-  std::string command = "fping -c2 -t300 " + ipaddress + " 2>&1";
+  std::string command = "fping -c2 -t800 " + ipaddress + " 2>&1";
   //ROS_INFO("Command: %s", command.c_str());
   if (!(in = popen(command.c_str(), "r"))) return false;
 

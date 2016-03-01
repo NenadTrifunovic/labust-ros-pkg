@@ -56,7 +56,7 @@ namespace labust
 		///The Depthitude/depth controller
 		struct DepthControl : DisableAxis
 		{
-			DepthControl():Ts(0.1),manRefFlag(true){};
+			DepthControl():Ts(0.1),manRefFlag(true),depth_threshold(-1){};
 
 			void init()
 			{
@@ -81,6 +81,7 @@ namespace labust
   				const auv_msgs::BodyVelocityReq& track)
   		{
   			//Tracking external commands while idle (bumpless)
+			if (ref.position.depth == -1)  return;
   			con.desired = state.position.depth;
   			con.state = state.position.depth;
   			con.track = track.twist.linear.z;
@@ -96,6 +97,16 @@ namespace labust
 			auv_msgs::BodyVelocityReqPtr step(const auv_msgs::NavSts& ref,
 					const auv_msgs::NavSts& state)
 			{
+				if (ref.position.depth == -1)
+				{
+				  ROS_ERROR("Depth is -1.");
+				  auv_msgs::BodyVelocityReqPtr nu(new auv_msgs::BodyVelocityReq());
+				  nu->header.stamp = ros::Time::now();
+				  nu->goal.requester = "depth_controller";
+				  labust::tools::vectorToDisableAxis(disable_axis, nu->disable_axis);
+				  nu->disable_axis.z = true;
+				  return nu;
+				}
 				con.desired = ref.position.depth;
 				con.state = state.position.depth;
 				con.track = state.body_velocity.z;
