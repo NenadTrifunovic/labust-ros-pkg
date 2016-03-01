@@ -42,7 +42,7 @@ namespace labust {
       public:
         RosbagFilter();
         void setOutputBag(const std::string& out_filename); 
-        void setInputBags(const std::vector<std::string>& in_bags);
+        void setInputBags(const std::vector<std::string>& in_bags, const std::vector<std::string>& nspace);
         void setTopics(const std::vector<std::string>& topics);
         void setTime(const ros::Time& start_t, const ros::Time& end_t);
         void start();
@@ -51,6 +51,7 @@ namespace labust {
         ros::Time time_start, time_end;
         std::string out_bag_name_;
         std::vector<std::string> in_bags_;
+        std::vector<std::string> nspace_;
         std::vector<std::string> topics_;
     };
   }

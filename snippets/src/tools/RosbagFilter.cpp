@@ -47,8 +47,9 @@ void RosbagFilter::setOutputBag(const std::string& out_filename) {
   out_bag_name_ = out_filename;
 }
 
-void RosbagFilter::setInputBags(const std::vector<std::string>& in_bags) {
+void RosbagFilter::setInputBags(const std::vector<std::string>& in_bags, const std::vector<std::string>& nspace) {
   in_bags_ = in_bags;
+  nspace_ = nspace;
 }
 
 void RosbagFilter::setTopics(const std::vector<std::string>& topics) {
@@ -65,13 +66,15 @@ void RosbagFilter::start() {
   bag_writer.open();
   for (int i=0; i<in_bags_.size(); ++i) {
     ROS_INFO("Opening bag %s.", in_bags_[i].c_str());
+    ROS_INFO("Adding namespace: %s.",nspace_.empty()?"none":nspace_[i].c_str());
     RosbagReader bag_reader(in_bags_[i]);
     bag_reader.addTopics(topics_);
     bag_reader.setTime(time_start, time_end);
     bag_reader.open();
     while (!bag_reader.done()) {
       rosbag::MessageInstance m = bag_reader.nextMessageInstance();
-      bag_writer.addMessage(m.getTopic(), m.getTime(), m);
+      const std::string namespaced_topic = nspace_[i] + m.getTopic();
+      bag_writer.addMessage(namespaced_topic, m.getTime(), m);
     }
     ROS_INFO("Done with bag, closing.");
     bag_reader.close();
@@ -84,6 +87,7 @@ int main(int argc, char **argv) {
   std::string out_bag_filename;
   std::vector<std::string> in_bags;
   std::vector<std::string> topics;
+  std::vector<std::string> nspace;
   ros::Time time_start = ros::TIME_MIN;
   ros::Time time_end = ros::TIME_MAX;
   for (int i=1; i<argc; ++i) {
@@ -96,6 +100,8 @@ int main(int argc, char **argv) {
       in_bags.push_back(curr_argv);
     } else if (curr_flag == "-t") {
       topics.push_back(curr_argv);
+    } else if (curr_flag == "-ns") {
+        nspace.push_back(curr_argv);
     } else if (curr_flag == "-o") {
       out_bag_filename = curr_argv; 
     } else if (curr_flag == "-start_time") {
@@ -105,9 +111,17 @@ int main(int argc, char **argv) {
     }
   }
   
+  if(nspace.empty())
+  {
+	  for(int i=0;i<in_bags.size();++i)
+	  {
+		  nspace.push_back("");
+	  }
+  }
+
   RosbagFilter filter;
   filter.setOutputBag(out_bag_filename);
-  filter.setInputBags(in_bags);
+  filter.setInputBags(in_bags,nspace);
   filter.setTopics(topics);
   filter.setTime(time_start, time_end);
   filter.start();
