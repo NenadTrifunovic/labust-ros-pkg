@@ -66,7 +66,7 @@ void RosbagFilter::start() {
   bag_writer.open();
   for (int i=0; i<in_bags_.size(); ++i) {
     ROS_INFO("Opening bag %s.", in_bags_[i].c_str());
-    ROS_INFO("Adding namespace: %s.",nspace_.empty()?"none":nspace_[i].c_str());
+    ROS_INFO("Adding namespace: %s.",nspace_[i].compare("")?nspace_[i].c_str():"none");
     RosbagReader bag_reader(in_bags_[i]);
     bag_reader.addTopics(topics_);
     bag_reader.setTime(time_start, time_end);
@@ -117,6 +117,15 @@ int main(int argc, char **argv) {
 	  {
 		  nspace.push_back("");
 	  }
+  }
+
+  if(in_bags.size()>nspace.size())
+  {
+	  for(int i=1; i<in_bags.size(); ++i)
+	  {
+		  nspace.push_back(nspace.at(0));
+	  }
+	  ROS_INFO("Adding namespace \"%s\" to all bags.",nspace[0].c_str());
   }
 
   RosbagFilter filter;
