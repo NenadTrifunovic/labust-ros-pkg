@@ -11,6 +11,7 @@ void onPoseReq(const auv_msgs::NavStsReq::ConstPtr& req){
     navsts->global_position = req->global_position;
     navsts->origin = req->origin;
     navsts->altitude = req->altitude;
+    navsts->position = req->position;
     navsts->body_velocity = req->body_velocity;
     navsts->gbody_velocity = req->gbody_velocity;
     navsts->global_position = req->global_position;

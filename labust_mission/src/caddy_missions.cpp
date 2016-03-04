@@ -64,16 +64,17 @@ void CaddyMissions::onInit()
 	lawnmower_pub = nh.advertise<std_msgs::Bool>("stop_follow_section", 1);
 
 	//Initialize service clients
-	velcon = nh.serviceClient<navcon_msgs::ConfigureVelocityController>("ConfigureVelocityController", true);
-	hdgcon = nh.serviceClient<navcon_msgs::EnableControl>("HDG_enable", true);
-	altcon = nh.serviceClient<navcon_msgs::EnableControl>("ALT_enable", true);
+	hdgcon = nh.serviceClient<navcon_msgs::EnableControl>("HDG_enable");
+	altcon = nh.serviceClient<navcon_msgs::EnableControl>("ALT_enable");
+	depthcon = nh.serviceClient<navcon_msgs::EnableControl>("DEPTH_enable");
+ 	velcon = nh.serviceClient<navcon_msgs::ConfigureVelocityController>("ConfigureVelocityController");
 
 	//Initialze subscribers
     position_sub = nh.subscribe<auv_msgs::NavSts>("position", 1, &CaddyMissions::onPosition,this);
     surfacecmd_sub = nh.subscribe<std_msgs::UInt8>("surface_cmd", 1, &CaddyMissions::onSurfaceCmd,this);
 
     //Initialize timer
-    safety = nh.createTimer(ros::Duration(0.5),&CaddyMissions::onTimer, this, false, true);
+    safety = nh.createTimer(ros::Duration(1.0),&CaddyMissions::onTimer, this, false, true);
 }
 
 void CaddyMissions::onSurfaceCmd(const std_msgs::UInt8::ConstPtr& cmd)
@@ -89,14 +90,16 @@ void CaddyMissions::onSurfaceCmd(const std_msgs::UInt8::ConstPtr& cmd)
       for(int i=0; i<6; ++i) srv.request.desired_mode[i] = DONT_CARE;
       srv.request.desired_mode[u] = VELCON;
       srv.request.desired_mode[v] = DISABLED;
+      srv.request.desired_mode[w] = VELCON;
       srv.request.desired_mode[r] = VELCON;
       bool velconOK = velcon.call(srv);
       navcon_msgs::EnableControl flag;
       flag.request.enable = true;
       bool hdgconOK = hdgcon.call(flag);
       bool altconOK = altcon.call(flag);
+      bool depthconOK = depthcon.call(flag);
 
-      if (altconOK && hdgconOK && velconOK)
+      if (altconOK && hdgconOK && velconOK && depthconOK)
       {
         ROS_INFO("Lawn-mower setup complete.");
       }
@@ -118,31 +121,29 @@ void CaddyMissions::onSurfaceCmd(const std_msgs::UInt8::ConstPtr& cmd)
     std_msgs::Bool flag;
     flag.data = false;
     //Added a hack to kill the lawnmower
-    for(int i=0; i<10; ++i)
+    for(int i=0; i<50; ++i)
     {
       lawnmower_pub.publish(flag);
-      ros::Duration(0.1).sleep();
+      ros::Duration(0.01).sleep();
     }
   }
 }
 
 void CaddyMissions::stopControllers()
 {
-  if (testControllers())
-  {
-    navcon_msgs::ConfigureVelocityController srv;
+  navcon_msgs::ConfigureVelocityController srv;
     for(int i=0; i<6; ++i) srv.request.desired_mode[i] = DISABLED;
     velcon.call(srv);
     navcon_msgs::EnableControl flag;
     flag.request.enable = false;
-    hdgcon.call(flag);
-    altcon.call(flag);
-  }
+  hdgcon.call(flag);
+  altcon.call(flag);
+  depthcon.call(flag);
 }
 
 bool CaddyMissions::testControllers()
 {
-  bool retVal = velcon.exists() && hdgcon.exists() && altcon.exists();
+  bool retVal = velcon.exists() && hdgcon.exists() && altcon.exists() && depthcon.exists();
   return retVal && ((ros::Time::now() - last_position).toSec() < POSITION_UPDATE);
 }
 
@@ -158,6 +159,9 @@ void CaddyMissions::onTimer(const ros::TimerEvent& event)
   if (noac_update && nonet_update)
   {
     ROS_WARN("Timeout triggered - stopping controllers.");
+    std_msgs::Bool timeout;
+    timeout.data = true;
+    timeout_pub.publish(timeout);
     this->stopControllers();
   }
 }
@@ -167,7 +171,7 @@ bool CaddyMissions::checkNetwork()
   FILE* in;
   char buff[512];
 
-  std::string command = "fping -c2 -t300 " + ipaddress + " 2>&1";
+  std::string command = "fping -c2 -t800 " + ipaddress + " 2>&1";
   //ROS_INFO("Command: %s", command.c_str());
   if (!(in = popen(command.c_str(), "r"))) return false;
 

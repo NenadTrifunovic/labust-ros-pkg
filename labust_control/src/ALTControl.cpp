@@ -78,6 +78,7 @@ namespace labust
   		void idle(const auv_msgs::NavSts& ref, const auv_msgs::NavSts& state,
   				const auv_msgs::BodyVelocityReq& track)
   		{
+			if (ref.altitude == -1) return;
   			//Tracking external commands while idle (bumpless)
   			con.desired = state.altitude;
   			con.state = state.altitude;
@@ -93,6 +94,15 @@ namespace labust
 			auv_msgs::BodyVelocityReqPtr step(const auv_msgs::NavSts& ref,
 					const auv_msgs::NavSts& state)
 			{
+				if (ref.altitude == -1)
+				{
+					auv_msgs::BodyVelocityReqPtr nu(new auv_msgs::BodyVelocityReq());
+					nu->header.stamp = ros::Time::now();
+				  	nu->goal.requester = "altitude_controller";
+				  	labust::tools::vectorToDisableAxis(disable_axis, nu->disable_axis);
+				  	nu->disable_axis.z = true;
+					return nu;
+				}
 				con.desired = ref.altitude;
 				con.state = state.altitude;
 				con.track = -state.body_velocity.z;

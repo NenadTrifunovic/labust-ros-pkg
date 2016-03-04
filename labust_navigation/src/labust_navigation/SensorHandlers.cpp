@@ -152,7 +152,7 @@ void ImuHandler::onImu(const sensor_msgs::Imu::ConstPtr& data)
 		//KDL::Rotation::Quaternion(result.x(),result.y(),result.z(),result.w()).GetEulerZYX
 		//		(rpy[yaw],rpy[pitch],rpy[roll]);
 		labust::tools::eulerZYXFromQuaternion(result, rpy[roll], rpy[pitch], rpy[yaw]);
-		rpy[yaw] -= magdec;
+		rpy[yaw] += magdec;
 		rpy[yaw] = unwrap(rpy[yaw]);
 
 		//Transform angular velocities
