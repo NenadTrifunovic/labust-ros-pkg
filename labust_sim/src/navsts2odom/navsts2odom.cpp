@@ -41,7 +41,8 @@
 #include <ros/ros.h>
 
 
-void onNavSts(ros::Publisher& odom, const Eigen::Matrix3d& rot, const auv_msgs::NavSts::ConstPtr& msg)
+void onNavSts(ros::Publisher& odom, const Eigen::Matrix3d& rot,
+    const Eigen::Quaternion<double>& rotc, const auv_msgs::NavSts::ConstPtr& msg)
 {
     nav_msgs::Odometry::Ptr out(new nav_msgs::Odometry());
 
@@ -60,10 +61,17 @@ void onNavSts(ros::Publisher& odom, const Eigen::Matrix3d& rot, const auv_msgs::
     out->pose.pose.position.y = xyz(1);
     out->pose.pose.position.z = xyz(2);
 
+    Eigen::Quaternion<double> q;
     labust::tools::quaternionFromEulerZYX(msg->orientation.roll,
     		msg->orientation.pitch,
 			msg->orientation.yaw,
-			out->pose.pose.orientation);
+			q);
+
+    Eigen::Quaternion<double> q2 = rotc*q;
+    out->pose.pose.orientation.w = q2.w();
+    out->pose.pose.orientation.x = q2.x();
+    out->pose.pose.orientation.y = q2.y();
+    out->pose.pose.orientation.z = q2.z();
 
     odom.publish(out);
 }
@@ -75,17 +83,19 @@ int main(int argc, char* argv[])
 	ros::NodeHandle nh, ph("~");
 
 	//Get rotation between the two
-	std::vector<double> rpy(3,0);
-	ph.param("rpy",rpy,rpy);
+	std::vector<double> rpy_pos(3,0), rpy_ang(3,0);
+	ph.param("rpy_position",rpy_pos,rpy_pos);
+	ph.param("rpy_orientation",rpy_ang,rpy_ang);
 
 	//Setup the LTP to Odom frame
-	Eigen::Quaternion<double> q;
-	labust::tools::quaternionFromEulerZYX(rpy[0], rpy[1], rpy[2],q);
-	Eigen::Matrix3d rot = q.toRotationMatrix().transpose();
+	Eigen::Quaternion<double> q, rot_ang;
+	labust::tools::quaternionFromEulerZYX(rpy_pos[0], rpy_pos[1], rpy_pos[2], q);
+	labust::tools::quaternionFromEulerZYX(rpy_ang[0], rpy_ang[1], rpy_ang[2], rot_ang);
+	Eigen::Matrix3d rot_pos = q.toRotationMatrix().transpose();
 
 	ros::Publisher odom = nh.advertise<nav_msgs::Odometry>("uwsim_hook", 1);
 	ros::Subscriber navsts = nh.subscribe<auv_msgs::NavSts>("navsts",1,
-			boost::bind(&onNavSts, boost::ref(odom), boost::ref(rot), _1));
+			boost::bind(&onNavSts, boost::ref(odom), boost::ref(rot_pos), boost::ref(rot_ang), _1));
 
 	ros::spin();
 	return 0;
