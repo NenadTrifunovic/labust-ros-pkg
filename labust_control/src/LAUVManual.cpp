@@ -45,7 +45,6 @@
 #include <auv_msgs/BodyForceReq.h>
 #include <auv_msgs/NavSts.h>
 
-
 namespace labust
 {
 	namespace control{
@@ -88,12 +87,18 @@ namespace labust
 				servo_pos = Eigen::Vector6d::Zero();
 				thruster_act = Eigen::Vector6d::Zero();
 
-				thruster_act(0) = mapped(2);
+				thruster_act(0) = -mapped(2);
 
-				servo_pos(1) = scale*mapped(0);
+				/*servo_pos(1) = scale*mapped(0);
 				servo_pos(2) = servo_pos(1);
 
-				servo_pos(0) = scale*mapped(1);
+				servo_pos(0) = -scale*mapped(1);
+				servo_pos(3) = servo_pos(0);*/
+
+				servo_pos(1) = 1.0*mapped(0);
+				servo_pos(2) = 1.0*mapped(0);
+
+				servo_pos(0) = -1.0*mapped(5);
 				servo_pos(3) = servo_pos(0);
 
 				_allocation.inverseAllocate(thruster_act,_nu_in,servo_pos,tau_out);
