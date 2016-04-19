@@ -63,10 +63,27 @@ class MessageTransformer:
         rospy.Subscriber("tauOut", BodyForceReq, self.onTauOut)
     
     def onNavSts(self,data):
+
         req = SetModelStateRequest()
         req.model_state.model_name = self.model_name
+
+
+	# DEBUG
+
+	#data.position.north = 10;
+	#data.position.east = 5;
+	#data.position.depth = -2;
+
+	#data.orientation.roll  =0 ;
+	#data.orientation.pitch = 0;
+	#data.orientation.yaw = -3.14/4;
+
+
+
         try:
+            req.model_state.reference_frame = "world"
             ''' Set desired frame for coversion '''
+            #child_frame= "gazebo_world"
             child_frame= "gazebo_world"
             ''' Set initial frame pose '''
             pose = PoseStamped()
@@ -74,7 +91,7 @@ class MessageTransformer:
             pose.header.stamp = self.listener.getLatestCommonTime(child_frame,pose.header.frame_id)
             pose.pose.position.x = data.position.north
             pose.pose.position.y = data.position.east
-            pose.pose.position.z = data.position.depth
+            pose.pose.position.z = data.position.depth-2
             
             quat = tf.transformations.quaternion_from_euler(data.orientation.roll,data.orientation.pitch,data.orientation.yaw)
     
@@ -88,6 +105,13 @@ class MessageTransformer:
             req.model_state.pose.orientation = pose2.pose.orientation
             ''' Set model state service call '''
             self.setState(req)
+            
+            #req.model_state.reference_frame = "base_link"
+            #req.model_state.twist.linear = data.body_velocity
+            #req.model_state.twist.angular = pose2.pose.orientation
+            ''' Set model state service call '''
+            #self.setState(req)
+	    #rospy.logerr("DEBUG.")
                
         except (tf.Exception, tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
             rospy.logerr("Error on frame conversion.")
