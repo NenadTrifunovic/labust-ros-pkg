@@ -39,6 +39,9 @@
 #include <labust/tools/conversions.hpp>
 #include <geometry_msgs/TransformStamped.h>
 
+#include <labust/simulation/LupisModel.hpp>
+
+
 #include <sstream>
 
 using namespace labust::simulation;
@@ -49,6 +52,8 @@ void labust::simulation::configureModel(const ros::NodeHandle& nh, RBModel& mode
 
 	nh.param("sampling_time",model.dT, model.dT);
 	nh.param("coupled",model.isCoupled,model.isCoupled);
+	nh.param("lauv",model.is_lauv_model,model.is_lauv_model);
+
 	Eigen::Vector3d bdg;
 	labust::tools::getMatrixParam(nh,"bounding_ellipsoid",bdg);
 	model.ae = bdg(0);

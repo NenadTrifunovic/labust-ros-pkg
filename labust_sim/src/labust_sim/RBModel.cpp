@@ -37,6 +37,11 @@
 #include <labust/simulation/RBModel.hpp>
 #include <labust/math/NumberManipulation.hpp>
 
+#include <labust/simulation/LupisModel.hpp>
+
+
+#include <ros/ros.h>
+
 using namespace labust::simulation;
 
 RBModel::RBModel():
@@ -51,7 +56,9 @@ RBModel::RBModel():
 		lgacc(0,0,g_acc),
     g(vector::Zero()),
     isCoupled(false),
-    current(vector3::Zero())
+	is_lauv_model(false),
+    current(vector3::Zero()),
+	lauv_model(lauv_parameters)
 	{this->init();};
 
 RBModel::~RBModel(){};
@@ -67,58 +74,71 @@ void RBModel::calculate_mrb()
 
 void RBModel::step(const vector& tau)
 {
-	//Assemble the linear and angluar velocity transformation matrices
-	using namespace Eigen;
-	matrix3 J1;
-	J1 = AngleAxisd(eta(psi), Vector3d::UnitZ())
-			* AngleAxisd(eta(theta), Vector3d::UnitY())
-			* AngleAxisd(eta(phi), Vector3d::UnitX());
-	double c1 = cos(eta(phi)), s1 = sin(eta(phi));
-	double c2 = cos(eta(theta)), t2 = tan(eta(theta));
-	if (!c2) c2 = 0.1;
-	matrix3 J2;
-	J2<<1,s1*t2,c1*t2,
-			0,c1,-s1,
-			0,s1/c2,c1/c2;
-	//Calculate restoring forces
-	restoring_force(J1);
 
-	matrix M = Ma + Mrb;
-	vector nu_old(nu);
-	if (isCoupled)
-	{
-		//Assemble coriolis
-		coriolis();
-		//Calculate the absolute values of the speed
-		matrix CD = Ca + Crb + Dlin + Dquad*nu.cwiseAbs2().asDiagonal();
-		FullPivLU<matrix> decomp(M+dT*CD);
-		if (decomp.isInvertible())
+		//Assemble the linear and angluar velocity transformation matrices
+		using namespace Eigen;
+		matrix3 J1;
+		J1 = AngleAxisd(eta(psi), Vector3d::UnitZ())
+				* AngleAxisd(eta(theta), Vector3d::UnitY())
+				* AngleAxisd(eta(phi), Vector3d::UnitX());
+		double c1 = cos(eta(phi)), s1 = sin(eta(phi));
+		double c2 = cos(eta(theta)), t2 = tan(eta(theta));
+		if (!c2) c2 = 0.1;
+		matrix3 J2;
+		J2<<1,s1*t2,c1*t2,
+				0,c1,-s1,
+				0,s1/c2,c1/c2;
+		//Calculate restoring forces
+		restoring_force(J1);
+
+		matrix M = Ma + Mrb;
+		vector nu_old(nu);
+
+		if(!is_lauv_model)
+				{
+		if (isCoupled)
 		{
-			//Backward propagation model
-			nu = decomp.inverse()*(M*nu + dT*(tau-g));
+			//Assemble coriolis
+			coriolis();
+			//Calculate the absolute values of the speed
+			matrix CD = Ca + Crb + Dlin + Dquad*nu.cwiseAbs2().asDiagonal();
+			FullPivLU<matrix> decomp(M+dT*CD);
+			if (decomp.isInvertible())
+			{
+				//Backward propagation model
+				nu = decomp.inverse()*(M*nu + dT*(tau-g));
+			}
+			else
+			{
+				std::cerr<<"Mass matrix is singular."<<std::endl;
+			}
 		}
 		else
 		{
-			std::cerr<<"Mass matrix is singular."<<std::endl;
+			//Simplification for uncoupled
+			for (size_t i=0; i<nu.size(); ++i)
+			{
+				double beta = Dlin(i,i) + Dquad(i,i)*fabs(nu(i));
+				//Backward propagation model
+				nu(i) = (M(i,i)*nu(i) + dT*(tau(i)- g(i)))/(M(i,i) + dT*beta);
+			};
 		}
 	}
 	else
 	{
-		//Simplification for uncoupled
-		for (size_t i=0; i<nu.size(); ++i)
-		{
-			double beta = Dlin(i,i) + Dquad(i,i)*fabs(nu(i));
-			//Backward propagation model
-			nu(i) = (M(i,i)*nu(i) + dT*(tau(i)- g(i)))/(M(i,i) + dT*beta);
-		};
+		//ROS_ERROR("RBmodel.cpp - DEBUG1");
+		nu = nu+lauv_model.stepInv(tau, nu, eta)*dT;
+		//ROS_ERROR_STREAM(nu);
+		//ROS_ERROR("RBmodel.cpp - DEBUG2");
+
 	}
 
     //Surface behavior
-	double surface_depth = 0.05;
-	if(eta(2) < surface_depth)
-	{
-		nu(2) = std::fabs(nu(2)); // Check this solution!!
-	}
+	//double surface_depth = 0.05;
+	//if(eta(2) < surface_depth)
+	//{
+	//	nu(2) = std::fabs(nu(2)); // Check this solution!!
+	//}
 
 	vector grav;
 	grav<<lgacc,0,0,0;

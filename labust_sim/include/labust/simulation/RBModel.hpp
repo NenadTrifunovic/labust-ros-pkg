@@ -42,6 +42,9 @@
 #include <labust/math/NumberManipulation.hpp>
 #include <labust/vehicles/ThrustAllocation.hpp>
 
+#include <labust/simulation/LupisModel.hpp>
+
+
 namespace labust
 {
   namespace simulation
@@ -146,6 +149,7 @@ namespace labust
       	calculate_mrb();
       	//Calculate and set the the neutral depth where W=B
         eta(z) = (m/(2*ae*be*ce*M_PI/3*rho)-1)*ce - waterLevel - rb(z);
+
       }
       /**
        * The method restarts the model to initial parameters.
@@ -192,6 +196,21 @@ namespace labust
        */
       labust::vehicles::ThrustAllocator allocator;
 
+      /**
+       * LAUV Lupis model flag
+       */
+      bool is_lauv_model;
+
+      /**
+       * LAUV Lupis model parameters
+       */
+      labust::simulation::ModelParameters lauv_parameters;
+
+      /**
+       * LAUV Lupis model
+       */
+      labust::simulation::AUVModel lauv_model;
+
     protected:
       /**
        * The method calculates the Coriolis matrix of the model.
@@ -230,6 +249,9 @@ namespace labust
        * The restoring forces vector.
        */
       vector g;
+
+
+
     };
 
     /**
