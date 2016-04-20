@@ -95,8 +95,8 @@ namespace labust
 				servo_pos(0) = -scale*mapped(1);
 				servo_pos(3) = servo_pos(0);*/
 
-				servo_pos(1) = 1.0*mapped(0);
-				servo_pos(2) = 1.0*mapped(0);
+				servo_pos(1) = 0.25*mapped(0);
+				servo_pos(2) = 0.25*mapped(0);
 
 				servo_pos(0) = -1.0*mapped(5);
 				servo_pos(3) = servo_pos(0);

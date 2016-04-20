@@ -131,14 +131,18 @@ void RBModel::step(const vector& tau)
 		//ROS_ERROR_STREAM(nu);
 		//ROS_ERROR("RBmodel.cpp - DEBUG2");
 
+	    //Surface behavior
+		double surface_depth = 0.05;
+		if(eta(2) < surface_depth)
+		{
+			//ROS_ERROR("ON SURFACE");
+			nu(2) = std::fabs(nu(2)); // Check this solution!!
+			//nu(4) = -std::fabs(nu(4));
+			eta(2) = surface_depth;
+		}
 	}
 
-    //Surface behavior
-	//double surface_depth = 0.05;
-	//if(eta(2) < surface_depth)
-	//{
-	//	nu(2) = std::fabs(nu(2)); // Check this solution!!
-	//}
+
 
 	vector grav;
 	grav<<lgacc,0,0,0;

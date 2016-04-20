@@ -91,7 +91,7 @@ class MessageTransformer:
             pose.header.stamp = self.listener.getLatestCommonTime(child_frame,pose.header.frame_id)
             pose.pose.position.x = data.position.north
             pose.pose.position.y = data.position.east
-            pose.pose.position.z = data.position.depth-2
+            pose.pose.position.z = data.position.depth
             
             quat = tf.transformations.quaternion_from_euler(data.orientation.roll,data.orientation.pitch,data.orientation.yaw)
     
