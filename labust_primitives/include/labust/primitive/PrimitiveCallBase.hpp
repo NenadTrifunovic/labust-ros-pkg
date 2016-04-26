@@ -85,7 +85,7 @@ namespace labust
 					ROS_FATAL("Cannot establish connection to action server: %s", primitiveName.c_str());
 					return;
 				}
-				ROS_INFO("Action server % started", primitiveName.c_str());
+				ROS_INFO("Action server %s started", primitiveName.c_str());
 			}
 
 			virtual ~PrimitiveCallBase(){}

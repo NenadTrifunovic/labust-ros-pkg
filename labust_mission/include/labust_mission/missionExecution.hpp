@@ -92,6 +92,8 @@ namespace labust {
 
 		    void go2point_FA_state();
 
+		    void go2depth_state();
+
 		    void go2point_UA_state();
 
 		    void course_keeping_FA_state();
@@ -327,6 +329,26 @@ namespace labust {
 
 			oldPosition.north = primitiveMap["north"];
 			oldPosition.east = primitiveMap["east"];
+			oldPosition.depth = primitiveMap["depth"];
+	    }
+
+	    void MissionExecution::go2depth_state(){
+
+
+	    	/** Evaluate primitive data with current values */
+			evaluatePrimitive(receivedPrimitive.primitiveString.data);
+	    	/** Activate primitive timeout */
+			if(!timeoutActive && primitiveMap["timeout"] > 0)
+				setTimeout(primitiveMap["timeout"]);
+			/** Activate primitive */
+			CM.go2depth(true, primitiveMap["depth"]);
+			ROS_ERROR("go2depth: depth: %f", primitiveMap["depth"]);
+
+
+			// Check what to do with this!!!!!
+
+			//oldPosition.north = primitiveMap["north"];
+			//oldPosition.east = primitiveMap["east"];
 			oldPosition.depth = primitiveMap["depth"];
 	    }
 

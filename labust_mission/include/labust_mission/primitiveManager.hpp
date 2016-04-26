@@ -100,6 +100,9 @@ namespace labust
 			/** Go to point fully actuated primitive */
 			void go2point_FA(bool enable, double north1, double east1, double north2, double east2, double speed, double radius);
 
+			/** Go to point fully actuated primitive */
+			void go2depth(bool enable, double depth);
+
 			/** Go to point underactuated primitive */
 			void go2point_UA(bool enable, double north1, double east1, double north2, double east2, double speed, double radius);
 
@@ -215,9 +218,50 @@ using namespace labust::controller;
 			goal.heading = atan2(east2-east1,north2-north1);;
 			goal.speed = speed;
 			goal.victory_radius = radius;
+			goal.axis_enable.x = true;
+			goal.axis_enable.y = true;
+			goal.axis_enable.z = false;
 
 
 			LLcfg.LL_VELconfigure(true,2,2,1,1,1,2);
+			Go2Point.start(goal);
+		}
+		else
+		{
+			Go2Point.stop();
+			LLcfg.LL_VELconfigure(true,1,1,1,1,1,1);
+
+		}
+	}
+
+	/*
+	 * Course keeping fully actuated primitive
+	 */
+	void PrimitiveManager::go2depth(bool enable, double depth)
+	{
+		typedef navcon_msgs::GoToPointGoal Goal;
+		if(enable)
+		{
+			Goal goal;
+
+			goal.ref_type = Goal::CONSTANT;
+			goal.subtype = Goal::GO2POINT_FA;
+
+			goal.T1.point.x = 0;
+			goal.T1.point.y = 0;
+			goal.T1.point.z = depth;
+			goal.T2.point.x = 0;
+			goal.T2.point.y = 0;
+			goal.T2.point.z = 0;
+			//goal.heading = atan2(east2-east1,north2-north1);;
+			//goal.speed = speed;
+			goal.victory_radius = 0.1;
+			goal.axis_enable.x = false;
+			goal.axis_enable.y = false;
+			goal.axis_enable.z = true;
+
+
+			LLcfg.LL_VELconfigure(true,1,1,2,1,1,1);
 			Go2Point.start(goal);
 		}
 		else
