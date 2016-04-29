@@ -1,0 +1,54 @@
+<main>
+<primitive-defs>
+	<primitive name="dynamic_positioning">
+		<param type="double">north</param> <!-- North coordinate (double) -->
+		<param type="double">east</param> <!-- East coordinate (double) -->
+		<param type="double">depth</param> <!-- Depth coordinate (double) -->
+
+		<param type="double">heading</param>
+
+		<param type="bool">north_enable</param> <!-- Enable north control (bool) -->
+		<param type="bool">east_enable</param> <!-- Enable east control (bool) -->
+		<param type="bool">depth_enable</param> <!-- Enable depth control (bool) -->
+		<param type="bool">heading_enable</param>
+		<param type="bool">altitude_enable</param> <!-- Altitude control if true (bool) -->
+
+		<param type="bool">track_heading_enable</param>
+
+		<param type="string">target_topic</param>
+		<param type="string">heading_topic</param>		
+	</primitive>
+
+	<primitive name="go2point">
+
+		<param type="bool">enable_fully_actuated</param> <!-- Enable fully actuated control (bool) -->
+
+		<param type="double">north1</param> <!-- North coordinate (double) -->
+		<param type="double">east1</param> <!-- East coordinate (double) -->
+		<param type="double">depth1</param> <!-- Depth coordinate (double) -->
+		<param type="double">north2</param> <!-- North coordinate (double) -->
+		<param type="double">east2</param> <!-- East coordinate (double) -->
+		<param type="double">depth2</param> <!-- Depth coordinate (double) -->
+
+		<param type="double">heading</param> <!-- Heading (double) -->
+		<param type="double">speed</param> <!-- Absolute speed (in horizontal plane!!) (double) -->
+
+		<param type="double">victory_radius</param>
+
+		<param type="bool">north_enable</param> <!-- Enable north control (bool) -->
+		<param type="bool">east_enable</param> <!-- Enable east control (bool) -->
+                <!--Always true. Only exception could be when go2depth primitive with speed is used -->
+
+		<param type="bool">depth_enable</param> <!-- Enable depth control (bool) -->
+		
+		<param type="bool">heading_enable</param> <!-- Enable heading control (bool) -->
+                <!--Enables fully actuated control with independent heading control. -->
+
+		<param type="bool">altitude_enable</param> <!-- Altitude control if true (bool) -->
+
+		<param type="string">heading_topic</param>
+		<param type="string">speed_topic</param>
+		
+	</primitive>
+</primitive-defs>
+</main>
