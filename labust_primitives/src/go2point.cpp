@@ -69,7 +69,7 @@ namespace labust
 			typedef navcon_msgs::GoToPointResult Result;
 			typedef navcon_msgs::GoToPointFeedback Feedback;
 
-			enum {ualf = 0, falf, hdg, fadp, numcnt};
+			enum {ualf = 0, falf, hdg, fadp, depth, numcnt};
 			enum {xp = 0, yp, zp};
 
 			GoToPoint():ExecutorBase("go2point"),
@@ -90,6 +90,8 @@ namespace labust
 				controllers.name[ualf] = "UALF_enable";
 				controllers.name[falf] = "FALF_enable";
 				controllers.name[hdg] = "HDG_enable";
+				controllers.name[depth] = "DEPTH_enable";
+
 			}
 
 			void onGoal()
@@ -170,6 +172,7 @@ namespace labust
 						/*** Fully actuated ***/
 						controllers.state[falf] = true;
 						controllers.state[hdg] = true;
+						controllers.state[depth] = goal->axis_enable.z;
 					}
 					else
 					{
@@ -291,6 +294,9 @@ namespace labust
 				ref->position.east = 0;
 				ref->body_velocity.x = goal->speed;
 				ref->orientation.yaw = goal->heading;
+
+				ref->position.depth = goal->T2.point.z; // Check if the frame is correct
+
 				ref->header.frame_id = tf_prefix + "course_frame";
 
 				/*** Calculate bearing to endpoint ***/

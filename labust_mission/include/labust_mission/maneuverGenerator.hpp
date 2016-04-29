@@ -47,6 +47,7 @@
 
 #include <labust/mission/labustMission.hpp>
 #include <labust_mission/xmlPrinter.hpp>
+#include <boost/lexical_cast.hpp>
 #include <Eigen/Dense>
 
 
@@ -70,12 +71,49 @@ namespace labust {
 
 			ManeuverGenerator();
 
-			void generateGoTo(double north, double east, double speed, double victory_radius);
+			~ManeuverGenerator();
 
-			void generateRows(double north, double east, double speed, double victory_radius, double width, double length, double hstep, double alternationPercent,
-					double curvOff, bool squareCurve, double bearing, double crossAngle, bool invertY);
+			void generateGoTo(
+					double north,
+					double east,
+					double speed,
+					double victory_radius);
 
-			void generateStationKeeping(double north, double east, double heading);
+			void generateRows(
+					double north,
+					double east,
+					double speed,
+					double victory_radius,
+					double width,
+					double length,
+					double hstep,
+					double alternationPercent,
+					double curvOff,
+					bool squareCurve,
+					double bearing,
+					double crossAngle,
+					bool invertY);
+
+			void generateStationKeeping(
+					double north,
+					double east,
+					double heading);
+
+			void generatePointer(
+					double radius,
+					double vertical_offset,
+					double guidance_target_x,
+					double guidance_target_y,
+					double guidance_target_z,
+					bool guidance_enable,
+					bool wrapping_enable,
+					bool streamline_orientation,
+					std::string guidance_topic,
+					std::string radius_topic);
+
+			/*********************************************************
+			 *** Helper functions
+			 ********************************************************/
 
 			void writePrimitives(int primitiveID, std::vector<Eigen::Vector4d> points, double heading, double speed, double victoryRadius);
 
@@ -106,10 +144,19 @@ namespace labust {
 
 		ManeuverGenerator::ManeuverGenerator(){}
 
+		ManeuverGenerator::~ManeuverGenerator(){}
+
 		/*** North and east parameters must include offset in case of relative mission start. */
 		void ManeuverGenerator::generateGoTo(double north, double east, double speed, double victory_radius)
 		{
-			writeXML.addGo2point_FA(north, east, speed, victory_radius);
+			//writeXML.addGo2point_FA(north, east, speed, victory_radius);
+			std::vector<std::string> data;
+			data.push_back(boost::lexical_cast<std::string>(north));
+			data.push_back(boost::lexical_cast<std::string>(east));
+			data.push_back(boost::lexical_cast<std::string>(speed));
+			data.push_back(boost::lexical_cast<std::string>(victory_radius));
+			writeXML.addPrimitive(go2point_FA,data);
+
 		}
 
 		void ManeuverGenerator::generateRows(double north, double east, double speed, double victory_radius, double width, double length, double hstep, double alternationPercent,
@@ -122,8 +169,8 @@ namespace labust {
 						crossAngle*M_PI/180, invertY);
 
 			/* For each point subtract offset and add start point */
-			for(std::vector<Eigen::Vector4d>::iterator it = tmpPoints.begin(); it != tmpPoints.end(); ++it){
-
+			for(std::vector<Eigen::Vector4d>::iterator it = tmpPoints.begin(); it != tmpPoints.end(); ++it)
+			{
 				Eigen::Vector4d vTmp = *it;
 				vTmp[X] += north;
 				vTmp[Y] += east;
@@ -136,8 +183,44 @@ namespace labust {
 
 		void ManeuverGenerator::generateStationKeeping(double north, double east, double heading)
 		{
-			writeXML.addDynamic_positioning(north, east, heading);
+			//writeXML.addDynamic_positioning(north, east, heading);
+
+			std::vector<string> data;
+			data.push_back(boost::lexical_cast<std::string>(north));
+			data.push_back(boost::lexical_cast<std::string>(east));
+			data.push_back(boost::lexical_cast<std::string>(heading));
+			writeXML.addPrimitive(dynamic_positioning,data);
 		}
+
+		void ManeuverGenerator::generatePointer(
+				double radius,
+				double vertical_offset,
+				double guidance_target_x,
+				double guidance_target_y,
+				double guidance_target_z,
+				bool guidance_enable,
+				bool wrapping_enable,
+				bool streamline_orientation,
+				std::string guidance_topic,
+				std::string radius_topic)
+		{
+			std::vector<std::string> data;
+			data.push_back(boost::lexical_cast<std::string>(radius));
+			data.push_back(boost::lexical_cast<std::string>(vertical_offset));
+			data.push_back(boost::lexical_cast<std::string>(guidance_target_x));
+			data.push_back(boost::lexical_cast<std::string>(guidance_target_y));
+			data.push_back(boost::lexical_cast<std::string>(guidance_target_z));
+			data.push_back(boost::lexical_cast<std::string>(double(guidance_enable)));
+			data.push_back(boost::lexical_cast<std::string>(double(wrapping_enable)));
+			data.push_back(boost::lexical_cast<std::string>(double(streamline_orientation)));
+			data.push_back("#"+guidance_topic);
+			data.push_back("#"+radius_topic);
+			writeXML.addPrimitive(pointer,data);
+		}
+
+		/*************************************************************
+		 *** Helper functions
+		 ************************************************************/
 
 		void ManeuverGenerator::writePrimitives(int primitiveID, std::vector<Eigen::Vector4d> points, double heading, double speed, double victoryRadius){
 
@@ -149,7 +232,14 @@ namespace labust {
 
 							Eigen::Vector4d vTmp = *it;
 
-							writeXML.addGo2point_FA(vTmp[X], vTmp[Y], speed, victoryRadius);
+							//writeXML.addGo2point_FA(vTmp[X], vTmp[Y], speed, victoryRadius);
+
+							std::vector<string> data;
+							data.push_back(boost::lexical_cast<std::string>(double(vTmp[X])));
+							data.push_back(boost::lexical_cast<std::string>(double(vTmp[Y])));
+							data.push_back(boost::lexical_cast<std::string>(speed));
+							data.push_back(boost::lexical_cast<std::string>(victoryRadius));
+							writeXML.addPrimitive(go2point_FA,data);
 
 					}
 
@@ -162,7 +252,14 @@ namespace labust {
 
 							Eigen::Vector4d vTmp = *it;
 
-							writeXML.addGo2point_UA(vTmp[X],vTmp[Y], speed, victoryRadius);
+							//writeXML.addGo2point_UA(vTmp[X],vTmp[Y], speed, victoryRadius);
+
+							std::vector<string> data;
+							data.push_back(boost::lexical_cast<std::string>(double(vTmp[X])));
+							data.push_back(boost::lexical_cast<std::string>(double(vTmp[Y])));
+							data.push_back(boost::lexical_cast<std::string>(speed));
+							data.push_back(boost::lexical_cast<std::string>(victoryRadius));
+							writeXML.addPrimitive(go2point_UA,data);
 
 					}
 

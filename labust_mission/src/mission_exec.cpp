@@ -82,7 +82,8 @@ MainEventQueue(){ mainEventQueue = new RosEventQueue(); }
 			course_keeping_state,
 			iso_state,
 			follow_state,
-			pointer_state
+			pointer_state,
+			go2depth_state
 		}
 		FSM_START(Wait_state);
 		FSM_BGN

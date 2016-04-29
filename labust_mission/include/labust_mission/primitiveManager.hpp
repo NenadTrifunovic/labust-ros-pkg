@@ -224,7 +224,6 @@ void PrimitiveManager::enableManual(bool flag)
 {
 	LLcfg.LL_VELconfigure(flag,1,1,1,1,1,1);
 }
-
 /*********************************************************
  *** Controller primitives masks
  ********************************************************/

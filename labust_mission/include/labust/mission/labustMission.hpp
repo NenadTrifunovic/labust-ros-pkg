@@ -95,6 +95,7 @@ enum {none = 0,
 		iso,
 		follow,
 		pointer,
+		go2depth,
 		primitiveNum};
 
 const char *PRIMITIVES[] = {"none",
@@ -108,7 +109,8 @@ const char *PRIMITIVES[] = {"none",
 								"course_keeping_FA_hdg",
 								"iso",
 								"follow",
-								"pointer"};
+								"pointer",
+								"go2depth"};
 
 enum {u=0, v, w, r, x, y, z, psi, x_var, y_var, z_var, psi_var, alt, stateHatNum}; /* Enumeration used for DataManager */
 const char *stateVarNames[] = {"u", "v", "w", "r", "x", "y", "z", "psi", "x_var", "y_var", "z_var", "psi_var", "alt"};
@@ -117,6 +119,8 @@ const char *pl_placeholder[] = {"\0"};
 const char *pl_go2point_FA[] = {"north","east","speed","victory_radius","\0"};
 const char *pl_go2point_UA[] = {"north","east","speed","victory_radius","\0"};
 const char *pl_go2point_FA_hdg[] = {"north","east","heading","speed","victory_radius","\0"};
+const char *pl_go2depth[] = {"depth","victory_radius","\0"};
+
 const char *pl_dynamic_positioning[] = {"north","east","heading","timeout","\0"};
 const char *pl_course_keeping_FA[] = {"course","speed","timeout","\0"};
 const char *pl_course_keeping_FA_hdg[] = {"course","speed","heading","timeout","\0"};
@@ -195,8 +199,15 @@ struct PrimitiveParams{
 		primitive_params.insert(std::pair<int,std::vector<std::string> >(pointer,tmp));
 
 		tmp.clear();
-		 for(int i = 0; strcmp(pl_placeholder[i],"\0") != 0; i++){
-			 tmp_str.assign(pl_placeholder[i]);
+		 for(i = 0; strcmp(pl_pointer[i],"\0") != 0; i++){
+			 tmp_str.assign(pl_pointer[i]);
+			 tmp.push_back(tmp_str);
+		 }
+		primitive_params.insert(std::pair<int,std::vector<std::string> >(go2depth,tmp));
+
+		tmp.clear();
+		 for(int i = 0; strcmp(pl_go2depth[i],"\0") != 0; i++){
+			 tmp_str.assign(pl_go2depth[i]);
 			 tmp.push_back(tmp_str);
 		 }
 		primitive_params[placeholder] = tmp;
