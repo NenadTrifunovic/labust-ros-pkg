@@ -46,12 +46,11 @@
 *  POSSIBILITY OF SUCH DAMAGE.
 *********************************************************************/
 
-#include <labust_mission/labustMission.hpp>
-
 #include <misc_msgs/StartParser.h>
 #include <misc_msgs/EvaluateExpression.h>
 
 #include <boost/thread.hpp>
+#include <labust/mission/labustMission.hpp>
 
 #include <tinyxml2.h>
 

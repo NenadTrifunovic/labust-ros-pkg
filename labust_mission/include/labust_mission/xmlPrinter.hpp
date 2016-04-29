@@ -43,7 +43,7 @@
 #ifndef XMLPRINTER_HPP_
 #define XMLPRINTER_HPP_
 
-#include <labust_mission/labustMission.hpp>
+#include <labust/mission/labustMission.hpp>
 #include <tinyxml2.h>
 
 using namespace tinyxml2;

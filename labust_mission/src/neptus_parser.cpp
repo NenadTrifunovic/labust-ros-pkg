@@ -40,7 +40,6 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-#include <labust_mission/labustMission.hpp>
 #include <labust_mission/maneuverGenerator.hpp>
 
 #include <sensor_msgs/NavSatFix.h>
@@ -53,6 +52,7 @@
 
 #include <GeographicLib/Geocentric.hpp>
 #include <GeographicLib/LocalCartesian.hpp>
+#include <labust/mission/labustMission.hpp>
 
 using namespace std;
 using namespace tinyxml2;

@@ -46,6 +46,7 @@
 #include <ros/ros.h>
 #include <auv_msgs/Bool6Axis.h>
 #include <navcon_msgs/ConfigureVelocityController.h>
+#include <navcon_msgs/ConfigureAxes.h>
 #include <labust_mission/utils.hpp>
 
 

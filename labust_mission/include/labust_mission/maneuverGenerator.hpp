@@ -45,7 +45,7 @@
 #ifndef MANEUVERGENERATOR_HPP_
 #define MANEUVERGENERATOR_HPP_
 
-#include <labust_mission/labustMission.hpp>
+#include <labust/mission/labustMission.hpp>
 #include <labust_mission/xmlPrinter.hpp>
 #include <Eigen/Dense>
 

@@ -9,7 +9,7 @@
 /*********************************************************************
 * Software License Agreement (BSD License)
 *
-*  Copyright (c) 2014, LABUST, UNIZG-FER
+*  Copyright (c) 2014-2016, LABUST, UNIZG-FER
 *  All rights reserved.
 *
 *  Redistribution and use in source and binary forms, with or without
@@ -44,7 +44,6 @@
 #define MISSIONEXECUTION_HPP_
 
 
-#include <labust_mission/labustMission.hpp>
 #include <labust_mission/primitiveManager.hpp>
 #include <exprtk/exprtk.hpp>
 
@@ -56,6 +55,7 @@
 
 #include <boost/function.hpp>
 #include <boost/algorithm/string.hpp>
+#include <labust/mission/labustMission.hpp>
 
 extern decision_making::EventQueue* mainEventQueue;
 
@@ -65,11 +65,12 @@ namespace ser = ros::serialization;
  ***  MissionExecution class definition
  ********************************************************************/
 
-namespace labust {
-	namespace mission {
-
-		class MissionExecution{
-
+namespace labust
+{
+	namespace mission
+	{
+		class MissionExecution
+		{
 		public:
 
 			/*****************************************************************
@@ -88,15 +89,9 @@ namespace labust {
 
 		    void dynamic_postitioning_state();
 
-		    void go2point_FA_hdg_state();
+		    void go2point_state();
 
-		    void go2point_FA_state();
-
-		    void go2point_UA_state();
-
-		    void course_keeping_FA_state();
-
-		    void course_keeping_UA_state();
+		    void course_keeping_state();
 
 		    void iso_state();
 
@@ -135,7 +130,7 @@ namespace labust {
 			 ********************************************************************/
 
 			/** Controller manager class */
-			labust::controller::PrimitiveManager CM;
+			labust::controller::PrimitiveManager PM;
 
 			/** ROS Node handle */
 			ros::NodeHandle nh_;
@@ -170,6 +165,9 @@ namespace labust {
 			/** Map for storing last primitive string data */
 			map<string, string> primitiveStringMap;
 
+			/** Map for storing last primitive bool data */
+			map<string, bool> primitiveBoolMap;
+
 			/** Execution flags */
 			bool checkEventFlag, timeoutActive;
 
@@ -187,8 +185,8 @@ namespace labust {
 		MissionExecution::MissionExecution(ros::NodeHandle& nh):checkEventFlag(false),
 																	nextPrimitive(1),
 																	timeoutActive(false),
-																	missionActive(false){
-
+																	missionActive(false)
+		{
 			/** Subscribers */
 			subEventString = nh.subscribe<std_msgs::String>("eventString",3, &MissionExecution::onEventString, this);
 			subReceivePrimitive = nh.subscribe<misc_msgs::SendPrimitive>("sendPrimitive",1, &MissionExecution::onReceivePrimitive, this);
@@ -199,76 +197,89 @@ namespace labust {
 			pubRequestPrimitive = nh.advertise<std_msgs::UInt16>("requestPrimitive",1);
 			pubEventString = nh.advertise<std_msgs::String>("eventString",1);
 
-
 			/** Services */
 			srvExprEval = nh.serviceClient<misc_msgs::EvaluateExpression>("evaluate_expression");
 
 			/** Define primitive parameters  */
-			///TODO Automate primitive map creation.
-			primitiveMap.insert(std::pair<string, double>("north", 0.0));
-			primitiveMap.insert(std::pair<string, double>("east", 0.0));
-			primitiveMap.insert(std::pair<string, double>("depth", 0.0));
-			primitiveMap.insert(std::pair<string, double>("heading", 0.0));
-			primitiveMap.insert(std::pair<string, double>("course", 0.0));
-			primitiveMap.insert(std::pair<string, double>("speed", 0.0));
-			primitiveMap.insert(std::pair<string, double>("victory_radius", 0.0));
-			primitiveMap.insert(std::pair<string, double>("dof", 0.0));
-			primitiveMap.insert(std::pair<string, double>("command", 0.0));
-			primitiveMap.insert(std::pair<string, double>("hysteresis", 0.0));
-			primitiveMap.insert(std::pair<string, double>("reference", 0.0));
-			primitiveMap.insert(std::pair<string, double>("sampling_rate", 0.0));
-			primitiveMap.insert(std::pair<string, double>("victory_radius", 0.0));
-			primitiveMap.insert(std::pair<string, double>("timeout", 0.0));
+			PM.PrimitiveMapGenerator.xml_path = "/home/filip/ros/src/labust-ros-pkg/labust_primitives/data/primitiveDefinitions.xml";
+			primitiveMap = PM.PrimitiveMapGenerator.getPrimitiveMap<double>("double");
+			primitiveStringMap = PM.PrimitiveMapGenerator.getPrimitiveMap<string>("string");
+			primitiveBoolMap = PM.PrimitiveMapGenerator.getPrimitiveMap<bool>("bool");
 
-			primitiveMap.insert(std::pair<string, double>("radius", 0.0));
-			primitiveMap.insert(std::pair<string, double>("vertical_offset", 0.0));
-			primitiveMap.insert(std::pair<string, double>("guidance_target_x", 0.0));
-			primitiveMap.insert(std::pair<string, double>("guidance_target_y", 0.0));
-			primitiveMap.insert(std::pair<string, double>("guidance_target_z", 0.0));
-			primitiveMap.insert(std::pair<string, double>("guidance_enable", 0.0));
-			primitiveMap.insert(std::pair<string, double>("wrapping_enable", 0.0));
-			primitiveMap.insert(std::pair<string, double>("streamline_orientation", 0.0));
-			primitiveMap.insert(std::pair<string, double>("wrapping_enable", 0.0));
-
-			primitiveMap.insert(std::pair<string, double>("xrefpont", 0.0));
-			primitiveMap.insert(std::pair<string, double>("yrefpoint", 0.0));
-			primitiveMap.insert(std::pair<string, double>("xs", 0.0));
-			primitiveMap.insert(std::pair<string, double>("ys", 0.0));
-			primitiveMap.insert(std::pair<string, double>("xc", 0.0));
-			primitiveMap.insert(std::pair<string, double>("yc", 0.0));
-			primitiveMap.insert(std::pair<string, double>("xe", 0.0));
-			primitiveMap.insert(std::pair<string, double>("ye", 0.0));
-			primitiveMap.insert(std::pair<string, double>("Vl", 0.0));
-			primitiveMap.insert(std::pair<string, double>("direction", 0.0));
-			primitiveMap.insert(std::pair<string, double>("R0", 0.0));
-
-			primitiveStringMap.insert(std::pair<string, string>("radius_topic", ""));
-			primitiveStringMap.insert(std::pair<string, string>("guidance_topic", ""));
+//			primitiveMap.insert(std::pair<string, double>("north", 0.0));
+//			primitiveMap.insert(std::pair<string, double>("east", 0.0));
+//			primitiveMap.insert(std::pair<string, double>("depth", 0.0));
+//			primitiveMap.insert(std::pair<string, double>("heading", 0.0));
+//			primitiveMap.insert(std::pair<string, double>("course", 0.0));
+//			primitiveMap.insert(std::pair<string, double>("speed", 0.0));
+//			primitiveMap.insert(std::pair<string, double>("victory_radius", 0.0));
+//			primitiveMap.insert(std::pair<string, double>("dof", 0.0));
+//			primitiveMap.insert(std::pair<string, double>("command", 0.0));
+//			primitiveMap.insert(std::pair<string, double>("hysteresis", 0.0));
+//			primitiveMap.insert(std::pair<string, double>("reference", 0.0));
+//			primitiveMap.insert(std::pair<string, double>("sampling_rate", 0.0));
+//			primitiveMap.insert(std::pair<string, double>("victory_radius", 0.0));
+//			primitiveMap.insert(std::pair<string, double>("timeout", 0.0));
+//
+//			primitiveMap.insert(std::pair<string, double>("radius", 0.0));
+//			primitiveMap.insert(std::pair<string, double>("vertical_offset", 0.0));
+//			primitiveMap.insert(std::pair<string, double>("guidance_target_x", 0.0));
+//			primitiveMap.insert(std::pair<string, double>("guidance_target_y", 0.0));
+//			primitiveMap.insert(std::pair<string, double>("guidance_target_z", 0.0));
+//			primitiveMap.insert(std::pair<string, double>("guidance_enable", 0.0));
+//			primitiveMap.insert(std::pair<string, double>("wrapping_enable", 0.0));
+//			primitiveMap.insert(std::pair<string, double>("streamline_orientation", 0.0));
+//			primitiveMap.insert(std::pair<string, double>("wrapping_enable", 0.0));
+//
+//			primitiveMap.insert(std::pair<string, double>("xrefpont", 0.0));
+//			primitiveMap.insert(std::pair<string, double>("yrefpoint", 0.0));
+//			primitiveMap.insert(std::pair<string, double>("xs", 0.0));
+//			primitiveMap.insert(std::pair<string, double>("ys", 0.0));
+//			primitiveMap.insert(std::pair<string, double>("xc", 0.0));
+//			primitiveMap.insert(std::pair<string, double>("yc", 0.0));
+//			primitiveMap.insert(std::pair<string, double>("xe", 0.0));
+//			primitiveMap.insert(std::pair<string, double>("ye", 0.0));
+//			primitiveMap.insert(std::pair<string, double>("Vl", 0.0));
+//			primitiveMap.insert(std::pair<string, double>("direction", 0.0));
+//			primitiveMap.insert(std::pair<string, double>("R0", 0.0));
+//
+//			primitiveStringMap.insert(std::pair<string, string>("radius_topic", ""));
+//			primitiveStringMap.insert(std::pair<string, string>("guidance_topic", ""));
 		}
 
-	    void MissionExecution::evaluatePrimitive(string primitiveString){
-
+	    void MissionExecution::evaluatePrimitive(string primitiveString)
+	    {
 	    	/*** Reset data ***/
 	    	primitiveMap["timeout"] = 0;
 
 			misc_msgs::EvaluateExpression evalExpr;
 			primitiveStrContainer = labust::utilities::split(primitiveString, ':');
 
-			for(vector<string>::iterator it = primitiveStrContainer.begin(); it != primitiveStrContainer.end(); it = it + 2){
-
+			for(vector<string>::iterator it = primitiveStrContainer.begin(); it != primitiveStrContainer.end(); it = it + 2)
+			{
+				/*** Handle string type parameters ***/
 				size_t found = (*(it+1)).find_first_of('#');
-				if(found != string::npos){
+				if(found != string::npos)
+				{
 					primitiveStringMap[*it] =  (*(it+1)).erase(found,1);
-					/// Debug
-					ROS_ERROR("Evaluation %s: %s", (*it).c_str(),primitiveStringMap[*it].c_str());
+					ROS_ERROR("Mission execution: String evaluation %s: %s", (*it).c_str(),primitiveStringMap[*it].c_str());
 					continue;
 				}
 
 				evalExpr.request.expression = (*(it+1)).c_str();
-				primitiveMap[*it] =  (labust::utilities::callService(srvExprEval, evalExpr)).response.result;
 
-				ROS_ERROR("Evaluation %s: %f", (*it).c_str(),primitiveMap[*it]);
-
+				if(primitiveMap.find(*it) != primitiveMap.end())
+				{
+					/*** Handle double type parameters ***/
+					primitiveMap[*it] =  (labust::utilities::callService(srvExprEval, evalExpr)).response.result;
+					ROS_ERROR("Mission execution: Double evaluation %s: %f", (*it).c_str(),primitiveMap[*it]);
+				}
+				else
+				{
+					/*** Handle bool type parameters ***/
+					primitiveBoolMap[*it] =  (labust::utilities::callService(srvExprEval, evalExpr)).response.result;
+					ROS_ERROR("Mission execution: Bool evaluation %s: %f", (*it).c_str(),primitiveMap[*it]);
+				}
 			}
 		}
 
@@ -283,29 +294,62 @@ namespace labust {
 
 	    void MissionExecution::dynamic_postitioning_state(){
 
-	    	/** Evaluate primitive data with current values */
+	    	/*** Evaluate primitive data with current values ***/
 			evaluatePrimitive(receivedPrimitive.primitiveString.data);
-	    	/** Activate primitive timeout */
+	    	/*** Activate primitive timeout ***/
 	    	if(!timeoutActive && primitiveMap["timeout"] > 0)
 	    		setTimeout(primitiveMap["timeout"]);
-			/** Activate primitive */
-			CM.dynamic_positioning(true, primitiveMap["north"], primitiveMap["east"], primitiveMap["heading"]);
+			/*** Activate primitive ***/
+			PM.dynamic_positioning(
+					primitiveMap["north"],
+					primitiveMap["east"],
+					primitiveMap["depth"],
+					primitiveMap["heading"],
+					primitiveBoolMap["north_enable"],
+					primitiveBoolMap["east_enable"],
+					primitiveBoolMap["depth_enable"],
+					primitiveBoolMap["heading_enable"],
+					primitiveBoolMap["altitude_enable"],
+					primitiveBoolMap["track_heading_enable"],
+					primitiveStringMap["target_topic"],
+					primitiveStringMap["heading_topic"]
+					);
+
+			/*** Save current position ***/
 			oldPosition.north = primitiveMap["north"];
 			oldPosition.east = primitiveMap["east"];
 			oldPosition.depth = primitiveMap["depth"];
 
 	    }
 
-	    void MissionExecution::go2point_FA_hdg_state(){
-
-
+	    void MissionExecution::go2point_state()
+	    {
 	    	/** Evaluate primitive data with current values */
 			evaluatePrimitive(receivedPrimitive.primitiveString.data);
 	    	/** Activate primitive timeout */
 			if(!timeoutActive && primitiveMap["timeout"] > 0)
 				setTimeout(primitiveMap["timeout"]);
 			/** Activate primitive */
-			CM.go2point_FA_hdg(true, oldPosition.north, oldPosition.east, primitiveMap["north"], primitiveMap["east"], primitiveMap["speed"], primitiveMap["heading"], primitiveMap["victory_radius"]);
+			PM.go2point(
+					primitiveBoolMap["fully_actuated_enable"],
+					oldPosition.north,
+					oldPosition.east,
+					oldPosition.depth,
+					primitiveMap["north"],
+					primitiveMap["east"],
+					primitiveMap["depth"],
+					primitiveMap["heading"],
+					primitiveMap["speed"],
+					primitiveMap["victory_radius"],
+					primitiveBoolMap["north_enable"],
+					primitiveBoolMap["east_enable"],
+					primitiveBoolMap["depth_enable"],
+					primitiveBoolMap["heading_enable"],
+					primitiveBoolMap["altitude_enable"],
+					primitiveStringMap["heading_topic"],
+					primitiveStringMap["speed_topic"]
+					);
+
 			ROS_ERROR("go2pointFA: T1: %f, %f, T2: %f, %f, Speed: %f, Heading: %f, VictoryRadius: %f  ", oldPosition.north, oldPosition.east, primitiveMap["north"], primitiveMap["east"], primitiveMap["speed"], primitiveMap["heading"], primitiveMap["victory_radius"]);
 
 			oldPosition.north = primitiveMap["north"];
@@ -313,81 +357,44 @@ namespace labust {
 			oldPosition.depth = primitiveMap["depth"];
 	    }
 
-	    void MissionExecution::go2point_FA_state(){
+	    void MissionExecution::course_keeping_state(){
 
-
-	    	/** Evaluate primitive data with current values */
-			evaluatePrimitive(receivedPrimitive.primitiveString.data);
-	    	/** Activate primitive timeout */
-			if(!timeoutActive && primitiveMap["timeout"] > 0)
-				setTimeout(primitiveMap["timeout"]);
-			/** Activate primitive */
-			CM.go2point_FA(true, oldPosition.north, oldPosition.east, primitiveMap["north"], primitiveMap["east"], primitiveMap["speed"], primitiveMap["victory_radius"]);
-			ROS_ERROR("go2pointFA: T1: %f, %f, T2: %f, %f, Speed: %f, Heading: %f, VictoryRadius: %f  ", oldPosition.north, oldPosition.east, primitiveMap["north"], primitiveMap["east"], primitiveMap["speed"], primitiveMap["heading"], primitiveMap["victory_radius"]);
-
-			oldPosition.north = primitiveMap["north"];
-			oldPosition.east = primitiveMap["east"];
-			oldPosition.depth = primitiveMap["depth"];
+//			evaluatePrimitive(receivedPrimitive.primitiveString.data);
+//	    	/** Activate primitive timeout */
+//			if(!timeoutActive && primitiveMap["timeout"] > 0)
+//				setTimeout(primitiveMap["timeout"]);
+//			PM.course_keeping_FA(true, primitiveMap["course"], primitiveMap["speed"], primitiveMap["heading"]);
 	    }
 
-	    void MissionExecution::go2point_UA_state(){
+	    void MissionExecution::iso_state(){
 
-			evaluatePrimitive(receivedPrimitive.primitiveString.data);
-	    	/** Activate primitive timeout */
-			if(!timeoutActive && primitiveMap["timeout"] > 0)
-				setTimeout(primitiveMap["timeout"]);
-			CM.go2point_UA(true, oldPosition.north, oldPosition.east, primitiveMap["north"], primitiveMap["east"], primitiveMap["speed"], primitiveMap["victory_radius"]);
-			oldPosition.north = primitiveMap["north"];
-			oldPosition.east = primitiveMap["east"];
+//	    	/*** Evaluate primitive data with current values ***/
+//			evaluatePrimitive(receivedPrimitive.primitiveString.data);
+//	    	/*** Activate primitive timeout ***/
+//			if(!timeoutActive && primitiveMap["timeout"] > 0)
+//				setTimeout(primitiveMap["timeout"]);
+//			/*** Activate primitive ***/
+//			PM.ISOprimitive(true, primitiveMap["dof"], primitiveMap["command"], primitiveMap["hysteresis"], primitiveMap["reference"], primitiveMap["sampling_rate"]);
 	    }
-
-	    void MissionExecution::course_keeping_FA_state(){
-
-			evaluatePrimitive(receivedPrimitive.primitiveString.data);
-	    	/** Activate primitive timeout */
-			if(!timeoutActive && primitiveMap["timeout"] > 0)
-				setTimeout(primitiveMap["timeout"]);
-			CM.course_keeping_FA(true, primitiveMap["course"], primitiveMap["speed"], primitiveMap["heading"]);
-	    }
-
-	    void MissionExecution::course_keeping_UA_state(){
-
-			evaluatePrimitive(receivedPrimitive.primitiveString.data);
-	    	/** Activate primitive timeout */
-			if(!timeoutActive && primitiveMap["timeout"] > 0)
-				setTimeout(primitiveMap["timeout"]);
-			CM.course_keeping_UA(true, primitiveMap["course"], primitiveMap["speed"]);
-	    }
-
-/*	    void MissionExecution::iso_state(){
-
-	    	* Evaluate primitive data with current values
-			evaluatePrimitive(receivedPrimitive.primitiveString.data);
-	    	* Activate primitive timeout
-			if(!timeoutActive && primitiveMap["timeout"] > 0)
-				setTimeout(primitiveMap["timeout"]);
-			* Activate primitive
-			CM.ISOprimitive(true, primitiveMap["dof"], primitiveMap["command"], primitiveMap["hysteresis"], primitiveMap["reference"], primitiveMap["sampling_rate"]);
-	    }*/
 
 	    void MissionExecution::follow_state()
 	    {
-			evaluatePrimitive(receivedPrimitive.primitiveString.data);
-	    	/* Activate primitive timeout */
-			if(!timeoutActive && primitiveMap["timeout"] > 0)
-				setTimeout(primitiveMap["timeout"]);
-			CM.follow(true, primitiveMap["xrefpoint"], primitiveMap["yrefpoint"], primitiveMap["xs"], primitiveMap["ys"], primitiveMap["xc"], primitiveMap["yc"], primitiveMap["xe"], primitiveMap["ye"], primitiveMap["Vl"], primitiveMap["direction"], primitiveMap["R0"]);
+//			evaluatePrimitive(receivedPrimitive.primitiveString.data);
+//	    	/* Activate primitive timeout */
+//			if(!timeoutActive && primitiveMap["timeout"] > 0)
+//				setTimeout(primitiveMap["timeout"]);
+//			PM.follow(true, primitiveMap["xrefpoint"], primitiveMap["yrefpoint"], primitiveMap["xs"], primitiveMap["ys"], primitiveMap["xc"], primitiveMap["yc"], primitiveMap["xe"], primitiveMap["ye"], primitiveMap["Vl"], primitiveMap["direction"], primitiveMap["R0"]);
 
 	    }
 
 	    void MissionExecution::pointer_state()
 	    {
-			evaluatePrimitive(receivedPrimitive.primitiveString.data);
-	    	/*** Activate primitive timeout */
-			if(!timeoutActive && primitiveMap["timeout"] > 0)
-				setTimeout(primitiveMap["timeout"]);
-
- 			CM.pointer(true, primitiveMap["radius"], primitiveMap["vertical_offset"], primitiveMap["guidance_target_x"], primitiveMap["guidance_target_y"], primitiveMap["guidance_target_z"], bool(primitiveMap["guidance_enable"]), bool(primitiveMap["wrapping_enable"]), bool(primitiveMap["streamline_orientation"]), primitiveStringMap["guidance_topic"], primitiveStringMap["radius_topic"]); 
+//			evaluatePrimitive(receivedPrimitive.primitiveString.data);
+//	    	/*** Activate primitive timeout */
+//			if(!timeoutActive && primitiveMap["timeout"] > 0)
+//				setTimeout(primitiveMap["timeout"]);
+//
+// 			PM.pointer(true, primitiveMap["radius"], primitiveMap["vertical_offset"], primitiveMap["guidance_target_x"], primitiveMap["guidance_target_y"], primitiveMap["guidance_target_z"], bool(primitiveMap["guidance_enable"]), bool(primitiveMap["wrapping_enable"]), bool(primitiveMap["streamline_orientation"]), primitiveStringMap["guidance_topic"], primitiveStringMap["radius_topic"]);
 	    }
 
 		/*****************************************************************
@@ -478,11 +485,11 @@ namespace labust {
 			}
 			else if(strcmp(msg->data.c_str(),"/MANUAL_ENABLE") == 0 && !missionActive)
 			{
-				CM.enableManual(true);
+				PM.enableManual(true);
 			}
 			else if(strcmp(msg->data.c_str(),"/MANUAL_DISABLE") == 0 && !missionActive)
 			{
-				CM.enableManual(false);
+				PM.enableManual(false);
 			}
 		}
 

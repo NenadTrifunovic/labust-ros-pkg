@@ -149,23 +149,14 @@ else()
   message("WARNING" "Custom installation of TinyXML2 library is missing.")
 endif()
 
-add_executable(lod missions/lawnmower_on_demand.cpp)
 add_executable(caddy_missions src/caddy_missions.cpp)
-add_executable(ckt missions/course_keeping_turns.cpp)
-add_executable(mzos missions/mzos.cpp)
 #add_executable(mission_control_test src/mission_control_test.cpp)
 
 if (DEFINED catkin_EXPORTED_TARGETS)
-  add_dependencies(lod ${catkin_EXPORTED_TARGETS})
-  add_dependencies(ckt ${catkin_EXPORTED_TARGETS})
-  add_dependencies(mzos ${catkin_EXPORTED_TARGETS})
   #add_dependencies(mission_control_test ${catkin_EXPORTED_TARGETS})
 endif()
 
 #link_directories(/usr/include/)
-target_link_libraries(lod ${catkin_LIBRARIES})
-target_link_libraries(ckt ${catkin_LIBRARIES})
-target_link_libraries(mzos ${catkin_LIBRARIES})
 target_link_libraries(caddy_missions  ${catkin_LIBRARIES})
 
 decision_making_parsing(src/mission_exec.cpp)

@@ -45,7 +45,7 @@
 #ifndef DATAMANAGER_HPP_
 #define DATAMANAGER_HPP_
 
-#include <labust_mission/labustMission.hpp>
+#include <labust/mission/labustMission.hpp>
 
 /*********************************************************************
  ***  DataManager class definition
