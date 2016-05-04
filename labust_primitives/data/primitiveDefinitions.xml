@@ -14,6 +14,7 @@
 		<param type="bool">altitude_enable</param> <!-- Altitude control if true (bool) -->
 
 		<param type="bool">track_heading_enable</param>
+                <!--Enables dynamic positioning with independent heading topic reference. -->
 
 		<param type="string">target_topic</param>
 		<param type="string">heading_topic</param>		
@@ -23,12 +24,9 @@
 
 		<param type="bool">enable_fully_actuated</param> <!-- Enable fully actuated control (bool) -->
 
-		<param type="double">north1</param> <!-- North coordinate (double) -->
-		<param type="double">east1</param> <!-- East coordinate (double) -->
-		<param type="double">depth1</param> <!-- Depth coordinate (double) -->
-		<param type="double">north2</param> <!-- North coordinate (double) -->
-		<param type="double">east2</param> <!-- East coordinate (double) -->
-		<param type="double">depth2</param> <!-- Depth coordinate (double) -->
+		<param type="double">north</param> <!-- North coordinate (double) -->
+		<param type="double">east</param> <!-- East coordinate (double) -->
+		<param type="double">depth</param> <!-- Depth coordinate (double) -->
 
 		<param type="double">heading</param> <!-- Heading (double) -->
 		<param type="double">speed</param> <!-- Absolute speed (in horizontal plane!!) (double) -->

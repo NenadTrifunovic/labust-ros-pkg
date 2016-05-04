@@ -1,3 +1,5 @@
+//TODO Check if parameters are loaded properly.
+
 /*********************************************************************
  * PrimitiveMapGenerator.h
  *
@@ -56,14 +58,41 @@ namespace labust
 		{
 		public:
 
-			PrimitiveMapGenerator():xml_path("")
+			PrimitiveMapGenerator(string path):xml_path(path)
 			{
+				generatePrimitiveData(xml_path);
 
 			}
 
 			~PrimitiveMapGenerator()
 			{
 
+			}
+
+			map<string, bool> getPrimitiveBoolMap()
+			{
+				return bool_map;
+			}
+
+			map<string, double> getPrimitiveDoubleMap()
+			{
+				return double_map;
+			}
+
+			map<string, string> getPrimitiveStringMap()
+			{
+				return string_map;
+			}
+
+
+		private:
+
+			void generatePrimitiveData(string xml_path)
+			{
+				double_map = getPrimitiveMap<double>("double");
+				string_map = getPrimitiveMap<string>("string");
+				bool_map = getPrimitiveMap<bool>("bool");
+				primitive_params = getPrimitiveParams();
 			}
 
 			template <typename data_type>
@@ -78,7 +107,7 @@ namespace labust
 					map<string, data_type> primitive_map;
 
 					/* Find primitive_defs node */
-					primitive_defs = xmlDoc.FirstChildElement("main")->FirstChildElement("primitive_defs");
+					primitive_defs = xmlDoc.FirstChildElement("main")->FirstChildElement("primitive-defs");
 					if(primitive_defs)
 					{
 						/* Loop through primitive nodes */
@@ -86,16 +115,19 @@ namespace labust
 						{
 							XMLElement *elem = primitive->ToElement();
 							string primitiveName = elem->Attribute("name");
-							ROS_INFO("%s", primitiveName.c_str());
+							//ROS_INFO("%s", primitiveName.c_str());
 
 							for (primitiveParam = primitive->FirstChildElement("param"); primitiveParam != NULL; primitiveParam = primitiveParam->NextSiblingElement())
 							{
+
+
+
 								XMLElement *elem2 = primitiveParam->ToElement();
 								string primitiveParamType = elem2->Attribute("type");
 								if(primitiveParamType.compare(param_type)==0)
 								{
 									/*** Check if parameter is already present ***/
-									if(primitive_map.find(elem2->GetText()) != primitive_map.end())
+									if(primitive_map.find(elem2->GetText()) == primitive_map.end())
 									{
 										/*** Insert parameter ***/
 										data_type *data_var = new data_type;
@@ -113,9 +145,66 @@ namespace labust
 				}
 			}
 
+
+			map<int,std::vector<std::string> > getPrimitiveParams()
+			{
+				if(xmlDoc.LoadFile(xml_path.c_str())== XML_SUCCESS)
+				{
+					XMLNode *primitive_defs;
+					XMLNode *primitive;
+					XMLNode *primitiveParam;
+
+					map<int,std::vector<std::string> > primitive_par;
+
+					/* Find primitive_defs node */
+					primitive_defs = xmlDoc.FirstChildElement("main")->FirstChildElement("primitive-defs");
+					if(primitive_defs)
+					{
+						/* Loop through primitive nodes */
+						for (primitive = primitive_defs->FirstChildElement("primitive"); primitive != NULL; primitive = primitive->NextSiblingElement())
+						{
+							XMLElement *elem = primitive->ToElement();
+							string primitiveName = elem->Attribute("name");
+							//ROS_INFO("%s", primitiveName.c_str());
+
+							int primitive_id;
+							for(primitive_id=0;primitive_id<static_cast<int>(primitiveNum);primitive_id++)
+							{
+								if(primitiveName.compare(PRIMITIVES[primitive_id])==0)
+								{
+									break;
+								}
+							}
+
+					    	std::vector<std::string> tmp;
+
+							for (primitiveParam = primitive->FirstChildElement("param"); primitiveParam != NULL; primitiveParam = primitiveParam->NextSiblingElement())
+							{
+								XMLElement *elem2 = primitiveParam->ToElement();
+						    	tmp.push_back(elem2->GetText());
+							}
+							primitive_par.insert(std::pair<int,std::vector<std::string> >(primitive_id,tmp));
+						}
+					}
+					return primitive_par;
+				}
+				else
+				{
+					ROS_FATAL("Mission execution: PRIMITIVE DEFINITION XML CANNOT BE OPENED.");
+				}
+			}
+
 			XMLDocument xmlDoc;
 
-			std::string xml_path;
+			string xml_path;
+
+			map<string, bool> bool_map;
+			map<string, double> double_map;
+			map<string, string> string_map;
+
+		public:
+
+			map<int,std::vector<std::string> > primitive_params;
 
 		};
 	}
