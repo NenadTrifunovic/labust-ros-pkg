@@ -119,8 +119,6 @@ namespace labust
 
 			void setTimeout(double timeout);
 
-			//void setRefreshRate(double timeout, boost::function<void(void)> onRefreshCallback );
-
 			void onTimeout(const ros::TimerEvent& timer);
 
 			void onPrimitiveEndReset();
@@ -201,10 +199,9 @@ namespace labust
 			srvExprEval = nh.serviceClient<misc_msgs::EvaluateExpression>("evaluate_expression");
 
 			/** Define primitive parameters  */
-			PM.PrimitiveMapGenerator.xml_path = "/home/filip/ros/src/labust-ros-pkg/labust_primitives/data/primitiveDefinitions.xml";
-			primitiveMap = PM.PrimitiveMapGenerator.getPrimitiveMap<double>("double");
-			primitiveStringMap = PM.PrimitiveMapGenerator.getPrimitiveMap<string>("string");
-			primitiveBoolMap = PM.PrimitiveMapGenerator.getPrimitiveMap<bool>("bool");
+			primitiveMap = PM.PrimitiveMapGenerator.getPrimitiveDoubleMap();
+			primitiveStringMap = PM.PrimitiveMapGenerator.getPrimitiveStringMap();
+			primitiveBoolMap = PM.PrimitiveMapGenerator.getPrimitiveBoolMap();
 
 //			primitiveMap.insert(std::pair<string, double>("north", 0.0));
 //			primitiveMap.insert(std::pair<string, double>("east", 0.0));
@@ -262,7 +259,7 @@ namespace labust
 				if(found != string::npos)
 				{
 					primitiveStringMap[*it] =  (*(it+1)).erase(found,1);
-					ROS_ERROR("Mission execution: String evaluation %s: %s", (*it).c_str(),primitiveStringMap[*it].c_str());
+					ROS_INFO("Mission execution: String evaluation %s: %s", (*it).c_str(),primitiveStringMap[*it].c_str());
 					continue;
 				}
 
@@ -272,13 +269,13 @@ namespace labust
 				{
 					/*** Handle double type parameters ***/
 					primitiveMap[*it] =  (labust::utilities::callService(srvExprEval, evalExpr)).response.result;
-					ROS_ERROR("Mission execution: Double evaluation %s: %f", (*it).c_str(),primitiveMap[*it]);
+					ROS_INFO("Mission execution: Double evaluation %s: %f", (*it).c_str(),primitiveMap[*it]);
 				}
-				else
+				else if(primitiveBoolMap.find(*it) != primitiveBoolMap.end())
 				{
 					/*** Handle bool type parameters ***/
-					primitiveBoolMap[*it] =  (labust::utilities::callService(srvExprEval, evalExpr)).response.result;
-					ROS_ERROR("Mission execution: Bool evaluation %s: %f", (*it).c_str(),primitiveMap[*it]);
+					primitiveBoolMap[*it] =  bool((labust::utilities::callService(srvExprEval, evalExpr)).response.result);
+					ROS_INFO("Mission execution: Bool evaluation %s: %d", (*it).c_str(),primitiveBoolMap[*it]);
 				}
 			}
 		}
@@ -350,7 +347,7 @@ namespace labust
 					primitiveStringMap["speed_topic"]
 					);
 
-			ROS_ERROR("go2pointFA: T1: %f, %f, T2: %f, %f, Speed: %f, Heading: %f, VictoryRadius: %f  ", oldPosition.north, oldPosition.east, primitiveMap["north"], primitiveMap["east"], primitiveMap["speed"], primitiveMap["heading"], primitiveMap["victory_radius"]);
+			//ROS_ERROR("go2pointFA: T1: %f, %f, T2: %f, %f, Speed: %f, Heading: %f, VictoryRadius: %f  ", oldPosition.north, oldPosition.east, primitiveMap["north"], primitiveMap["east"], primitiveMap["speed"], primitiveMap["heading"], primitiveMap["victory_radius"]);
 
 			oldPosition.north = primitiveMap["north"];
 			oldPosition.east = primitiveMap["east"];

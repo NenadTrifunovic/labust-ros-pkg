@@ -9,7 +9,7 @@
 /*********************************************************************
 * Software License Agreement (BSD License)
 *
-*  Copyright (c) 2014, LABUST, UNIZG-FER
+*  Copyright (c) 2014-2016, LABUST, UNIZG-FER
 *  All rights reserved.
 *
 *  Redistribution and use in source and binary forms, with or without
@@ -55,7 +55,7 @@ namespace labust{
 		custom_srv callService(ros::ServiceClient& client, custom_srv& request){
 
 			if (client.call(request)){
-				ROS_INFO("Call to service %s successful", client.getService().c_str());
+				//ROS_INFO("Call to service %s successful", client.getService().c_str());
 				return request;
 			} else {
 				ROS_ERROR("Call to service %s failed", client.getService().c_str());

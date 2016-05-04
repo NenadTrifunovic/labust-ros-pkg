@@ -44,6 +44,7 @@
 #define XMLPRINTER_HPP_
 
 #include <labust/mission/labustMission.hpp>
+#include <labust/primitive/PrimitiveMapGenerator.h>
 #include <boost/lexical_cast.hpp>
 #include <tinyxml2.h>
 #include <vector>
@@ -78,20 +79,13 @@ namespace labust{
 
 			void addPrimitive(int primitive_id, vector<string> primitive_data);
 
-			//void addGo2point_FA(double north, double east, double speed, double victoryRadius);
-
-			//void addGo2point_UA(double north, double east, double speed, double victoryRadius);
-
-			//void addDynamic_positioning(double north, double east, double heading);
-
-			//void addCourse_keeping_FA(double course, double speed, double heading);
-
-			//void addCourse_keeping_UA(double course, double speed);
-
-
 			/************************************************************
 			 *** Class variables
 			 ************************************************************/
+
+		private:
+
+			labust::primitive::PrimitiveMapGenerator PP;
 
 			XMLDocument doc;
 
@@ -103,12 +97,9 @@ namespace labust{
 			XMLNode *events;
 
 			int id;
-
-			PrimitiveParams PP;
-
 		};
 
-		WriteXML::WriteXML():id(0)
+		WriteXML::WriteXML():id(0),PP("/home/filip/ros/src/labust-ros-pkg/labust_primitives/data/primitiveDefinitions.xml")
 		{
 			primitive = doc.NewElement("");
 			events = doc.NewElement("");
@@ -134,20 +125,16 @@ namespace labust{
 
 		void WriteXML::saveXML(string fileName)
 		{
-			doc.SaveFile( fileName.c_str() );
+			doc.SaveFile(fileName.c_str());
 			doc.Clear();
 		}
 
 		void WriteXML::addXMLNode(XMLNode* parentNode, string nodeName, string attrName, string attrValue, string value)
 		{
 			XMLNode *node;
-			//string text;
 			node = doc.NewElement(nodeName.c_str());
 			if(attrName.empty() == 0)
 				node->ToElement()->SetAttribute(attrName.c_str(),attrValue.c_str());
-
-			//text.assign(static_cast<ostringstream*>( &(ostringstream() << value) )->str());
-			//node->InsertEndChild(doc.NewText(text.c_str()));
 			node->InsertEndChild(doc.NewText(value.c_str()));
 			parentNode->InsertEndChild(node);
 		}
@@ -166,94 +153,8 @@ namespace labust{
 				addXMLNode(primitive,"param","name",(*it).c_str(),primitive_data.at(k).c_str());
 				k++;
 			}
-
 			mission->InsertEndChild(primitive);
 		}
-
-//		void WriteXML::addGo2point_UA(double north, double east, double speed, double victoryRadius){
-//
-//			id++;
-//
-//			primitive = doc.NewElement("primitive");
-//			primitive->ToElement()->SetAttribute("name","go2point_UA");
-//
-//			addXMLNode(primitive,"id","","",id);
-//
-//			addXMLNode(primitive,"param","name","north",north);
-//			addXMLNode(primitive,"param","name","east",east);
-//			addXMLNode(primitive,"param","name","speed",speed);
-//			addXMLNode(primitive,"param","name","victory_radius",victoryRadius);
-//
-//			mission->InsertEndChild(primitive);
-//		}
-//
-//		void WriteXML::addGo2point_FA(double north, double east, double speed, double victoryRadius){
-//
-//			id++;
-//
-//			primitive = doc.NewElement("primitive");
-//			primitive->ToElement()->SetAttribute("name","go2point_FA");
-//
-//			addXMLNode(primitive,"id","","",id);
-//
-//			addXMLNode(primitive,"param","name","north",north);
-//			addXMLNode(primitive,"param","name","east",east);
-//			//addXMLNode(primitive,"param","name","heading",heading);
-//			addXMLNode(primitive,"param","name","speed",speed);
-//			addXMLNode(primitive,"param","name","victory_radius",victoryRadius);
-//
-//			mission->InsertEndChild(primitive);
-//		}
-//
-//		void WriteXML::addDynamic_positioning(double north, double east, double heading){
-//
-//			id++;
-//
-//			primitive = doc.NewElement("primitive");
-//			primitive->ToElement()->SetAttribute("name","dynamic_positioning");
-//
-//			addXMLNode(primitive,"id","","",id);
-//
-//			addXMLNode(primitive,"param","name","north",north);
-//			addXMLNode(primitive,"param","name","east",east);
-//			addXMLNode(primitive,"param","name","heading",heading);
-//			addXMLNode(primitive,"param","name","timeout",0);
-//
-//			mission->InsertEndChild(primitive);
-//		}
-//
-//		void WriteXML::addCourse_keeping_FA(double course, double speed, double heading){
-//
-//			id++;
-//
-//			primitive = doc.NewElement("primitive");
-//			primitive->ToElement()->SetAttribute("name","course_keeping_FA");
-//
-//			addXMLNode(primitive,"id","","",id);
-//
-//			addXMLNode(primitive,"param","name","course",course);
-//			addXMLNode(primitive,"param","name","speed",speed);
-//			addXMLNode(primitive,"param","name","heading",heading);
-//			addXMLNode(primitive,"param","name","timeout",10);
-//
-//			mission->InsertEndChild(primitive);
-//		}
-//
-//		void WriteXML::addCourse_keeping_UA(double course, double speed){
-//
-//			id++;
-//
-//			primitive = doc.NewElement("primitive");
-//			primitive->ToElement()->SetAttribute("name","course_keeping_UA");
-//
-//			addXMLNode(primitive,"id","","",id);
-//
-//			addXMLNode(primitive,"param","name","course",course);
-//			addXMLNode(primitive,"param","name","speed",speed);
-//			addXMLNode(primitive,"param","name","timeout",10);
-//
-//			mission->InsertEndChild(primitive);
-//		}
 	}
 }
 

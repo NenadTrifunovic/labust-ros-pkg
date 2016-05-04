@@ -210,7 +210,7 @@ namespace labust
 using namespace labust::controller;
 
 
-PrimitiveManager::PrimitiveManager()
+PrimitiveManager::PrimitiveManager():PrimitiveMapGenerator("/home/filip/ros/src/labust-ros-pkg/labust_primitives/data/primitiveDefinitions.xml")
 {
 
 }
