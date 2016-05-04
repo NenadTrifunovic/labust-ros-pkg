@@ -119,10 +119,9 @@ namespace labust
 		{
 			/*** Generate mission xml file ***/
 			MG.writeXML.addMission();
-			//MG.generateDepth(req.point.x, req.point.y, req.speed, 1.5);
-
+			MG.generateGo2Point(true,0,0,req.depth,0,0.2,0.1,false,false,true,false,false,"","");
 			/*** Request mission execution ***/
-			saveAndRequestAction("depth");
+			saveAndRequestAction("go2depth");
 
 			res.status = true;
 			return true;
@@ -133,7 +132,7 @@ namespace labust
 		{
 			/*** Generate mission xml file ***/
 			MG.writeXML.addMission();
-			MG.generateGoTo(req.point.x, req.point.y, req.speed, 1.5);
+			MG.generateGo2Point_FA(req.point.x, req.point.y, req.point.z, req.speed, 1.5);
 
 			/*** Request mission execution ***/
 			saveAndRequestAction("go2point");
