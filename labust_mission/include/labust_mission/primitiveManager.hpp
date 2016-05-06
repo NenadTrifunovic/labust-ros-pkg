@@ -257,7 +257,11 @@ void PrimitiveManager::go2point(
 	Goal goal;
 
 	goal.ref_type = Goal::CONSTANT;
-	goal.subtype = enable_fully_actuated?static_cast<int>(Goal::GO2POINT_FA):static_cast<int>(Goal::GO2POINT_UA);
+	//goal.subtype = enable_fully_actuated?static_cast<int>(Goal::GO2POINT_FA):static_cast<int>(Goal::GO2POINT_UA);
+	goal.subtype = enable_fully_actuated?static_cast<uint8_t>(Goal::GO2POINT_FA):static_cast<uint8_t>(Goal::GO2POINT_UA);
+
+	ROS_ERROR("tip %d, enable %d",goal.subtype,enable_fully_actuated);
+
 
 	goal.T1.point.x = north1;
 	goal.T1.point.y = east1;

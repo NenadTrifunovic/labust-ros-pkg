@@ -87,9 +87,9 @@ enum {none = 0,
 		go2point,
 		dynamic_positioning,
 		course_keeping,
+		pointer,
 		iso,
 		follow,
-		pointer,
 		primitiveNum};
 
 const char *PRIMITIVES[] = {"none",
@@ -97,9 +97,9 @@ const char *PRIMITIVES[] = {"none",
 								"go2point",
 								"dynamic_positioning",
 								"course_keeping",
+								"pointer",
 								"iso",
-								"follow",
-								"pointer"};
+								"follow"};
 
 enum {u=0, v, w, r, x, y, z, psi, x_var, y_var, z_var, psi_var, alt, stateHatNum}; /* Enumeration used for DataManager */
 const char *stateVarNames[] = {"u", "v", "w", "r", "x", "y", "z", "psi", "x_var", "y_var", "z_var", "psi_var", "alt"};

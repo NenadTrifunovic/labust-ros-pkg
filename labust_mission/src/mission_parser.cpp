@@ -364,7 +364,7 @@ namespace labust
 		{
 			if(req->data > 0)
 			{
-				ROS_INFO("Mission parser: REQUESTED PRIMITIVE ID: %d", req->data); //TODO
+				ROS_INFO("Mission parser: Dispatcher requested primitive ID: %d", req->data);
 				sendPrimitve(req->data);
 			}
 			else

@@ -316,7 +316,6 @@ namespace labust
 			oldPosition.north = primitiveMap["north"];
 			oldPosition.east = primitiveMap["east"];
 			oldPosition.depth = primitiveMap["depth"];
-
 	    }
 
 	    void MissionExecution::go2point_state()
@@ -346,8 +345,6 @@ namespace labust
 					primitiveStringMap["heading_topic"],
 					primitiveStringMap["speed_topic"]
 					);
-
-			//ROS_ERROR("go2pointFA: T1: %f, %f, T2: %f, %f, Speed: %f, Heading: %f, VictoryRadius: %f  ", oldPosition.north, oldPosition.east, primitiveMap["north"], primitiveMap["east"], primitiveMap["speed"], primitiveMap["heading"], primitiveMap["victory_radius"]);
 
 			oldPosition.north = primitiveMap["north"];
 			oldPosition.east = primitiveMap["east"];
@@ -386,12 +383,22 @@ namespace labust
 
 	    void MissionExecution::pointer_state()
 	    {
-//			evaluatePrimitive(receivedPrimitive.primitiveString.data);
-//	    	/*** Activate primitive timeout */
-//			if(!timeoutActive && primitiveMap["timeout"] > 0)
-//				setTimeout(primitiveMap["timeout"]);
-//
-// 			PM.pointer(true, primitiveMap["radius"], primitiveMap["vertical_offset"], primitiveMap["guidance_target_x"], primitiveMap["guidance_target_y"], primitiveMap["guidance_target_z"], bool(primitiveMap["guidance_enable"]), bool(primitiveMap["wrapping_enable"]), bool(primitiveMap["streamline_orientation"]), primitiveStringMap["guidance_topic"], primitiveStringMap["radius_topic"]);
+			evaluatePrimitive(receivedPrimitive.primitiveString.data);
+	    	/*** Activate primitive timeout */
+			if(!timeoutActive && primitiveMap["timeout"] > 0)
+				setTimeout(primitiveMap["timeout"]);
+
+ 			PM.pointer(
+ 					primitiveMap["radius"],
+					primitiveMap["vertical_offset"],
+					primitiveMap["guidance_target_x"],
+					primitiveMap["guidance_target_y"],
+					primitiveMap["guidance_target_z"],
+					primitiveBoolMap["guidance_enable"],
+					primitiveBoolMap["wrapping_enable"],
+					primitiveBoolMap["streamline_orientation"],
+					primitiveStringMap["guidance_topic"],
+					primitiveStringMap["radius_topic"]);
 	    }
 
 		/*****************************************************************
@@ -428,27 +435,29 @@ namespace labust
 		}
 
 		/** ReceivePrimitive topic callback */
-		void MissionExecution::onReceivePrimitive(const misc_msgs::SendPrimitive::ConstPtr& data){
-
+		void MissionExecution::onReceivePrimitive(const misc_msgs::SendPrimitive::ConstPtr& data)
+		{
 			receivedPrimitive = *data;
 
 			/** Check if received primitive has active events */
-			if(receivedPrimitive.event.onEventNextActive.empty() == 0){
+			if(receivedPrimitive.event.onEventNextActive.empty() == 0)
+			{
 				checkEventFlag = true;
 			}
 
 			/** Call primitive */
-			if(data->primitiveID != none){
-
+			if(data->primitiveID != none)
+			{
 				string id_string(PRIMITIVES[data->primitiveID]);
 				id_string = "/" + boost::to_upper_copy(id_string);
 				mainEventQueue->riseEvent(id_string.c_str());
-			}else{
-				ROS_ERROR("Mission ended.");
+			}
+			else
+			{
+				ROS_INFO("Mission ended.");
 				std_msgs::String msg;
 				msg.data = "/STOP";
 				pubEventString.publish(msg);
-				//mainEventQueue->riseEvent("/STOP");
 			}
 		}
 
@@ -475,7 +484,8 @@ namespace labust
 			}
 
 			mainEventQueue->riseEvent(msg->data.c_str());
-			ROS_ERROR("EventString: %s",msg->data.c_str());
+			ROS_INFO("Mission execution: Received mission control command: %s",msg->data.c_str());
+
 			if(strcmp(msg->data.c_str(),"/STOP") == 0){
 				onPrimitiveEndReset();
 				nextPrimitive = 1;
@@ -502,7 +512,7 @@ namespace labust
 		void MissionExecution::setTimeout(double timeout){
 
 		   	if(timeout != 0){
-		   		ROS_ERROR("Setting timeout: %f", timeout);
+		   		ROS_WARN("Setting timeout: %f", timeout);
 				timer = nh_.createTimer(ros::Duration(timeout), &MissionExecution::onTimeout, this, true);
 				timeoutActive = true;
 		   	}
@@ -511,7 +521,7 @@ namespace labust
 		/** On timeout finish primitive execution */
 		void MissionExecution::onTimeout(const ros::TimerEvent& timer){
 
-			ROS_ERROR("Timeout");
+			ROS_WARN("Timeout");
 			onPrimitiveEndReset();
 			mainEventQueue->riseEvent("/TIMEOUT");
 		}
