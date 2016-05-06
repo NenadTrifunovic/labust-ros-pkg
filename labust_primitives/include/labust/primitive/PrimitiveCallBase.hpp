@@ -80,7 +80,7 @@ namespace labust
 				pubEventString = nh.advertise<std_msgs::String>("eventString",1);
 
 				ROS_INFO("Mission execution: %s - Waiting for action server to start.", primitiveName.c_str());
-				if(!ac.waitForServer(ros::Duration(5)))
+				if(!ac.waitForServer(ros::Duration(1)))
 				{
 					ROS_FATAL("Mission execution: %s - Cannot establish connection to action server.", primitiveName.c_str());
 					return;
