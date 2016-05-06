@@ -9,7 +9,7 @@
 /*********************************************************************
 * Software License Agreement (BSD License)
 *
-*  Copyright (c) 2014, LABUST, UNIZG-FER
+*  Copyright (c) 2014-2016, LABUST, UNIZG-FER
 *  All rights reserved.
 *
 *  Redistribution and use in source and binary forms, with or without
@@ -44,19 +44,19 @@
 #define LOWLEVELCONFIGURE_HPP_
 
 #include <ros/ros.h>
-#include <auv_msgs/Bool6Axis.h>
 #include <navcon_msgs/ConfigureVelocityController.h>
-#include <navcon_msgs/ConfigureAxes.h>
 #include <labust_mission/utils.hpp>
 
 
-namespace labust {
+namespace labust
+{
 
 /*************************************************************
  *** Class definition
  ************************************************************/
 
-	class LowLevelConfigure {
+	class LowLevelConfigure
+	{
 
 	public:
 
@@ -74,29 +74,19 @@ namespace labust {
 		 *** Class variables
 		 ************************************************************/
 
-		auv_msgs::Bool6Axis nuAxis;
 		navcon_msgs::ConfigureVelocityController velConConf;
 
-		ros::ServiceClient clientConfigureAxes;
 		ros::ServiceClient clientConfigureVelocitiyController;
 	};
 
-	LowLevelConfigure::LowLevelConfigure(){
-
+	LowLevelConfigure::LowLevelConfigure()
+	{
 		ros::NodeHandle nh;
 
-		nuAxis.x = false;
-		nuAxis.y = false;
-		nuAxis.z = false;
-		nuAxis.pitch = false;
-		nuAxis.roll = false;
-		nuAxis.yaw = false;
-
-		for( int i = 0; i<=5; i++){
+		for( int i = 0; i<=5; i++)
+		{
 			velConConf.request.desired_mode[i] = 0;
 		}
-
-		clientConfigureAxes = nh.serviceClient<navcon_msgs::ConfigureAxes>("ConfigureAxes");
 		clientConfigureVelocitiyController = nh.serviceClient<navcon_msgs::ConfigureVelocityController>("ConfigureVelocityController");
 	}
 
@@ -104,56 +94,31 @@ namespace labust {
 	/*
 	 * Low-level velocity controller configure
 	 */
-	void LowLevelConfigure::LL_VELconfigure(bool enable, int x, int y, int z, int roll, int pitch, int yaw){
+	void LowLevelConfigure::LL_VELconfigure(bool enable, int x, int y, int z, int roll, int pitch, int yaw)
+	{
+		if(enable)
+		{
+			velConConf.request.desired_mode[0] = x;
+			velConConf.request.desired_mode[1] = y;
+			velConConf.request.desired_mode[2] = z;
+			velConConf.request.desired_mode[3] = roll;
+			velConConf.request.desired_mode[4] = pitch;
+			velConConf.request.desired_mode[5] = yaw;
 
-		if(enable){
-			// Provjeriti je li potreban reset svih ili u if dodati.
-			nuAxis.x = false;
-			nuAxis.y = false;
-			nuAxis.z = false;
-			nuAxis.pitch = false;
-			nuAxis.roll = false;
-			nuAxis.yaw = false;
+			ROS_ERROR("%d, %d, %d, %d, %d, %d", x, y, z, roll, pitch,yaw);
 
-			if(velConConf.request.desired_mode[0] = x){ nuAxis.x = true;}
-			if(velConConf.request.desired_mode[1] = y){nuAxis.y = true;}
-			if(velConConf.request.desired_mode[2] = z){nuAxis.z = true;}
-			if(velConConf.request.desired_mode[3] = roll){nuAxis.roll = true;}
-			if(velConConf.request.desired_mode[4] = pitch){ nuAxis.pitch = true;}
-			if(velConConf.request.desired_mode[5] = yaw){nuAxis.yaw = true;}
-
-			/*** AXESconfigure(nuAxis); *** Deprecated ***/
 			utilities::callService<navcon_msgs::ConfigureVelocityController>(clientConfigureVelocitiyController,velConConf);
-		} else {
-
+		}
+		else
+		{
 			/* Disable all degrees of freedom */
-			for( int i = 0; i<=5; i++){
+			for( int i = 0; i<=5; i++)
+			{
 				velConConf.request.desired_mode[i] = 0;
 			}
-
-			nuAxis.x = false;
-			nuAxis.y = false;
-			nuAxis.z = false;
-			nuAxis.pitch = false;
-			nuAxis.roll = false;
-			nuAxis.yaw = false;
-
-			/*** AXESconfigure(nuAxis); *** Deprecated ***/
 			utilities::callService<navcon_msgs::ConfigureVelocityController>(clientConfigureVelocitiyController,velConConf);
 		}
 	}
-
-	/*
-	 * Configure axes to control DEPRECATED
-	 */
-
-/*	void LowLevelConfigure::AXESconfigure(auv_msgs::Bool6Axis& nu_bool){
-
-		navcon_msgs::ConfigureAxes nu_cfg;
-		nu_cfg.request.disable_axis = nu_bool;
-		utilities::callService<navcon_msgs::ConfigureAxes>(clientConfigureAxes, nu_cfg);
-	}*/
-
 }
 
 #endif /* LOWLEVELCONFIGURE_HPP_ */
