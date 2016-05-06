@@ -105,8 +105,6 @@ namespace labust
 			velConConf.request.desired_mode[4] = pitch;
 			velConConf.request.desired_mode[5] = yaw;
 
-			ROS_ERROR("%d, %d, %d, %d, %d, %d", x, y, z, roll, pitch,yaw);
-
 			utilities::callService<navcon_msgs::ConfigureVelocityController>(clientConfigureVelocitiyController,velConConf);
 		}
 		else
