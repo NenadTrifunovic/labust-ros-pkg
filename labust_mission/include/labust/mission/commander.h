@@ -17,6 +17,8 @@
 #include <misc_msgs/PointerService.h>
 #include <misc_msgs/StartParser.h>
 
+#include <std_srvs/Trigger.h>
+
 
 /*********************************************************************
  *** Commander class definition
@@ -43,6 +45,8 @@ namespace labust
 			bool go2depthService(misc_msgs::Go2depthService::Request &req, misc_msgs::Go2depthService::Response &res);
 
 			bool pointerService(misc_msgs::PointerService::Request &req, misc_msgs::PointerService::Response &res);
+
+			bool stopService(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res);
 
 			/*****************************************************************
 			 ***  Helper functions
@@ -106,6 +110,8 @@ namespace labust
 			srvGo2point = nh.advertiseService("commander/go2point", &Commander::go2pointService,this);
 			srvPointer = nh.advertiseService("commander/pointer", &Commander::pointerService,this);
 			//srvLawnomver = nh.advertiseService("commander/lawnmover", &Commander::lawnmoverService,this);
+			srvStop = nh.advertiseService("commander/stop", &Commander::stopService,this);
+
 
 		}
 
@@ -181,6 +187,17 @@ namespace labust
 //			res.result = EE.evaluateStringExpression(req.expression);
 //			return true;
 //		}
+
+		/** Service that evaluates string expression */
+		bool Commander::stopService(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res)
+		{
+			publishEventString("/STOP");
+			return true;
+		}
+
+		/*****************************************************************
+		 ***  Helper functions
+		 ****************************************************************/
 
 		void Commander::publishStartParser(std::string xml)
 		{
