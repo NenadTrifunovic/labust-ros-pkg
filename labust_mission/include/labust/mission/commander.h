@@ -15,6 +15,7 @@
 #include <misc_msgs/Go2depthService.h>
 #include <misc_msgs/Go2pointService.h>
 #include <misc_msgs/PointerService.h>
+#include <misc_msgs/LawnmoverService.h>
 #include <misc_msgs/StartParser.h>
 
 #include <std_srvs/Trigger.h>
@@ -45,6 +46,8 @@ namespace labust
 			bool go2depthService(misc_msgs::Go2depthService::Request &req, misc_msgs::Go2depthService::Response &res);
 
 			bool pointerService(misc_msgs::PointerService::Request &req, misc_msgs::PointerService::Response &res);
+
+			bool lawnmoverService(misc_msgs::LawnmoverService::Request &req, misc_msgs::LawnmoverService::Response &res);
 
 			bool stopService(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res);
 
@@ -109,7 +112,7 @@ namespace labust
 			srvDepth = nh.advertiseService("commander/go2depth", &Commander::go2depthService,this);
 			srvGo2point = nh.advertiseService("commander/go2point", &Commander::go2pointService,this);
 			srvPointer = nh.advertiseService("commander/pointer", &Commander::pointerService,this);
-			//srvLawnomver = nh.advertiseService("commander/lawnmover", &Commander::lawnmoverService,this);
+			srvLawnomver = nh.advertiseService("commander/lawnmover", &Commander::lawnmoverService,this);
 			srvStop = nh.advertiseService("commander/stop", &Commander::stopService,this);
 
 
@@ -172,21 +175,32 @@ namespace labust
 		}
 
 		/** Service that evaluates string expression */
-//		bool Commander::lawnmoverService(misc_msgs::EvaluateExpression::Request &req, misc_msgs::EvaluateExpression::Response &res){
-//
-//			MG.writeXML.addMission();
-//			MG.generateRows(posxy.first, posxy.second, md->speed, 1.0, md->width, md->length, md->hstep, md->alternation,
-//											md->coff, (md->flags & md->FLG_SQUARE_CURVE), md->bearing*180/M_PI, md->cross_angle, !(md->flags & md->FLG_CURVE_RIGHT));
-//			MG.writeXML.saveXML(xml_save_path.c_str());
-//
-//			publishStartParser(xml_save_path.c_str());
-//
-//			publishEventString("/START_PARSER");
-//			ROS_INFO("Commander: depth request");
-//
-//			res.result = EE.evaluateStringExpression(req.expression);
-//			return true;
-//		}
+		bool Commander::lawnmoverService(misc_msgs::LawnmoverService::Request &req, misc_msgs::LawnmoverService::Response &res)
+		{
+			/*** Generate mission xml file ***/
+			MG.writeXML.addMission();
+			MG.generateRows(
+					req.start_position.x,
+					req.start_position.y,
+					req.start_position.z,
+					req.speed,
+					req.victory_radius,
+					req.width,
+					req.length,
+					req.horizontal_step,
+					1.0, 			//md->alternation,
+					0.0,			//md->coff,
+					true,			//(md->flags & md->FLG_SQUARE_CURVE),
+					req.bearing,	//md->bearing*180/M_PI,
+					0.0,			//md->cross_angle,
+					false);			//!(md->flags & md->FLG_CURVE_RIGHT));
+
+			/*** Request mission execution ***/
+			saveAndRequestAction("lawnmover");
+
+			res.status = true;
+			return true;
+		}
 
 		/** Service that evaluates string expression */
 		bool Commander::stopService(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res)

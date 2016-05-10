@@ -89,6 +89,7 @@ namespace labust {
 			void generateRows(
 					double north,
 					double east,
+					double depth,
 					double speed,
 					double victory_radius,
 					double width,
@@ -198,7 +199,7 @@ namespace labust {
 			generateGo2Point(true,north,east,depth,0,speed,victory_radius,true,true,true,false,false,"","");
 		}
 
-		void ManeuverGenerator::generateRows(double north, double east, double speed, double victory_radius, double width, double length, double hstep, double alternationPercent,
+		void ManeuverGenerator::generateRows(double north, double east, double depth, double speed, double victory_radius, double width, double length, double hstep, double alternationPercent,
 				double curvOff, bool squareCurve, double bearing, double crossAngle, bool invertY)
 		{
 			/* Generate maneuver points */
