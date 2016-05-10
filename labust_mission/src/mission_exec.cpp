@@ -42,7 +42,6 @@
 *********************************************************************/
 
 #include <labust_mission/missionExecution.hpp>
-
 #include <decision_making/SynchCout.h>
 #include <decision_making/BT.h>
 #include <decision_making/FSM.h>
@@ -137,8 +136,6 @@ MainEventQueue(){ mainEventQueue = new RosEventQueue(); }
 				ME->pause_position.north = ME->state.position.north;
 				ME->pause_position.east = ME->state.position.east;
 				ME->pause_position.depth = ME->state.position.depth;
-				//ME->missionActive = true;
-				//ME->requestPrimitive();
 
 				FSM_TRANSITIONS
 				{
@@ -303,8 +300,15 @@ int main(int argc, char** argv){
 	ros_decision_making_init(argc, argv);
 	ros::NodeHandle nh;
 
+	std::string primitive_definitons_xml;
+	if(!nh.getParam("primitive_definitions_path",primitive_definitons_xml))
+	{
+		ROS_FATAL("NO PRIMITIVE DEFINITION XML PATH DEFINED.");
+		exit (EXIT_FAILURE);
+	}
+
 	/* Start Mission Execution */
-	labust::mission::MissionExecution MissExec(nh);
+	labust::mission::MissionExecution MissExec(nh,primitive_definitons_xml);
 	ME = &MissExec;
 
 	/* Global event queue */

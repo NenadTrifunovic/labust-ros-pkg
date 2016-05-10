@@ -45,6 +45,8 @@
 
 
 #include <labust_mission/primitiveManager.hpp>
+#include <labust/primitive/PrimitiveMapGenerator.h>
+
 #include <exprtk/exprtk.hpp>
 
 #include <decision_making/SynchCout.h>
@@ -77,7 +79,7 @@ namespace labust
 			 ***  Class functions
 			 ****************************************************************/
 
-			MissionExecution(ros::NodeHandle& nh);
+			MissionExecution(ros::NodeHandle& nh, std::string xml_path);
 
 		    void evaluatePrimitive(string primitiveString);
 
@@ -177,16 +179,21 @@ namespace labust
 
 			/** Mission state flag */
 			bool missionActive;
+
+			/*** ***/
+			labust::primitive::PrimitiveMapGenerator PrimitiveMapGenerator;
+
 		};
 
 		/*****************************************************************
 		 ***  Class functions
 		 ****************************************************************/
 
-		MissionExecution::MissionExecution(ros::NodeHandle& nh):checkEventFlag(false),
+		MissionExecution::MissionExecution(ros::NodeHandle& nh, std::string xml_path):checkEventFlag(false),
 																	nextPrimitive(1),
 																	timeoutActive(false),
-																	missionActive(false)
+																	missionActive(false),
+																	PrimitiveMapGenerator(xml_path)
 		{
 			/** Subscribers */
 			subEventString = nh.subscribe<std_msgs::String>("eventString",3, &MissionExecution::onEventString, this);
@@ -202,9 +209,9 @@ namespace labust
 			srvExprEval = nh.serviceClient<misc_msgs::EvaluateExpression>("evaluate_expression");
 
 			/** Define primitive parameters  */
-			primitiveMap = PM.PrimitiveMapGenerator.getPrimitiveDoubleMap();
-			primitiveStringMap = PM.PrimitiveMapGenerator.getPrimitiveStringMap();
-			primitiveBoolMap = PM.PrimitiveMapGenerator.getPrimitiveBoolMap();
+			primitiveMap = PrimitiveMapGenerator.getPrimitiveDoubleMap();
+			primitiveStringMap = PrimitiveMapGenerator.getPrimitiveStringMap();
+			primitiveBoolMap = PrimitiveMapGenerator.getPrimitiveBoolMap();
 
 //			primitiveMap.insert(std::pair<string, double>("xrefpont", 0.0));
 //			primitiveMap.insert(std::pair<string, double>("yrefpoint", 0.0));
@@ -217,7 +224,6 @@ namespace labust
 //			primitiveMap.insert(std::pair<string, double>("Vl", 0.0));
 //			primitiveMap.insert(std::pair<string, double>("direction", 0.0));
 //			primitiveMap.insert(std::pair<string, double>("R0", 0.0));
-
 		}
 
 	    void MissionExecution::evaluatePrimitive(string primitiveString)

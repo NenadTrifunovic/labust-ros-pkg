@@ -45,7 +45,6 @@
 
 #include <labust/mission/labustMission.hpp>
 #include <labust_mission/xmlPrinter.hpp>
-#include <labust/primitive/PrimitiveMapGenerator.h>
 
 #include <boost/lexical_cast.hpp>
 #include <Eigen/Dense>
@@ -69,7 +68,7 @@ namespace labust {
 			 *** Class functions
 			 ********************************************************/
 
-			ManeuverGenerator();
+			ManeuverGenerator(std::string xml_path);
 
 			~ManeuverGenerator();
 
@@ -186,7 +185,7 @@ namespace labust {
 		};
 
 
-		ManeuverGenerator::ManeuverGenerator():PP("/home/filip/ros/src/labust-ros-pkg/labust_primitives/data/primitiveDefinitions.xml")
+		ManeuverGenerator::ManeuverGenerator(std::string xml_path):PP(xml_path)
 		{
 
 		}

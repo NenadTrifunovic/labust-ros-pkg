@@ -198,11 +198,6 @@ namespace labust
 			labust::primitive::PrimitiveCallFollow Follow;
 
 			labust::LowLevelConfigure LLcfg;
-
-		public:
-
-			labust::primitive::PrimitiveMapGenerator PrimitiveMapGenerator;
-
 		};
 	}
 }
@@ -210,7 +205,7 @@ namespace labust
 using namespace labust::controller;
 
 
-PrimitiveManager::PrimitiveManager():PrimitiveMapGenerator("/home/filip/ros/src/labust-ros-pkg/labust_primitives/data/primitiveDefinitions.xml")
+PrimitiveManager::PrimitiveManager()
 {
 
 }

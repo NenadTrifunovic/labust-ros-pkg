@@ -41,6 +41,7 @@
 *********************************************************************/
 
 #include <labust/mission/commander.h>
+#include <ros/ros.h>
 
 /*********************************************************************
  ***  Main function
@@ -49,7 +50,17 @@
 int main(int argc, char** argv)
 {
 	ros::init(argc, argv, "commander");
-	labust::mission::Commander CMD;
+
+	ros::NodeHandle nh;
+
+	std::string primitive_definitons_xml;
+	if(!nh.getParam("primitive_definitions_path",primitive_definitons_xml))
+	{
+		ROS_FATAL("NO PRIMITIVE DEFINITION XML PATH DEFINED.");
+		exit (EXIT_FAILURE);
+	}
+
+	labust::mission::Commander CMD(primitive_definitons_xml);
 	ros::spin();
 	return 0;
 }

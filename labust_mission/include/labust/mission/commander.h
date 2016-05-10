@@ -37,7 +37,7 @@ namespace labust
 			 ***  Class functions
 			 ****************************************************************/
 
-			Commander();
+			Commander(std::string xml_path);
 
 			~Commander();
 
@@ -96,7 +96,7 @@ namespace labust
 
 		};
 
-		Commander::Commander()
+		Commander::Commander(std::string xml_path):MG(xml_path)
 		{
 
 			ros::NodeHandle nh;
