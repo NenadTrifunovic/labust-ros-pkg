@@ -158,7 +158,7 @@ namespace labust {
 
 		private:
 
-			void writePrimitives(int primitiveID, std::vector<Eigen::Vector4d> points, double heading, double speed, double victoryRadius);
+			void writePrimitives(int primitiveID, std::vector<Eigen::Vector4d> points, double depth, double heading, double speed, double victoryRadius);
 
 			std::vector<Eigen::Vector4d> calcRIPatternPoints(double width, double hstep,
 								double alternationPercent, double curvOff, bool squareCurve, double bearingRad);
@@ -218,7 +218,7 @@ namespace labust {
 				*it = vTmp;
 			}
 
-			writePrimitives(go2point, tmpPoints, 0, speed, victory_radius); /* heading, speed, victoryRadius */
+			writePrimitives(go2point, tmpPoints, depth, 0, speed, victory_radius); /* heading, speed, victoryRadius */
 		}
 
 		void ManeuverGenerator::generateStationKeeping(double north, double east, double depth, double heading)
@@ -335,7 +335,7 @@ namespace labust {
 		 *** Helper functions
 		 ************************************************************/
 
-		void ManeuverGenerator::writePrimitives(int primitiveID, std::vector<Eigen::Vector4d> points, double heading, double speed, double victoryRadius)
+		void ManeuverGenerator::writePrimitives(int primitiveID, std::vector<Eigen::Vector4d> points, double depth, double heading, double speed, double victoryRadius)
 		{
 			switch(primitiveID)
 			{
