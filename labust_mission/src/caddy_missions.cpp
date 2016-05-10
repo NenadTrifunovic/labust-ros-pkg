@@ -88,7 +88,10 @@ void CaddyMissions::onInit()
  	pointer_srv = nh.serviceClient<misc_msgs::PointerService>("commander/pointer");
  	go2depth_srv = nh.serviceClient<misc_msgs::Go2depthService>("commander/go2depth");
  	go2point_srv = nh.serviceClient<misc_msgs::Go2pointService>("commander/go2point");
- 	stop_srv = nh.serviceClient<std_srvs::Trigger>("commander/stop");
+ 	stop_srv = nh.serviceClient<std_srvs::Trigger>("commander/stop_mission");
+ 	pause_srv = nh.serviceClient<std_srvs::Trigger>("commander/pause_mission");
+ 	continue_srv = nh.serviceClient<std_srvs::Trigger>("commander/continue_mission");
+
 
 
 

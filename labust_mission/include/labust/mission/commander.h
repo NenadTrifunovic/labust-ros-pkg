@@ -55,7 +55,6 @@ namespace labust
 
 			bool continueService(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res);
 
-
 			/*****************************************************************
 			 ***  Helper functions
 			 ****************************************************************/
@@ -90,33 +89,30 @@ namespace labust
 
 			ros::ServiceServer srvStatus; // To bi trebao mission exec publishati.
 
+			/*** Maneuver generator class ***/
 			labust::maneuver::ManeuverGenerator MG;
 
+			/*** Path for saving mission xml files ***/
 			std::string xml_save_path;
 
 		};
 
-		Commander::Commander(std::string xml_path):MG(xml_path)
+		Commander::Commander(std::string xml_path):
+				MG(xml_path),
+				xml_save_path("")
 		{
-
 			ros::NodeHandle nh;
 
-			xml_save_path = "/home/filip/";
+			nh.param("mission_save_path",xml_save_path,xml_save_path);
 
 			/*** Subscribers ***/
 			//subStateHatAbs = nh.subscribe<auv_msgs::NavSts>("stateHatAbs",1,&DataEventManager::onStateHat,this);
-			//subMissionSetup = nh.subscribe<misc_msgs::MissionSetup>("missionSetup",1,&DataEventManager::onMissionSetup,this);
-			//subExternalEvents= nh.subscribe<misc_msgs::ExternalEvent>("externalEvent",1, &DataEventManager::onExternalEvent, this);
-			//subEventString = nh.subscribe<std_msgs::String>("eventString",1, &DataEventManager::onEventString, this);
 
 			/*** Publishers ***/
-			//pubDataEventsContainer = nh.advertise<misc_msgs::DataEventsContainer>("dataEventsContainer",1);
 			pubEventString = nh.advertise<std_msgs::String>("eventString",1);
 			pubStartParser = nh.advertise<misc_msgs::StartParser>("startParser",1);
 
-
 			/*** Services ***/
-			//srvEvaluateExpression = nh.advertiseService("evaluate_expression", &DataEventManager::expressionEvaluationService,this);
 			srvDepth = nh.advertiseService("commander/go2depth", &Commander::go2depthService,this);
 			srvGo2point = nh.advertiseService("commander/go2point", &Commander::go2pointService,this);
 			srvPointer = nh.advertiseService("commander/pointer", &Commander::pointerService,this);
@@ -131,7 +127,7 @@ namespace labust
 
 		}
 
-		/** Service that evaluates string expression */
+		/*** go2depth service ***/
 		bool Commander::go2depthService(misc_msgs::Go2depthService::Request &req, misc_msgs::Go2depthService::Response &res)
 		{
 			/*** Generate mission xml file ***/
@@ -144,7 +140,7 @@ namespace labust
 			return true;
 		}
 
-		/** Service that evaluates string expression */
+		/*** go2point service ***/
 		bool Commander::go2pointService(misc_msgs::Go2pointService::Request &req, misc_msgs::Go2pointService::Response &res)
 		{
 			/*** Generate mission xml file ***/
@@ -158,8 +154,7 @@ namespace labust
 			return true;
 		}
 
-
-		/** Service that evaluates string expression */
+		/*** Pointer service ***/
 		bool Commander::pointerService(misc_msgs::PointerService::Request &req, misc_msgs::PointerService::Response &res)
 		{
 			/*** Generate mission xml file ***/
@@ -182,7 +177,7 @@ namespace labust
 			return true;
 		}
 
-		/** Service that evaluates string expression */
+		/*** Lawnmover service ***/
 		bool Commander::lawnmoverService(misc_msgs::LawnmoverService::Request &req, misc_msgs::LawnmoverService::Response &res)
 		{
 			/*** Generate mission xml file ***/
@@ -210,21 +205,21 @@ namespace labust
 			return true;
 		}
 
-		/** Service that evaluates string expression */
+		/*** Service that stops mission execution ***/
 		bool Commander::stopService(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res)
 		{
 			publishEventString("/STOP");
 			return true;
 		}
 
-		/** Service that evaluates string expression */
+		/*** Service that pauses mission execution ***/
 		bool Commander::pauseService(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res)
 		{
 			publishEventString("/PAUSE");
 			return true;
 		}
 
-		/** Service that evaluates string expression */
+		/*** Service that continues mission execution ***/
 		bool Commander::continueService(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res)
 		{
 			publishEventString("/CONTINUE");
@@ -260,8 +255,5 @@ namespace labust
 		}
 	}
 }
-
-
-
 
 #endif /* LABUST_ROS_PKG_LABUST_MISSION_INCLUDE_LABUST_MISSION_COMMANDER_H_ */

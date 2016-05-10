@@ -140,6 +140,9 @@ namespace labust
 			ros::ServiceClient go2point_srv;
 
 			ros::ServiceClient stop_srv;
+			ros::ServiceClient pause_srv;
+			ros::ServiceClient continue_srv;
+
 
 
 			/// The reference IP address on network
