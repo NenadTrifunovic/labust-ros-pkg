@@ -92,6 +92,8 @@ MainEventQueue(){ mainEventQueue = new RosEventQueue(); }
 			FSM_STATE(Wait_state)
 			{
 				ROS_INFO("Mission execution: Mission execution ready.");
+				ME->onPrimitiveEndReset();
+				ME->nextPrimitive = 1;
 
 				FSM_ON_STATE_EXIT_BGN{
 
@@ -127,11 +129,16 @@ MainEventQueue(){ mainEventQueue = new RosEventQueue(); }
 					//FSM_ON_EVENT("/ISO", FSM_NEXT(iso_state));
 					FSM_ON_EVENT("/FOLLOW", FSM_NEXT(follow_state));
 					FSM_ON_EVENT("/POINTER", FSM_NEXT(pointer_state));
+
+					FSM_ON_EVENT("/START_DISPATCHER", FSM_NEXT(Dispatcher_state)); //TODO CHECK THIS
+
 				}
 			}
 			FSM_STATE(Pause_state)
 			{
 				ROS_WARN("Mission execution: Mission paused");
+				ME->onPrimitiveEndReset();
+				ME->nextPrimitive--;
 
 				ME->pause_position.north = ME->state.position.north;
 				ME->pause_position.east = ME->state.position.east;

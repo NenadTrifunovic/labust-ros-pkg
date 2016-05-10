@@ -461,18 +461,14 @@ namespace labust
 			if(strcmp(msg->data.c_str(),"/START_DISPATCHER") == 0 && missionActive)
 			{
 				mainEventQueue->riseEvent("/STOP");
-				onPrimitiveEndReset();
-				nextPrimitive = 1;
 			}
 			else if(strcmp(msg->data.c_str(),"/STOP") == 0)
 			{
-				onPrimitiveEndReset();
-				nextPrimitive = 1;
+
 			}
 			else if(strcmp(msg->data.c_str(),"/PAUSE") == 0)
 			{
-				onPrimitiveEndReset();
-				nextPrimitive--;
+
 			}
 			else if(strcmp(msg->data.c_str(),"/MANUAL_ENABLE") == 0 && !missionActive)
 			{
