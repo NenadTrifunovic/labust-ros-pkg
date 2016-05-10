@@ -151,6 +151,9 @@ namespace labust
 			/** Remember last primitive end point */
 			auv_msgs::NED oldPosition;
 
+			/*** Remember position when paused ***/
+			auv_msgs::NED pause_position;
+
 			/** Store last received primitive */
 			misc_msgs::SendPrimitive receivedPrimitive;
 
@@ -203,31 +206,6 @@ namespace labust
 			primitiveStringMap = PM.PrimitiveMapGenerator.getPrimitiveStringMap();
 			primitiveBoolMap = PM.PrimitiveMapGenerator.getPrimitiveBoolMap();
 
-//			primitiveMap.insert(std::pair<string, double>("north", 0.0));
-//			primitiveMap.insert(std::pair<string, double>("east", 0.0));
-//			primitiveMap.insert(std::pair<string, double>("depth", 0.0));
-//			primitiveMap.insert(std::pair<string, double>("heading", 0.0));
-//			primitiveMap.insert(std::pair<string, double>("course", 0.0));
-//			primitiveMap.insert(std::pair<string, double>("speed", 0.0));
-//			primitiveMap.insert(std::pair<string, double>("victory_radius", 0.0));
-//			primitiveMap.insert(std::pair<string, double>("dof", 0.0));
-//			primitiveMap.insert(std::pair<string, double>("command", 0.0));
-//			primitiveMap.insert(std::pair<string, double>("hysteresis", 0.0));
-//			primitiveMap.insert(std::pair<string, double>("reference", 0.0));
-//			primitiveMap.insert(std::pair<string, double>("sampling_rate", 0.0));
-//			primitiveMap.insert(std::pair<string, double>("victory_radius", 0.0));
-//			primitiveMap.insert(std::pair<string, double>("timeout", 0.0));
-//
-//			primitiveMap.insert(std::pair<string, double>("radius", 0.0));
-//			primitiveMap.insert(std::pair<string, double>("vertical_offset", 0.0));
-//			primitiveMap.insert(std::pair<string, double>("guidance_target_x", 0.0));
-//			primitiveMap.insert(std::pair<string, double>("guidance_target_y", 0.0));
-//			primitiveMap.insert(std::pair<string, double>("guidance_target_z", 0.0));
-//			primitiveMap.insert(std::pair<string, double>("guidance_enable", 0.0));
-//			primitiveMap.insert(std::pair<string, double>("wrapping_enable", 0.0));
-//			primitiveMap.insert(std::pair<string, double>("streamline_orientation", 0.0));
-//			primitiveMap.insert(std::pair<string, double>("wrapping_enable", 0.0));
-//
 //			primitiveMap.insert(std::pair<string, double>("xrefpont", 0.0));
 //			primitiveMap.insert(std::pair<string, double>("yrefpoint", 0.0));
 //			primitiveMap.insert(std::pair<string, double>("xs", 0.0));
@@ -239,9 +217,7 @@ namespace labust
 //			primitiveMap.insert(std::pair<string, double>("Vl", 0.0));
 //			primitiveMap.insert(std::pair<string, double>("direction", 0.0));
 //			primitiveMap.insert(std::pair<string, double>("R0", 0.0));
-//
-//			primitiveStringMap.insert(std::pair<string, string>("radius_topic", ""));
-//			primitiveStringMap.insert(std::pair<string, string>("guidance_topic", ""));
+
 		}
 
 	    void MissionExecution::evaluatePrimitive(string primitiveString)
@@ -482,13 +458,15 @@ namespace labust
 				onPrimitiveEndReset();
 				nextPrimitive = 1;
 			}
-
-			mainEventQueue->riseEvent(msg->data.c_str());
-			ROS_INFO("Mission execution: Received mission control command: %s",msg->data.c_str());
-
-			if(strcmp(msg->data.c_str(),"/STOP") == 0){
+			else if(strcmp(msg->data.c_str(),"/STOP") == 0)
+			{
 				onPrimitiveEndReset();
 				nextPrimitive = 1;
+			}
+			else if(strcmp(msg->data.c_str(),"/PAUSE") == 0)
+			{
+				onPrimitiveEndReset();
+				nextPrimitive--;
 			}
 			else if(strcmp(msg->data.c_str(),"/MANUAL_ENABLE") == 0 && !missionActive)
 			{
@@ -498,6 +476,9 @@ namespace labust
 			{
 				PM.enableManual(false);
 			}
+
+			mainEventQueue->riseEvent(msg->data.c_str());
+			ROS_INFO("Mission execution: Received mission control command: %s",msg->data.c_str());
 		}
 
 		/** Request new primitive */

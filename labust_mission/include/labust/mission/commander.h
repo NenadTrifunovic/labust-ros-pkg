@@ -51,6 +51,11 @@ namespace labust
 
 			bool stopService(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res);
 
+			bool pauseService(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res);
+
+			bool continueService(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res);
+
+
 			/*****************************************************************
 			 ***  Helper functions
 			 ****************************************************************/
@@ -79,6 +84,9 @@ namespace labust
 			ros::ServiceServer srvPointer;
 			ros::ServiceServer srvLawnomver;
 			ros::ServiceServer srvStop;
+			ros::ServiceServer srvPause;
+			ros::ServiceServer srvContinue;
+
 
 			ros::ServiceServer srvStatus; // To bi trebao mission exec publishati.
 
@@ -113,9 +121,9 @@ namespace labust
 			srvGo2point = nh.advertiseService("commander/go2point", &Commander::go2pointService,this);
 			srvPointer = nh.advertiseService("commander/pointer", &Commander::pointerService,this);
 			srvLawnomver = nh.advertiseService("commander/lawnmover", &Commander::lawnmoverService,this);
-			srvStop = nh.advertiseService("commander/stop", &Commander::stopService,this);
-
-
+			srvStop = nh.advertiseService("commander/stop_mission", &Commander::stopService,this);
+			srvPause = nh.advertiseService("commander/pause_mission", &Commander::pauseService,this);
+			srvContinue = nh.advertiseService("commander/continue_mission", &Commander::continueService,this);
 		}
 
 		Commander::~Commander()
@@ -206,6 +214,20 @@ namespace labust
 		bool Commander::stopService(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res)
 		{
 			publishEventString("/STOP");
+			return true;
+		}
+
+		/** Service that evaluates string expression */
+		bool Commander::pauseService(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res)
+		{
+			publishEventString("/PAUSE");
+			return true;
+		}
+
+		/** Service that evaluates string expression */
+		bool Commander::continueService(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res)
+		{
+			publishEventString("/CONTINUE");
 			return true;
 		}
 
