@@ -66,12 +66,18 @@ class Variable:
         self.type = 'void'
         self.default = None
         self.cond = None
+        self.gcond = None
         self.bits = None
         self.min = None
         self.max = None
         self.quant = None
         
         if xmlnode != None: self.from_xml(xmlnode)
+        
+    def set_group_options(self, xmlnode):
+        # Check if grouped and get attributes
+        # TODO: create real grouping on structure level
+        self.gcond = xmlnode.get('if', self.gcond)
         
     def from_xml(self, xmlnode):
         """
@@ -104,7 +110,10 @@ class Variable:
             temp = self.max
             self.max = self.min
             self.min = temp        
+        
         if self.bits <= 0:
             print "Number of bits should be larger than zero !"
+            
+            
         
         

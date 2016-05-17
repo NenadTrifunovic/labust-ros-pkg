@@ -232,20 +232,9 @@ class CppGen():
             if var.bits == None: 
                 print('All variables need a bit size in a bitfield.')
                 return ''
-            has_cond = (var.gcond != None) or (var.cond != None)
-            if has_cond:
-                code = code + indent + 'if ('   
+            if var.cond != None:
+                code = code + indent + 'if (' + var.cond + '){\n'
                 
-                if var.gcond != None:
-                    code = code + '(' + var.gcond + ')'
-                    if var.cond != None:
-                        code = code + ' && '  
-                
-                if var.cond != None:
-                    code = code + '(' + var.cond + ')'
-                
-                code = code + '){\n' 
-                                
             if self.is_array_type(var.type):
                 len = self.get_array_len(var.type)
                                
@@ -262,7 +251,7 @@ class CppGen():
             code = code + ',' + var.min + ',' + var.max + ','
             code = code + var.bits + ');\n'
         
-            if has_cond:
+            if var.cond != None:
                 code = code + indent + '}\n'
         
         #Minimum byte rounding to avoid having zeros
@@ -319,7 +308,15 @@ class CppGen():
                 print('All variables need a bit size in a bitfield.')
                 return ''
             if self.is_array_type(var.type):
-                code = code + indent + 'for(int i=0; i<' + self.get_array_len(var.type)
+                len = self.get_array_len(var.type)
+                
+                if len == '':
+                    # WARNING LENGTH IS NOT SAVED, IT IS ASSUMED THIS IS AT THE END OF BITFIELD
+                    code = code + indent + var.name + '.resize(st.remaining());\n'
+                    code = code + indent + 'for(int i=0; i<st.remaining()'
+                else:
+                    code = code + indent + 'for(int i=0; i<' + len
+                    
                 code = code + '; ++i) st.get(' + var.name + '[i]'
             else:
                 code = code + indent + 'st.get(' + var.name 
@@ -329,6 +326,7 @@ class CppGen():
                 
         return code
     
+        
     def gen_bitfield3_deserializer(self, struct, indent):
        
         code = ''
@@ -350,30 +348,11 @@ class CppGen():
                 print('All variables need a bit size in a bitfield.')
                 return ''
             
-            has_cond = (var.gcond != None) or (var.cond != None)
-            if has_cond:
-                code = code + indent + 'if ('   
-                
-                if var.gcond != None:
-                    code = code + '(' + var.gcond + ')'
-                    if var.cond != None:
-                        code = code + ' && '  
-                
-                if var.cond != None:
-                    code = code + '(' + var.cond + ')'
-                
-                code = code + '){\n' 
+            if var.cond != None:
+                code = code + indent + 'if (' + var.cond + '){\n'
                         
             if self.is_array_type(var.type):
-                len = self.get_array_len(var.type)
-                
-                if len == '':
-                    # WARNING LENGTH IS NOT SAVED, IT IS ASSUMED THIS IS AT THE END OF BITFIELD
-                    code = code + indent + var.name + '.resize(st.remaining());\n'
-                    code = code + indent + 'for(int i=0; i<st.remaining()'
-                else:
-                    code = code + indent + 'for(int i=0; i<' + len
-                    
+                code = code + indent + 'for(int i=0; i<' + self.get_array_len(var.type)
                 code = code + '; ++i) st.get(' + var.name + '[i]'
             else:
                 code = code + indent + 'st.get(' + var.name 
@@ -381,7 +360,7 @@ class CppGen():
             code = code + ',' + var.min + ',' + var.max + ','
             code = code + var.bits + ');\n'
             
-            if has_cond:
+            if var.cond != None:
                 code = code + indent + '}\n'
                 
         return code

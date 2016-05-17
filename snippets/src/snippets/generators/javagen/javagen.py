@@ -216,6 +216,7 @@ class JavaGen():
         
         return code
     
+   
     def gen_bitfield2_serializer(self, struct, indent):       
         code = indent + 'BitStorage st = new BitStorage();\n'
         shift = 0  
@@ -236,6 +237,52 @@ class JavaGen():
         code = code + indent + 'for(int i=0; i<st.storage().length; ++i) out.writeByte(st.storage()[i]);\n'
                 
         return code
+    
+    def gen_bitfield3_serializer(self, struct, indent):       
+        code = indent + 'BitStorage st = new BitStorage();\n'
+        shift = 0  
+        for var in struct.variables:
+            if var.bits == None: 
+                print('All variables need a bit size in a bitfield.')
+                return ''
+            
+            has_cond = (var.gcond != None) or (var.cond != None)
+            if has_cond:
+                code = code + indent + 'if ('   
+                
+                if var.gcond != None:
+                    code = code + '(' + var.gcond + ')'
+                    if var.cond != None:
+                        code = code + ' && '  
+                
+                if var.cond != None:
+                    code = code + '(' + var.cond + ')'
+                
+                code = code + '){\n' 
+            
+            if self.is_array_type(var.type):
+                len = self.get_array_len(var.type)
+                if len == '':
+                    # WARNING LENGTH IS NOT SAVED, IT IS ASSUMED THIS IS AT THE END OF BITFIELD 
+                    code = code + indent + 'for(int i=0; i<' + var.name + '.length'
+                else:
+                    code = code + indent + 'for(int i=0; i<' + len
+
+                code = code + '; ++i) st.put(' + var.name + '[i]'
+            else:
+                code = code + indent + 'st.put(' + var.name 
+                
+            code = code + ',' +var.min + ',' + var.max + ','
+            code = code + var.bits + ');\n'
+            
+            if has_cond:
+                code = code + indent + '}\n'
+            
+        # Write minimal byte count
+        code = code + indent + 'for(int i=0; i<st.storage().length; ++i) out.writeByte(st.storage()[i]);\n'
+                
+        return code
+    
     
     def gen_bitfield_deserializer(self, struct, indent):
         store_type = ''
@@ -305,6 +352,58 @@ class JavaGen():
             code = code + var.bits + ');\n'
         
         return code
+    
+    def gen_bitfield3_deserializer(self, struct, indent):      
+        code = ''
+        code = indent + 'byte[] buffer = new byte[in.available()];\n'      
+        code = code + indent + 'for(int i=0; i<buffer.length; ++i) buffer[i] = in.readByte();\n'
+        
+        code = code + indent + 'BitStorage st = new BitStorage(buffer);\n'
+        
+       
+        shift = 0  
+        for var in struct.variables:
+            type = self.get_array_type(var.type)
+            type = self.type_equiv.get(type,type)
+            
+            if var.bits == None: 
+                print('All variables need a bit size in a bitfield.')
+                return ''
+            
+            has_cond = (var.gcond != None) or (var.cond != None)
+            if has_cond:
+                code = code + indent + 'if ('   
+                
+                if var.gcond != None:
+                    code = code + '(' + var.gcond + ')'
+                    if var.cond != None:
+                        code = code + ' && '  
+                
+                if var.cond != None:
+                    code = code + '(' + var.cond + ')'
+                
+                code = code + '){\n'
+  
+            if self.is_array_type(var.type):
+                len = self.get_array_len(var.type)
+                if len == '':
+                    # WARNING LENGTH IS NOT SAVED, IT IS ASSUMED THIS IS AT THE END OF BITFIELD
+                    code = code + indent + var.name + ' = new ' + type + '[st.remaining()];\n'
+                    code = code + indent + 'for(int i=0; i<st.remaining()'
+                else:
+                    code = code + indent + 'for(int i=0; i<' + len
+
+                code = code + '; ++i) ' + var.name +'[i] = st.get' + type.title() + '('
+            else:
+                code = code + indent + var.name + ' = st.get' + type.title() + '('
+            
+            code = code + var.min + ',' + var.max + ','
+            code = code + var.bits + ');\n'
+            
+            if has_cond:
+                code = code + indent + '}\n'
+        
+        return code
         
     def is_array_type(self, type):
         return ((type.find('[') != -1) and
@@ -363,6 +462,7 @@ class JavaGen():
         # Specially handle bitfields          
         if struct.bitfield: return self.gen_bitfield_serializer(struct, indent)
         if struct.bitfield2: return self.gen_bitfield2_serializer(struct, indent)
+        if struct.bitfield3: return self.gen_bitfield3_serializer(struct, indent)
                         
         # Serialize each memeber variable
         code = ''
@@ -394,6 +494,7 @@ class JavaGen():
         # Specially handle bitfields          
         if struct.bitfield: return self.gen_bitfield_deserializer(struct, indent)
         if struct.bitfield2: return self.gen_bitfield2_deserializer(struct, indent)
+        if struct.bitfield3: return self.gen_bitfield3_deserializer(struct, indent)
                         
                 # Serialize each memeber variable
         code = ''

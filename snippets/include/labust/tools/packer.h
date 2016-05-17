@@ -69,6 +69,8 @@ namespace labust
 		inline bool decodePackable(const std::vector< VectorType >& binary, Packable* data)
 		try
 		{
+		    if (binary.size() == 0) return false;
+
 			using namespace boost::iostreams;
 			array_source source(reinterpret_cast<const char*>(binary.data()),
 					binary.size());

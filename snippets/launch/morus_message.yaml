@@ -1,0 +1,70 @@
+morus_messages:
+  - name: RQ-UAV-POSE1
+    subscribe: true
+    rate: 5
+    topics: 
+      - name: uav_pose
+        type: auv_msgs/NavSts
+        fields:
+          - element: global_position.latitude
+            location: 1
+            format: '%0.2f'
+            modifier: ''
+          - element: global_position.longitude
+            location: 2
+            format: '%0.2f'
+            modifier: ''
+          - element: altitude
+            location: 3
+            format: '%0.2f'
+            modifier: ''
+      - name: uav_orientation
+        type: auv_msgs/NavSts
+        fields:
+          - element: orientation.roll
+            location: 4
+            format: '%0.2f'
+            modifier: ''
+          - element: orientation.pitch
+            location: 5
+            format: '%0.2f'
+            modifier: ''
+          - element: orientation.yaw
+            location: 6
+            format: '%0.2f'
+            modifier: ''
+ 
+  - name: RQ-UAV-POSE2
+    subscribe: true
+    rate: 5
+    topics: 
+      - name: uav_pose
+        type: auv_msgs/NavSts
+        fields:
+          - element: position.north
+            location: 1
+            format: '%0.2f'
+            modifier: ''
+          - element: position.east
+            location: 2
+            format: '%0.2f'
+            modifier: ''
+          - element: position.depth
+            location: 3
+            format: '%0.2f'
+            modifier: ''
+      - name: uav_orientation
+        type: auv_msgs/NavSts
+        fields:
+          - element: orientation_rate.roll
+            location: 4
+            format: '%0.2f'
+            modifier: ''
+          - element: orientation_rate.pitch
+            location: 5
+            format: '%0.2f'
+            modifier: ''
+          - element: orientation_rate.yaw
+            location: 6
+            format: '%0.2f'
+            modifier: ''
