@@ -36,13 +36,22 @@
 #include <navcon_msgs/EnableControl.h>
 #include <auv_msgs/NavSts.h>
 #include <std_msgs/Bool.h>
+#include <std_msgs/Int32.h>
+#include <std_msgs/String.h>
+
+#include <std_srvs/Trigger.h>
+#include <misc_msgs/Go2depthService.h>
+#include <misc_msgs/Go2pointService.h>
+#include <misc_msgs/PointerService.h>
 
 #include <cstdio>
 
 using labust::mission::CaddyMissions;
 
 CaddyMissions::CaddyMissions():
-    ipaddress("10.0.10.1")
+    ipaddress("10.0.10.1"),
+	mission_state(IDLE),
+	go_and_carry_substate(NONE)
 {
   this->onInit();
 }
@@ -63,15 +72,40 @@ void CaddyMissions::onInit()
 	timeout_pub = nh.advertise<std_msgs::Bool>("mission_timeout", 1);
 	lawnmower_pub = nh.advertise<std_msgs::Bool>("stop_follow_section", 1);
 
+	emergency_pub = nh.advertise<std_msgs::Int32>("mission_controller/command/emergency", 1);
+	go_and_carry_pub = nh.advertise<std_msgs::Int32>("mission_controller/command/go_and_carry", 1);
+	guide_me_pub = nh.advertise<std_msgs::Int32>("mission_controller/command/guide_me", 1);
+	idle_pub = nh.advertise<std_msgs::Int32>("mission_controller/command/idle", 1);
+
+	event_string_pub = nh.advertise<std_msgs::String>("eventString", 1);
+
 	//Initialize service clients
 	hdgcon = nh.serviceClient<navcon_msgs::EnableControl>("HDG_enable");
 	altcon = nh.serviceClient<navcon_msgs::EnableControl>("ALT_enable");
 	depthcon = nh.serviceClient<navcon_msgs::EnableControl>("DEPTH_enable");
  	velcon = nh.serviceClient<navcon_msgs::ConfigureVelocityController>("ConfigureVelocityController");
 
+ 	pointer_srv = nh.serviceClient<misc_msgs::PointerService>("commander/pointer");
+ 	go2depth_srv = nh.serviceClient<misc_msgs::Go2depthService>("commander/go2depth");
+ 	go2point_srv = nh.serviceClient<misc_msgs::Go2pointService>("commander/go2point");
+ 	stop_srv = nh.serviceClient<std_srvs::Trigger>("commander/stop_mission");
+ 	pause_srv = nh.serviceClient<std_srvs::Trigger>("commander/pause_mission");
+ 	continue_srv = nh.serviceClient<std_srvs::Trigger>("commander/continue_mission");
+
+
+
+
 	//Initialze subscribers
     position_sub = nh.subscribe<auv_msgs::NavSts>("position", 1, &CaddyMissions::onPosition,this);
     surfacecmd_sub = nh.subscribe<std_msgs::UInt8>("surface_cmd", 1, &CaddyMissions::onSurfaceCmd,this);
+
+    emergency_sub = nh.subscribe<std_msgs::Int32>("mission_controller/primitives/emergency", 1, &CaddyMissions::onEmergency,this);
+    go_and_carry_sub = nh.subscribe<std_msgs::Int32>("mission_controller/primitives/go_and_carry", 1, &CaddyMissions::onGoAndCarry,this);
+    guide_me_sub = nh.subscribe<std_msgs::Int32>("mission_controller/primitives/guide_me", 1, &CaddyMissions::onGuideMe,this);
+    idle_sub = nh.subscribe<std_msgs::Int32>("mission_controller/primitives/idle", 1, &CaddyMissions::onIdle,this);
+
+    vehicle_state_sub = nh.subscribe<auv_msgs::NavSts>("position", 1, &CaddyMissions::onVehicleState,this);
+
 
     //Initialize timer
     safety = nh.createTimer(ros::Duration(1.0),&CaddyMissions::onTimer, this, false, true);
@@ -129,6 +163,90 @@ void CaddyMissions::onSurfaceCmd(const std_msgs::UInt8::ConstPtr& cmd)
   }
 }
 
+void CaddyMissions::onEmergency(const std_msgs::Int32::ConstPtr& data)
+{
+
+}
+
+void CaddyMissions::onGoAndCarry(const std_msgs::Int32::ConstPtr& data)
+{
+	if(data->data == 1)
+	{
+		//if(mission_state != GO_AND_CARRY)
+		//{
+			if(go_and_carry_substate == NONE) //&& mission_state != GO_AND_CARRY)
+			{
+				misc_msgs::Go2depthService srv_data;
+				srv_data.request.depth = 0;
+
+				go2depth_srv.call(srv_data);
+				go_and_carry_substate = GO2DEPTH;
+			}
+			else if(go_and_carry_substate == GO2DEPTH && vehicle_state.position.depth < 0.1)
+			{
+				misc_msgs::Go2pointService srv_data2;
+				srv_data2.request.point.x = 10;
+				srv_data2.request.point.y = 10;
+				srv_data2.request.point.z = 0;
+				srv_data2.request.speed = 0.4;
+
+				go2point_srv.call(srv_data2);
+				go_and_carry_substate = GO2POINT;
+			}
+			mission_state = GO_AND_CARRY;
+		//}
+	}
+	else
+	{
+		go_and_carry_substate = NONE;
+	}
+}
+
+void CaddyMissions::onGuideMe(const std_msgs::Int32::ConstPtr& data)
+{
+	if(data->data == 1)
+	{
+		if(mission_state != GUIDE_ME)
+		{
+			misc_msgs::PointerService srv_data;
+			srv_data.request.radius = 5.0;
+			srv_data.request.radius_topic = "";
+			srv_data.request.vertical_offset = 0;
+			srv_data.request.guidance_enable = false;
+			srv_data.request.guidance_target.x = 0;
+			srv_data.request.guidance_target.y = 0;
+			srv_data.request.guidance_target.z = 0;
+			srv_data.request.guidance_topic = "";
+			srv_data.request.streamline_orientation = true;
+			srv_data.request.wrapping_enable = false;
+
+			pointer_srv.call(srv_data);
+
+			mission_state = GUIDE_ME;
+		}
+	}
+}
+
+void CaddyMissions::onIdle(const std_msgs::Int32::ConstPtr& data)
+{
+	if(data->data == 1)
+	{
+		if(mission_state != IDLE)
+		{
+			std_srvs::Trigger srv_data;
+			stop_srv.call(srv_data);
+
+			mission_state = IDLE;
+		}
+	}
+}
+
+void CaddyMissions::onVehicleState(const auv_msgs::NavSts::ConstPtr& data)
+{
+	vehicle_state = *data;
+}
+
+
 void CaddyMissions::stopControllers()
 {
   navcon_msgs::ConfigureVelocityController srv;
@@ -162,7 +280,7 @@ void CaddyMissions::onTimer(const ros::TimerEvent& event)
     std_msgs::Bool timeout;
     timeout.data = true;
     timeout_pub.publish(timeout);
-    this->stopControllers();
+    //this->stopControllers();
   }
 }
 

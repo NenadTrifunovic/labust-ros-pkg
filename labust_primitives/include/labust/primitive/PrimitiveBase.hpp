@@ -36,6 +36,8 @@
 #include <ros/ros.h>
 #include <actionlib/server/simple_action_server.h>
 
+#include <string>
+
 #include <auv_msgs/NavSts.h>
 #include <navcon_msgs/ControllerSelect.h>
 
@@ -58,12 +60,10 @@ namespace labust
 			 * Main constructor
 			 */
 			ExecutorBase(const std::string& name):
-				primitiveName(name)
+				primitiveName(name),tf_prefix("")
 			{
-				ros::NodeHandle nh;
-				std::string key;
-				if (nh.searchParam("tf_prefix", key)) nh.getParam(key, tf_prefix);
-			};
+
+			}
 			/**
 			 * The name identifier.
 			 */
@@ -85,8 +85,8 @@ namespace labust
 		   */
 		  ros::ServiceClient control_manager;
 
-			///The transform frame prefix for multi-vehicle operations
-			std::string tf_prefix;
+		  /*** The transform frame prefix for multi-vehicle operations ***/
+		  std::string tf_prefix;
 		};
 
 		template <class Executor,
@@ -99,13 +99,20 @@ namespace labust
 			/**
 			 * Main constructor
 			 */
-			PrimitiveBase(){this->onInit();};
+			PrimitiveBase()
+			{
+				this->onInit();
+			}
 			/**
 			 * Initialize and setup primitive action node.
 			 */
 			void onInit()
 			{
-				ros::NodeHandle nh,ph("~");
+				ros::NodeHandle nh;
+				std::string key("");
+
+				if (nh.searchParam("tf_prefix", key))
+					nh.getParam(key, Executor::tf_prefix);
 
 				this->aserver.reset(new typename Executor::ActionServer(nh, this->primitiveName,	false));
 

@@ -9,7 +9,7 @@
 /*********************************************************************
 * Software License Agreement (BSD License)
 *
-*  Copyright (c) 2015, LABUST, UNIZG-FER
+*  Copyright (c) 2015-2016, LABUST, UNIZG-FER
 *  All rights reserved.
 *
 *  Redistribution and use in source and binary forms, with or without
@@ -79,13 +79,13 @@ namespace labust
 				/*** Publishers */
 				pubEventString = nh.advertise<std_msgs::String>("eventString",1);
 
-				ROS_INFO("Waiting for action server to start.");
-				if(!ac.waitForServer(ros::Duration(5)))
+				ROS_INFO("Mission execution: %s - Waiting for action server to start.", primitiveName.c_str());
+				if(!ac.waitForServer(ros::Duration(1)))
 				{
-					ROS_FATAL("Cannot establish connection to action server: %s", primitiveName.c_str());
+					ROS_FATAL("Mission execution: %s - Cannot establish connection to action server.", primitiveName.c_str());
 					return;
 				}
-				ROS_INFO("Action server % started", primitiveName.c_str());
+				ROS_INFO("Mission execution: %s - Action server started", primitiveName.c_str());
 			}
 
 			virtual ~PrimitiveCallBase(){}
@@ -93,13 +93,11 @@ namespace labust
 		public:
 			virtual void start(Goal goal)
 			{
-				//LLcfg.LL_VELconfigure(true,2,2,0,0,0,2);
 				this->callPrimitiveAction(goal);
 			}
 
 			virtual void stop()
 			{
-				/** ros::Duration(0.01).sleep(); */
 				ac.cancelGoalsAtAndBeforeTime(ros::Time::now());
 			}
 
@@ -118,7 +116,7 @@ namespace labust
 			{
 				if (state == actionlib::SimpleClientGoalState::SUCCEEDED)
 				{
-					ROS_ERROR("Finished in state [%s]", state.toString().c_str());
+					ROS_INFO("Mission execution: Primitive finished in state [%s]", state.toString().c_str());
 					publishEventString("/PRIMITIVE_FINISHED");
 				}
 			}
@@ -126,7 +124,7 @@ namespace labust
 			// Called once when the goal becomes active
 			virtual void activeCb()
 			{
-				ROS_ERROR("Goal just went active.");
+				ROS_INFO("Mission execution: Action goal just went active.");
 			}
 
 			// Called every time feedback is received for the goal

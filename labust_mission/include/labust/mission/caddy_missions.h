@@ -35,6 +35,7 @@
 #define LABUST_MISSION_CADDY_MISSIONS_H
 #include <auv_msgs/NavSts.h>
 #include <std_msgs/UInt8.h>
+#include <std_msgs/Int32.h>
 #include <ros/ros.h>
 
 namespace labust
@@ -49,10 +50,11 @@ namespace labust
 		 */
 		class CaddyMissions
 		{
-		  enum {IDLE=0,LAWN_MOWER,STOP};
+		  enum {IDLE=0,LAWN_MOWER,STOP,EMERGENCY,GO_AND_CARRY,GUIDE_ME}; //Ima li dovoljno bita za ovo??
 		  enum {POSITION_UPDATE=1, AC_UPDATE=10};
 		  enum {u=0,v,w,p,q,r};
 		  enum {DONT_CARE=-1, DISABLED=0, VELCON=2};
+		  enum {NONE=0,GO2DEPTH,GO2POINT};
 
 		public:
 			///Main constructor
@@ -76,6 +78,18 @@ namespace labust
 			///The timer callback
 			void onTimer(const ros::TimerEvent& event);
 
+			///Handle mission states
+			void onEmergency(const std_msgs::Int32::ConstPtr& data);
+
+			void onGoAndCarry(const std_msgs::Int32::ConstPtr& data);
+
+			void onGuideMe(const std_msgs::Int32::ConstPtr& data);
+
+			void onIdle(const std_msgs::Int32::ConstPtr& data);
+
+			void onVehicleState(const auv_msgs::NavSts::ConstPtr& data);
+
+
 			///Safety timer
 			ros::Timer safety;
 			///Last arrived position
@@ -92,6 +106,23 @@ namespace labust
             /// Surface command subscriber
             ros::Subscriber surfacecmd_sub;
 
+            /// subscriber
+            ros::Subscriber emergency_sub;
+            ros::Subscriber go_and_carry_sub;
+            ros::Subscriber guide_me_sub;
+            ros::Subscriber idle_sub;
+
+            ros::Subscriber vehicle_state_sub;
+
+            /// publisher
+            ros::Publisher emergency_pub;
+            ros::Publisher go_and_carry_pub;
+            ros::Publisher guide_me_pub;
+            ros::Publisher idle_pub;
+
+            ros::Publisher event_string_pub;
+
+
 			/// Speed controller services.
 			ros::ServiceClient velcon;
 			/// Heading controller services.
@@ -101,8 +132,27 @@ namespace labust
 			/// Depth controller service.
 			ros::ServiceClient depthcon;
 
+			/// Primitive service
+			ros::ServiceClient pointer_srv;
+
+			ros::ServiceClient go2depth_srv;
+
+			ros::ServiceClient go2point_srv;
+
+			ros::ServiceClient stop_srv;
+			ros::ServiceClient pause_srv;
+			ros::ServiceClient continue_srv;
+
+
+
 			/// The reference IP address on network
 			std::string ipaddress;
+
+			uint8_t mission_state;
+
+			uint8_t go_and_carry_substate;
+
+			auv_msgs::NavSts vehicle_state;
 		};
 	}
 }

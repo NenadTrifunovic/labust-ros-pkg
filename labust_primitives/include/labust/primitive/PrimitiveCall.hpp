@@ -65,7 +65,8 @@ namespace labust
 																 navcon_msgs::GoToPointFeedback>
 		{
 		public:
-			PrimitiveCallGo2Point():PrimitiveCallBase("go2point")
+			PrimitiveCallGo2Point():PrimitiveCallBase("go2point"),
+									display_counter(0)
 			{
 
 			}
@@ -78,7 +79,7 @@ namespace labust
 			{
 				if (state == actionlib::SimpleClientGoalState::SUCCEEDED)
 				{
-					ROS_ERROR("Go2PointFA - Finished in state [%s]", state.toString().c_str());
+					ROS_INFO("Mission execution: go2Point - Finished in state [%s]", state.toString().c_str());
 					publishEventString("/PRIMITIVE_FINISHED");
 				}
 			}
@@ -86,14 +87,17 @@ namespace labust
 			/*** Callback called once when the goal becomes active ***/
 			void activeCb()
 			{
-			ROS_ERROR("Goal just went active go2point_FA");
+			ROS_INFO("Mission execution: Goal just went active go2point");
 			}
 
 			/*** Callback called every time feedback is received for the goal ***/
 			void feedbackCb(const Feedback::ConstPtr& feedback)
 			{
-				   ROS_ERROR("Feedback - Go2point - distance: %f, bearing: %f", feedback->distance, feedback->bearing);
+				if((display_counter++)%10 == 0)
+					ROS_INFO("Mission execution: Feedback - Go2point - distance: %f, bearing: %f", feedback->distance, feedback->bearing);
 			}
+
+			int display_counter;
 		};
 
 		class PrimitiveCallCourseKeeping : public PrimitiveCallBase<navcon_msgs::CourseKeepingAction,

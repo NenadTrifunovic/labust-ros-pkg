@@ -45,8 +45,8 @@
 #ifndef EVENTEVALUATION_HPP_
 #define EVENTEVALUATION_HPP_
 
-#include <labust_mission/labustMission.hpp>
 #include <exprtk/exprtk.hpp>
+#include <labust/mission/labustMission.hpp>
 
 /*********************************************************************
  ***  EventEvaluation class definition
