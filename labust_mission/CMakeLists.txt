@@ -102,7 +102,7 @@ find_library(TinyXML2_LIBRARY
 catkin_package(
   INCLUDE_DIRS include
 #  LIBRARIES caddy_state_machine
- CATKIN_DEPENDS decision_making decision_making_parser roscpp
+ CATKIN_DEPENDS decision_making decision_making_parser roscpp labust_primitives
 #  DEPENDS system_lib
 )
 
