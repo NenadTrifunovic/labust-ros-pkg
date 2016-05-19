@@ -15,6 +15,7 @@
 #include <misc_msgs/Go2depthService.h>
 #include <misc_msgs/Go2pointService.h>
 #include <misc_msgs/PointerService.h>
+#include <misc_msgs/DPService.h>
 #include <misc_msgs/LawnmoverService.h>
 #include <misc_msgs/StartParser.h>
 
@@ -46,6 +47,8 @@ namespace labust
 			bool go2depthService(misc_msgs::Go2depthService::Request &req, misc_msgs::Go2depthService::Response &res);
 
 			bool pointerService(misc_msgs::PointerService::Request &req, misc_msgs::PointerService::Response &res);
+
+			bool dynamicPositioningService(misc_msgs::DPService::Request &req, misc_msgs::DPService::Response &res);
 
 			bool lawnmoverService(misc_msgs::LawnmoverService::Request &req, misc_msgs::LawnmoverService::Response &res);
 
@@ -81,6 +84,7 @@ namespace labust
 			ros::ServiceServer srvDepth;
 			ros::ServiceServer srvGo2point;
 			ros::ServiceServer srvPointer;
+			ros::ServiceServer srvDynPos;
 			ros::ServiceServer srvLawnomver;
 			ros::ServiceServer srvStop;
 			ros::ServiceServer srvPause;
@@ -176,6 +180,33 @@ namespace labust
 			res.status = true;
 			return true;
 		}
+
+        /*** Pointer service ***/
+        bool Commander::dynamicPositioningService(misc_msgs::DPService::Request &req, misc_msgs::DPService::Response &res)
+        {
+            /*** Generate mission xml file ***/
+            MG.writeXML.addMission();
+            MG.generateDynamicPositioning(
+                            req.north,
+                            req.east,
+                            req.depth,
+                            req.heading,
+                            req.north_enable,
+                            req.east_enable,
+                            req.depth_enable,
+                            req.heading_enable,
+                            req.altitude_enable,
+                            req.track_heading_enable,
+                            req.point_to_target,
+                            req.target_topic,
+                            req.heading_topic);
+
+            /*** Request mission execution ***/
+            saveAndRequestAction("dynamic_positioning");
+
+            res.status = true;
+            return true;
+        }
 
 		/*** Lawnmover service ***/
 		bool Commander::lawnmoverService(misc_msgs::LawnmoverService::Request &req, misc_msgs::LawnmoverService::Response &res)

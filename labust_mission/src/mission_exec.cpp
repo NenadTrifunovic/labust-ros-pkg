@@ -305,17 +305,18 @@ int main(int argc, char** argv){
 
 	ros::init(argc, argv, "ControllerFSM");
 	ros_decision_making_init(argc, argv);
-	ros::NodeHandle nh;
+	ros::NodeHandle nh,ph("~");
 
-	std::string primitive_definitons_xml;
-	if(!nh.getParam("primitive_definitions_path",primitive_definitons_xml))
+	std::string primitive_definitions_xml;
+	if(!ph.getParam("primitive_definitions_path",primitive_definitions_xml))
 	{
 		ROS_FATAL("NO PRIMITIVE DEFINITION XML PATH DEFINED.");
+		ROS_INFO("Path: %s", primitive_definitions_xml.c_str());
 		exit (EXIT_FAILURE);
 	}
 
 	/* Start Mission Execution */
-	labust::mission::MissionExecution MissExec(nh,primitive_definitons_xml);
+	labust::mission::MissionExecution MissExec(nh,primitive_definitions_xml);
 	ME = &MissExec;
 
 	/* Global event queue */

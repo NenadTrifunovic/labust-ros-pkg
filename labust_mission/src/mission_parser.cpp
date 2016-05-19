@@ -145,9 +145,17 @@ namespace labust
 										   breakpoint(1),
 										   missionEvents(""),
 										   missionActive(false),
-										   PP("/home/filip/ros/src/labust-ros-pkg/labust_primitives/data/primitiveDefinitions.xml")
+										   PP()
 		{
-			ros::NodeHandle nh;
+			ros::NodeHandle nh, ph("~");
+
+		    std::string primitive_definitions_xml;
+		    if(!ph.getParam("primitive_definitions_path",primitive_definitions_xml))
+		    {
+		        ROS_FATAL("NO PRIMITIVE DEFINITION XML PATH DEFINED.");
+		    }
+
+		    PP.generatePrimitiveData(primitive_definitions_xml);
 
 			/** Subscribers */
 			subRequestPrimitive = nh.subscribe<std_msgs::UInt16>("requestPrimitive",1,&MissionParser::onRequestPrimitive, this);

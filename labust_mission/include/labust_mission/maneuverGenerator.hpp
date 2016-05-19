@@ -67,7 +67,6 @@ namespace labust {
 			/*********************************************************
 			 *** Class functions
 			 ********************************************************/
-
 			ManeuverGenerator(std::string xml_path);
 
 			~ManeuverGenerator();
@@ -133,6 +132,7 @@ namespace labust {
 					bool heading_enable,
 					bool altitude_enable,
 					bool track_heading_enable,
+					bool point_to_target,
 					std::string target_topic,
 					std::string heading_topic
 					);
@@ -185,7 +185,7 @@ namespace labust {
 		};
 
 
-		ManeuverGenerator::ManeuverGenerator(std::string xml_path):PP(xml_path)
+		ManeuverGenerator::ManeuverGenerator(std::string xml_path):writeXML(xml_path),PP(xml_path)
 		{
 
 		}
@@ -222,7 +222,7 @@ namespace labust {
 
 		void ManeuverGenerator::generateStationKeeping(double north, double east, double depth, double heading)
 		{
-			generateDynamicPositioning(north,east,depth,heading,true,true,true,true,false,false,"","");
+			generateDynamicPositioning(north,east,depth,heading,true,true,true,true,false,false,false,"","");
 		}
 
 
@@ -279,6 +279,7 @@ namespace labust {
 				bool heading_enable,
 				bool altitude_enable,
 				bool track_heading_enable,
+				bool point_to_target,
 				std::string target_topic,
 				std::string heading_topic)
 			{
@@ -293,6 +294,7 @@ namespace labust {
 				data.push_back(boost::lexical_cast<std::string>(heading_enable));
 				data.push_back(boost::lexical_cast<std::string>(altitude_enable));
 				data.push_back(boost::lexical_cast<std::string>(track_heading_enable));
+				data.push_back(boost::lexical_cast<std::string>(point_to_target));
 				data.push_back("#"+target_topic);
 				data.push_back("#"+heading_topic);
 

@@ -58,10 +58,11 @@ namespace labust
 		{
 		public:
 
+		  PrimitiveMapGenerator(){};
+
 			PrimitiveMapGenerator(string path):xml_path(path)
 			{
 				generatePrimitiveData(xml_path);
-
 			}
 
 			~PrimitiveMapGenerator()
@@ -84,21 +85,23 @@ namespace labust
 				return string_map;
 			}
 
+            void generatePrimitiveData(string xml_path)
+            {
+                ROS_INFO("PRIMITIVE DATA: %s", xml_path.c_str());
+                this->xml_path = xml_path;
+                double_map = getPrimitiveMap<double>("double");
+                string_map = getPrimitiveMap<string>("string");
+                bool_map = getPrimitiveMap<bool>("bool");
+                primitive_params = getPrimitiveParams();
+            }
 
 		private:
-
-			void generatePrimitiveData(string xml_path)
-			{
-				double_map = getPrimitiveMap<double>("double");
-				string_map = getPrimitiveMap<string>("string");
-				bool_map = getPrimitiveMap<bool>("bool");
-				primitive_params = getPrimitiveParams();
-			}
 
 			template <typename data_type>
 			map<string, data_type> getPrimitiveMap(string param_type)
 			{
-				if(xmlDoc.LoadFile(xml_path.c_str())== XML_SUCCESS)
+			    ROS_INFO("PRIMITIVE MAP GET:%s", xml_path.c_str());
+				if(xmlDoc.LoadFile(xml_path.c_str()) == XML_SUCCESS)
 				{
 					XMLNode *primitive_defs;
 					XMLNode *primitive;
@@ -141,7 +144,7 @@ namespace labust
 				}
 				else
 				{
-					ROS_FATAL("Mission execution: PRIMITIVE DEFINITION XML CANNOT BE OPENED.");
+					ROS_FATAL("Mission execution: PRIMITIVE DEFINITION XML CANNOT BE OPENED 1.");
 				}
 			}
 
@@ -190,7 +193,7 @@ namespace labust
 				}
 				else
 				{
-					ROS_FATAL("Mission execution: PRIMITIVE DEFINITION XML CANNOT BE OPENED.");
+					ROS_FATAL("Mission execution: PRIMITIVE DEFINITION XML CANNOT BE OPENED 2.");
 				}
 			}
 

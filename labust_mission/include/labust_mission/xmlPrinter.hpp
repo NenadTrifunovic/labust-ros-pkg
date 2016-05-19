@@ -67,7 +67,7 @@ namespace labust{
 			 *** Class functions
 			 ************************************************************/
 
-			WriteXML();
+			WriteXML(const std::string& xml);
 
 			void addMission();
 
@@ -99,7 +99,8 @@ namespace labust{
 			int id;
 		};
 
-		WriteXML::WriteXML():id(0),PP("/home/filip/ros/src/labust-ros-pkg/labust_primitives/data/primitiveDefinitions.xml")
+
+		WriteXML::WriteXML(const std::string& xml):id(0),PP(xml)
 		{
 			primitive = doc.NewElement("");
 			events = doc.NewElement("");

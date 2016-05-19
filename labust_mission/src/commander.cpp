@@ -51,16 +51,16 @@ int main(int argc, char** argv)
 {
 	ros::init(argc, argv, "commander");
 
-	ros::NodeHandle nh;
+	ros::NodeHandle nh,ph("~");
 
-	std::string primitive_definitons_xml;
-	if(!nh.getParam("primitive_definitions_path",primitive_definitons_xml))
+	std::string primitive_definitions_xml;
+	if(!ph.getParam("primitive_definitions_path",primitive_definitions_xml))
 	{
 		ROS_FATAL("NO PRIMITIVE DEFINITION XML PATH DEFINED.");
 		exit (EXIT_FAILURE);
 	}
 
-	labust::mission::Commander CMD(primitive_definitons_xml);
+	labust::mission::Commander CMD(primitive_definitions_xml);
 	ros::spin();
 	return 0;
 }
