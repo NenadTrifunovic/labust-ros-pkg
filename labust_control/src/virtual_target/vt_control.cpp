@@ -136,8 +136,8 @@ namespace labust
 
 				//ROS_ERROR("Position (s,e,h): (%f, %f, %f)",d(s),d(e),d(h));
 				nu->twist.angular.z = -labust::math::wrapRad(state.orientation.yaw - psi_r);
-				nu->twist.linear.x = nur(u) + nur(v)*nu->twist.angular.z;
-				nu->twist.linear.y = nur(v) - nur(u)*nu->twist.angular.z;
+				nu->twist.linear.x = nur(u); //+ nur(v)*nu->twist.angular.z;
+				nu->twist.linear.y = nur(v); //- nur(u)*nu->twist.angular.z;
 				nu->twist.linear.z = nur(w);
 
 				geometry_msgs::TwistStamped::Ptr piref_out(new geometry_msgs::TwistStamped());
