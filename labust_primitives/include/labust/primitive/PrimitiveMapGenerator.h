@@ -1,5 +1,3 @@
-//TODO Check if parameters are loaded properly.
-
 /*********************************************************************
  * PrimitiveMapGenerator.h
  *
@@ -87,7 +85,7 @@ namespace labust
 
             void generatePrimitiveData(string xml_path)
             {
-                ROS_INFO("PRIMITIVE DATA: %s", xml_path.c_str());
+                ROS_DEBUG("PRIMITIVE DATA XML: %s", xml_path.c_str());
                 this->xml_path = xml_path;
                 double_map = getPrimitiveMap<double>("double");
                 string_map = getPrimitiveMap<string>("string");
@@ -100,7 +98,6 @@ namespace labust
 			template <typename data_type>
 			map<string, data_type> getPrimitiveMap(string param_type)
 			{
-			    ROS_INFO("PRIMITIVE MAP GET:%s", xml_path.c_str());
 				if(xmlDoc.LoadFile(xml_path.c_str()) == XML_SUCCESS)
 				{
 					XMLNode *primitive_defs;
@@ -122,9 +119,6 @@ namespace labust
 
 							for (primitiveParam = primitive->FirstChildElement("param"); primitiveParam != NULL; primitiveParam = primitiveParam->NextSiblingElement())
 							{
-
-
-
 								XMLElement *elem2 = primitiveParam->ToElement();
 								string primitiveParamType = elem2->Attribute("type");
 								if(primitiveParamType.compare(param_type)==0)
@@ -208,11 +202,8 @@ namespace labust
 		public:
 
 			map<int,std::vector<std::string> > primitive_params;
-
 		};
 	}
 }
-
-
 
 #endif /* LABUST_ROS_PKG_LABUST_PRIMITIVES_INCLUDE_LABUST_PRIMITIVE_PRIMITIVEMAPGENERATOR_H_ */
