@@ -102,7 +102,7 @@ find_library(TinyXML2_LIBRARY
 catkin_package(
   INCLUDE_DIRS include
 #  LIBRARIES caddy_state_machine
- CATKIN_DEPENDS decision_making decision_making_parser roscpp
+ CATKIN_DEPENDS decision_making decision_making_parser roscpp labust_primitives
 #  DEPENDS system_lib
 )
 
@@ -123,49 +123,43 @@ if (TinyXML2_LIBRARY)
 	include_directories(${TinyXML2_INCLUDE_DIR})
 	
 	add_executable(mission_exec src/mission_exec.cpp)
-    add_executable(neptus_parser src/neptus_parser.cpp)
+        #add_executable(neptus_parser src/neptus_parser.cpp)
 	#add_executable(mission_exec_INTEGRATED src/mission_exec_INTEGRATED.cpp)
 	add_executable(mission_parser src/mission_parser.cpp)
 	add_executable(data_event_manager src/data_event_manager.cpp)
 	#add_executable(testSerialization src/serialization_test.cpp)
 	#add_executable(mission_control_test src/mission_control_test.cpp)
+	add_executable(commander src/commander.cpp)
 	
 	if (DEFINED catkin_EXPORTED_TARGETS)
 	  add_dependencies(mission_exec ${catkin_EXPORTED_TARGETS})
 	  #add_dependencies(mission_exec_INTEGRATED ${catkin_EXPORTED_TARGETS})
 	  add_dependencies(mission_parser ${catkin_EXPORTED_TARGETS})
-	  add_dependencies(neptus_parser ${catkin_EXPORTED_TARGETS})
+	  #add_dependencies(neptus_parser ${catkin_EXPORTED_TARGETS})
 	  add_dependencies(data_event_manager ${catkin_EXPORTED_TARGETS})
 	  #add_dependencies(testSerialization ${catkin_EXPORTED_TARGETS})
+	  add_dependencies(commander ${catkin_EXPORTED_TARGETS})
 	endif()
 	
 	target_link_libraries(mission_exec ${catkin_LIBRARIES} ${TinyXML2_LIBRARY})
 	#target_link_libraries(mission_exec_INTEGRATED ${catkin_LIBRARIES}  ${TinyXML2_LIBRARY})
 	target_link_libraries(mission_parser ${catkin_LIBRARIES} ${TinyXML2_LIBRARY})
 	target_link_libraries(data_event_manager ${catkin_LIBRARIES} ${TinyXML2_LIBRARY})
-	target_link_libraries(neptus_parser ${catkin_LIBRARIES} ${TinyXML2_LIBRARY} ${GeographicLib_LIBRARIES})
+	#target_link_libraries(neptus_parser ${catkin_LIBRARIES} ${TinyXML2_LIBRARY} ${GeographicLib_LIBRARIES})
+	target_link_libraries(commander ${catkin_LIBRARIES} ${TinyXML2_LIBRARY})
 	#target_link_libraries(testSerialization ${catkin_LIBRARIES} ${TinyXML2_LIBRARY})
 else()
   message("WARNING" "Custom installation of TinyXML2 library is missing.")
 endif()
 
-add_executable(lod missions/lawnmower_on_demand.cpp)
 add_executable(caddy_missions src/caddy_missions.cpp)
-add_executable(ckt missions/course_keeping_turns.cpp)
-add_executable(mzos missions/mzos.cpp)
 #add_executable(mission_control_test src/mission_control_test.cpp)
 
 if (DEFINED catkin_EXPORTED_TARGETS)
-  add_dependencies(lod ${catkin_EXPORTED_TARGETS})
-  add_dependencies(ckt ${catkin_EXPORTED_TARGETS})
-  add_dependencies(mzos ${catkin_EXPORTED_TARGETS})
   #add_dependencies(mission_control_test ${catkin_EXPORTED_TARGETS})
 endif()
 
 #link_directories(/usr/include/)
-target_link_libraries(lod ${catkin_LIBRARIES})
-target_link_libraries(ckt ${catkin_LIBRARIES})
-target_link_libraries(mzos ${catkin_LIBRARIES})
 target_link_libraries(caddy_missions  ${catkin_LIBRARIES})
 
 decision_making_parsing(src/mission_exec.cpp)

@@ -46,6 +46,7 @@ class Structure:
     _XMLTAG -- constant string with the xml tag description
     """
     _XMLTAG = 'struct'
+    _GROUPTAG = 'group'
     
     def __init__(self, xmlnode = None):
         """
@@ -102,11 +103,36 @@ class Structure:
         self.bitfield2 = (bitfield2 == "1") or (bitfield2.upper() == "TRUE")
         bitfield3 = xmlnode.get('bitfield3', '')
         self.bitfield3 = (bitfield3 == "1") or (bitfield3.upper() == "TRUE")
-          
-        for node in xmlnode.findall('.//'+Variable._XMLTAG):
-            self.variables.append(Variable(node))
         
-        for node in xmlnode.findall(Enum._XMLTAG):
-            self.enums.append(Enum(node))
+        # Process children in ordered fashion
+        for child in xmlnode:
+            if child.tag == Variable._XMLTAG:
+                self.variables.append(Variable(child))
+            elif child.tag == self._GROUPTAG:
+                for gchild in child:
+                    if gchild.tag == Variable._XMLTAG:
+                        var = Variable(gchild)
+                        var.set_group_options(child)
+                        self.variables.append(var)
+
+            elif child.tag == Enum._XMLTAG:
+                self.enums.append(Enum(child))
+            else:
+                print('Unknown tag:%s'.format(child.tag))
+
+
+
+        #for node in xmlnode.findall('./'+Variable._XMLTAG):
+        #    self.variables.append(Variable(node))
+        
+        # Get groups
+        #for group in xmlnode.findall('./'+self._GROUPTAG):
+        #    for node in group.findall('./'+Variable._XMLTAG):
+        #          var = Variable(node)
+        #          var.set_group_options(group)
+        #          self.variables.append(var)
+        
+        #for node in xmlnode.findall(Enum._XMLTAG):
+        #    self.enums.append(Enum(node))
         
         

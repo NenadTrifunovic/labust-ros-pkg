@@ -37,6 +37,7 @@
 #include <vector>
 #include <cassert>
 #include <cstdint>
+#include <bitset>
 
 namespace labust
 {
@@ -69,12 +70,15 @@ namespace labust
 				//Get the size mask (maximum 64 bits for data representation)
 				uint64_t mask = (one << bitsz)-one;
 				//Normalize data
-				uint64_t xw = uint64_t((mask * (rdata - min))/(max-min));
+				uint64_t xw = uint64_t(round(mask * (rdata - min)/(max-min)));
 				xw &= mask;
+        std::cout<<"\t Encoder number:"<<xw<<std::endl;
 
 				uint8_t rembits(bitsz);
 				while (rembits)
 				{
+          //introspect();
+          //std::cout<<"\t rembits:"<<int(rembits)<<std::endl;
 					//Check if enough size is available
 					if (_storage.size() <= bytept) _storage.push_back(0);
 
@@ -82,6 +86,7 @@ namespace labust
 					if (rembits < rem) rem = rembits;
 					_storage[bytept] |= uint8_t((xw >> (rembits - rem)) << (bitpt));
 					bitpt += rem;
+          //std::cout<<"\t rem:"<<int(rem)<<std::endl;
 					if (bitpt == 8)
 					{
 						++(bytept);
@@ -90,6 +95,7 @@ namespace labust
 					rembits -= rem;
 					xw &= (one << rembits) - one;
 				}
+        //introspect();
 			}
 
 			template<class ValueType>
@@ -124,9 +130,29 @@ namespace labust
 					rembits -= rem;
 				}
 
+        std::cout<<"\t Decoder number:"<<xw<<std::endl;
+
 				data = ValueType(((max-min)*xw)/mask + min);
 				return true;
 			}
+
+      /// Introspection into the storage
+      void introspect()
+      {
+          // Introspection
+          std::cout<<"BitStorage state"<<std::endl;
+          std::cout<<"\t Size:"<<_storage.size()<<std::endl;
+          std::cout<<"\t Bitpt:"<<int(bitpt)<<std::endl;
+          std::cout<<"\t Bytept:"<<bytept<<std::endl;
+          std::cout<<"\t Storage:";
+          for (int i=0; i<_storage.size(); ++i)
+          {
+            std::cout<<std::bitset<8>(_storage[i])<<" ";
+          }
+          std::cout<<std::endl;
+          usleep(2000*1000);
+      }
+
 
 			///Get storage
 			const std::vector<uint8_t>& storage() const {return _storage;}

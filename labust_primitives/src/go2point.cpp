@@ -9,7 +9,7 @@
 /*********************************************************************
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2015, LABUST, UNIZG-FER
+ *  Copyright (c) 2015-2016, LABUST, UNIZG-FER
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -59,7 +59,6 @@ namespace labust
 {
 	namespace primitive
 	{
-
 		/*************************************************************
 		 *** Go2Point primitive class
 		 ************************************************************/
@@ -69,15 +68,18 @@ namespace labust
 			typedef navcon_msgs::GoToPointResult Result;
 			typedef navcon_msgs::GoToPointFeedback Feedback;
 
-			enum {ualf = 0, falf, hdg, fadp, numcnt};
+			enum {ualf = 0, falf, hdg, depth, numcnt};
 			enum {xp = 0, yp, zp};
 
 			GoToPoint():ExecutorBase("go2point"),
-						 underactuated(true),
+						 underactuated(false),
 						 processNewGoal(false),
 						 lastDistance(0.0),
 						 distVictory(0.0),
-						 Ddistance(0.0){};
+						 Ddistance(0.0)
+			{
+
+			}
 
 			void init()
 			{
@@ -86,31 +88,35 @@ namespace labust
 				/*** Initialize controller names ***/
 				controllers.name.resize(numcnt);
 				controllers.state.resize(numcnt, false);
-
 				controllers.name[ualf] = "UALF_enable";
 				controllers.name[falf] = "FALF_enable";
 				controllers.name[hdg] = "HDG_enable";
+				controllers.name[depth] = "DEPTH_enable";
 			}
 
 			void onGoal()
 			{
 				boost::mutex::scoped_lock l(state_mux);
-				ROS_DEBUG("On goal.");
+				//ROS_DEBUG("On goal.");
 				//Set the flag to avoid disabling controllers on preemption
 				processNewGoal = true;
 				Goal::ConstPtr new_goal = aserver->acceptNewGoal();
 				processNewGoal = false;
 
+				/*** Display goal info ***/
+				ROS_INFO("go2point: Primitive action goal received.");
+
 				// Vidi kakav redoslijed
 				/*** Check primitive subtype ***/
-
 				switch(new_goal->subtype)
 				{
 					case Goal::GO2POINT_UA:
 						underactuated = true;
+						ROS_ERROR("go2point: underactuated");
 						break;
 					case Goal::GO2POINT_FA:
 						underactuated = false;
+						ROS_ERROR("go2point: Fully actuated");
 						break;
 					case Goal::GO2POINT_FA_HDG:
 						underactuated = false;
@@ -119,33 +125,30 @@ namespace labust
 						break;
 				}
 
-
-
 				//Check if course keeping is possible.
 				if (new_goal->speed == 0)
 				{
-					ROS_WARN("Cannot perform course keeping without forward speed.");
+					ROS_ERROR("Cannot perform course keeping without forward speed.");
 					aserver->setAborted(Result(), "Forward speed is zero.");
 				}
 
-				if ((goal == 0) || (new_goal->T1.point.x != goal->T1.point.x)
-								|| (new_goal->T1.point.y != goal->T1.point.y)
-								|| (new_goal->T2.point.x != goal->T2.point.x)
-								|| (new_goal->T2.point.y != goal->T2.point.y)
-								|| (new_goal->heading != goal->heading)
-								|| (new_goal->speed != goal->speed))
+//				if ((goal == 0) || (new_goal->T1.point.x != goal->T1.point.x)
+//								|| (new_goal->T1.point.y != goal->T1.point.y)
+//								|| (new_goal->T2.point.x != goal->T2.point.x)
+//								|| (new_goal->T2.point.y != goal->T2.point.y)
+//								|| (new_goal->heading != goal->heading)
+//								|| (new_goal->speed != goal->speed))
+//				{
+
+			    goal = new_goal;
+
+				if(goal->axis_enable.x && goal->axis_enable.y)
 				{
-
-					//Save new goal
-					goal = new_goal;
-					//ROS_DEBUG("Change course: %f", new_goal->course);
-
 					/*** Calculate new course line ***/
 					Eigen::Vector3d T1,T2;
 					T1 << new_goal->T1.point.x, new_goal->T1.point.y, 0;
 					T2 << new_goal->T2.point.x, new_goal->T2.point.y, 0;
 					line.setLine(T1,T2);
-
 
 					geometry_msgs::TransformStamped transform;
 					transform.transform.translation.x = T1(xp);
@@ -157,51 +160,40 @@ namespace labust
 					transform.header.frame_id = tf_prefix + "local";
 					transform.header.stamp = ros::Time::now();
 					broadcaster.sendTransform(transform);
-
+				}
 
 					/*** Update reference ***/
 					stateRef.publish(step(lastState));
-
-
 
 					/*** Enable controllers depending on the primitive subtype ***/
 					if (!underactuated)
 					{
 						/*** Fully actuated ***/
-						controllers.state[falf] = true;
-						controllers.state[hdg] = true;
+						controllers.state[falf] = true && goal->axis_enable.x && goal->axis_enable.y;
+						controllers.state[hdg] = true && goal->axis_enable.x && goal->axis_enable.y;
+						controllers.state[depth] = goal->axis_enable.z;
 					}
 					else
 					{
 						/*** Under actuated ***/
 						double delta = labust::math::wrapRad(lastState.orientation.yaw - line.gamma());
-						ROS_DEBUG("Delta: %f",delta);
 						if (std::abs(delta) < M_PI_2)
 						{
-							controllers.state[ualf] = true;
-							controllers.state[hdg] = false;
+							controllers.state[ualf] = true && goal->axis_enable.x && goal->axis_enable.y;;
+							controllers.state[hdg] = false && goal->axis_enable.x && goal->axis_enable.y;;
+							controllers.state[depth] = goal->axis_enable.z;
 						}
 					}
-
-
 					this->updateControllers();
-
-
-				}
-
-				//Save new goal
-//				goal = new_goal;
-
-
 			}
 
 			void onPreempt()
 			{
-				ROS_ERROR("Preempted.");
+				ROS_WARN("go2point: Goal preempted.");
 				if (!processNewGoal)
 				{
 					goal.reset();
-					ROS_ERROR("Stopping controllers.");
+					ROS_INFO("go2point: Stopping controllers.");
 					controllers.state.assign(numcnt, false);
 					this->updateControllers();
 				}
@@ -232,6 +224,10 @@ namespace labust
 				a.request.enable = controllers.state[hdg];
 				cl.call(a);
 
+				/*** Enable or disable depth controller ***/
+				cl = nh.serviceClient<navcon_msgs::EnableControl>(std::string(controllers.name[depth]).c_str());
+				a.request.enable = controllers.state[depth];
+				cl.call(a);
 			}
 
 			void onStateHat(const auv_msgs::NavSts::ConstPtr& estimate)
@@ -246,7 +242,10 @@ namespace labust
 
 				    /*** Check if goal (victory radius) is achieved ***/
 					Eigen::Vector3d deltaVictory;
-					deltaVictory<<goal->T2.point.x-estimate->position.north, goal->T2.point.y-estimate->position.east, 0;
+					deltaVictory<<
+							(goal->axis_enable.x?goal->T2.point.x-estimate->position.north:0.0),
+							(goal->axis_enable.y?goal->T2.point.y-estimate->position.east:0.0),
+							(goal->axis_enable.z?goal->T2.point.z-estimate->position.depth:0.0);
 
 					distVictory = deltaVictory.norm();
 					Ddistance = distVictory - lastDistance;
@@ -260,7 +259,8 @@ namespace labust
 						result.distance = distVictory;
 						result.bearing = bearing_to_endpoint.gamma();
 						aserver->setSucceeded(result);
-						ROS_INFO("Stopping controllers.");
+						goal.reset();
+						ROS_INFO("go2point: Goal completed. Stopping controllers.");
 						controllers.state.assign(numcnt, false);
 						this->updateControllers();
 						return;
@@ -275,76 +275,90 @@ namespace labust
 				else if (goal != 0)
 				{
 						goal.reset();
-						ROS_INFO("Stopping controllers.");
+						ROS_INFO("go2point: Stopping controllers.");
 						controllers.state.assign(numcnt, false);
 						this->updateControllers();
 				}
-
 				lastState = *estimate;
 			}
 
 			auv_msgs::NavStsPtr step(const auv_msgs::NavSts& state)
 			{
 				auv_msgs::NavStsPtr ref(new auv_msgs::NavSts());
+				auv_msgs::NavStsPtr ref_local(new auv_msgs::NavSts());
 
-				/*** Set course frame references ***/
-				ref->position.east = 0;
-				ref->body_velocity.x = goal->speed;
-				ref->orientation.yaw = goal->heading;
 				ref->header.frame_id = tf_prefix + "course_frame";
 
-				/*** Calculate bearing to endpoint ***/
-				Eigen::Vector3d T1,T2;
-				T1 << state.position.north, state.position.east, 0;
-				T2 << goal->T2.point.x, goal->T2.point.y, 0;
-				bearing_to_endpoint.setLine(T1,T2);
-
-				/*** If victory radius is missed change course  ***/
-				if(std::abs(labust::math::wrapRad(bearing_to_endpoint.gamma() - line.gamma())) > 60*M_PI/180 && Ddistance > 0)
+				/*** Handle depth ***/
+				if(goal->axis_enable.z)
 				{
+					ref->position.depth = goal->T2.point.z;
 
-					ROS_ERROR("Changing course");
-					line = bearing_to_endpoint;
-
-					geometry_msgs::TransformStamped transform;
-					transform.transform.translation.x = T1(xp);
-					transform.transform.translation.y = T1(yp);
-					transform.transform.translation.z = T1(zp);
-					labust::tools::quaternionFromEulerZYX(0, 0, line.gamma(),
-							transform.transform.rotation);
-					transform.child_frame_id = tf_prefix + "course_frame";
-					transform.header.frame_id = tf_prefix + "local";
-					transform.header.stamp = ros::Time::now();
-					broadcaster.sendTransform(transform);
+					//ref_local->position.depth = goal->T2.point.z;
+					//ref_local->header.frame_id = tf_prefix + "local";
+					//ref_local->header.stamp = ros::Time::now();
+					//stateRef.publish(ref_local); //TODO Change how this is done
 				}
 
-				/*** Check underactuated behaviour ***/
-				if (underactuated)
+
+				/*** Set course frame references ***/
+				if(goal->axis_enable.x && goal->axis_enable.y)
 				{
-					ref->orientation.yaw = line.gamma();
-					double delta = labust::math::wrapRad(state.orientation.yaw - line.gamma());
-					ROS_DEBUG("Delta, gamma: %f, %f",delta, line.gamma());
+					ref->position.east = 0;
+					ref->body_velocity.x = goal->speed;
+					ref->orientation.yaw = goal->heading;
 
 
-					if (controllers.state[hdg] && (std::abs(delta) < M_PI/3))
+					/*** Calculate bearing to endpoint ***/
+					Eigen::Vector3d T1,T2;
+					T1 << state.position.north, state.position.east, 0;
+					T2 << goal->T2.point.x, goal->T2.point.y, 0;
+					bearing_to_endpoint.setLine(T1,T2);
+
+					/*** If victory radius is missed change course  ***/
+					if(std::abs(labust::math::wrapRad(bearing_to_endpoint.gamma() - line.gamma())) > 60*M_PI/180 && Ddistance > 0)
 					{
-							/*** Disable hdg and activate ualf ***/
-							controllers.state[hdg] = false;
-							controllers.state[ualf] = true;
-							this->updateControllers();
-							ref->header.frame_id = tf_prefix + "course_frame";
-					}
-					else if (std::abs(delta) >= M_PI/2)
-					{
-							/*** Deactivate ualf and activate hdg ***/
-							controllers.state[hdg] = true;
-							controllers.state[ualf] = false;
-							this->updateControllers();
-							ref->header.frame_id = tf_prefix + "local";
+
+						ROS_ERROR("go2point: Victory radius missed. Changing course.");
+						line = bearing_to_endpoint;
+
+						geometry_msgs::TransformStamped transform;
+						transform.transform.translation.x = T1(xp);
+						transform.transform.translation.y = T1(yp);
+						transform.transform.translation.z = T1(zp);
+						labust::tools::quaternionFromEulerZYX(0, 0, line.gamma(),
+								transform.transform.rotation);
+						transform.child_frame_id = tf_prefix + "course_frame";
+						transform.header.frame_id = tf_prefix + "local";
+						transform.header.stamp = ros::Time::now();
+						broadcaster.sendTransform(transform);
 					}
 
+					/*** Check underactuated behaviour ***/
+					if (underactuated)
+					{
+						ref->orientation.yaw = line.gamma();
+						double delta = labust::math::wrapRad(state.orientation.yaw - line.gamma());
+						ROS_DEBUG("Delta, gamma: %f, %f",delta, line.gamma());
+
+						if (controllers.state[hdg] && (std::abs(delta) < M_PI/3))
+						{
+								/*** Disable hdg and activate ualf ***/
+								controllers.state[hdg] = false;
+								controllers.state[ualf] = true;
+								this->updateControllers();
+								ref->header.frame_id = tf_prefix + "course_frame";
+						}
+						else if (std::abs(delta) >= M_PI/2)
+						{
+								/*** Deactivate ualf and activate hdg ***/
+								controllers.state[hdg] = true;
+								controllers.state[ualf] = false;
+								this->updateControllers();
+								ref->header.frame_id = tf_prefix + "local";
+						}
+					}
 				}
-
 				ref->header.stamp = ros::Time::now();
 				return ref;
 			}

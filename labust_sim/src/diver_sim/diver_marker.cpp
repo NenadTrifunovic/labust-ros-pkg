@@ -41,6 +41,7 @@
 volatile double radius(2);
 ros::Publisher marker_pub;
 tf2_ros::TransformBroadcaster* broadcaster;
+std::string marker_frame("diver_frame");
 
 volatile void onRadius(const std_msgs::Float32::ConstPtr& data)
 {
@@ -48,7 +49,7 @@ volatile void onRadius(const std_msgs::Float32::ConstPtr& data)
 	radius = data->data;
 }
 
-void onDiverPos(const auv_msgs::NavSts::ConstPtr& diver_pos)
+volatile void onDiverPos(const auv_msgs::NavSts::ConstPtr& diver_pos)
 {
 	//Publish transform
 	geometry_msgs::TransformStamped tfs;
@@ -60,7 +61,7 @@ void onDiverPos(const auv_msgs::NavSts::ConstPtr& diver_pos)
 			diver_pos->orientation.pitch,
 			diver_pos->orientation.yaw,
 			tfs.transform.rotation);
-	tfs.child_frame_id = "diver_frame";
+	tfs.child_frame_id = marker_frame;
 	tfs.header.frame_id = "local";
 	tfs.header.stamp = ros::Time::now();
 	broadcaster->sendTransform(tfs);
@@ -69,20 +70,22 @@ void onDiverPos(const auv_msgs::NavSts::ConstPtr& diver_pos)
 int main( int argc, char** argv )
 {
   ros::init(argc, argv, "diver_marker");
-  ros::NodeHandle nh;
+  ros::NodeHandle nh, ph("~");
   ros::Publisher marker_pub = nh.advertise<visualization_msgs::Marker>("visualization_marker", 1);
   ros::Subscriber radius_sub = nh.subscribe<std_msgs::Float32>("radius", 1, &onRadius);
   ros::Subscriber diver_sub = nh.subscribe<auv_msgs::NavSts>("position", 1, &onDiverPos);
   broadcaster = new tf2_ros::TransformBroadcaster();
+
+  ph.param("marker_frame", marker_frame, marker_frame);
 
   ros::Rate rate(10);
   while (ros::ok())
   {
     visualization_msgs::Marker marker;
 
-    marker.header.frame_id = "diver_frame";
+    marker.header.frame_id = marker_frame;
     marker.header.stamp = ros::Time::now();
-    marker.ns = "safety_radius";
+    marker.ns = marker_frame + "safety_radius";
     marker.id = 0;
     marker.type = visualization_msgs::Marker::SPHERE;
     marker.action = visualization_msgs::Marker::ADD;

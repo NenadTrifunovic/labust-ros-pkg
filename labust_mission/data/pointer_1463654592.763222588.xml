@@ -1,0 +1,17 @@
+<main>
+    <mission>
+        <primitive name="pointer">
+            <id>1</id>
+            <param name="radius">5</param>
+            <param name="vertical_offset">0</param>
+            <param name="guidance_target_x">0</param>
+            <param name="guidance_target_y">0</param>
+            <param name="guidance_target_z">0</param>
+            <param name="guidance_enable">0</param>
+            <param name="wrapping_enable">0</param>
+            <param name="streamline_orientation">1</param>
+            <param name="guidance_topic">#guide_target</param>
+            <param name="radius_topic">#diver_distance</param>
+        </primitive>
+    </mission>
+</main>

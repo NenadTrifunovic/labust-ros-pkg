@@ -1,3 +1,4 @@
+//TODO check what happens when pause is requested during dispatcher state.
 /*********************************************************************
  * mission_exec.cpp
  *
@@ -9,7 +10,7 @@
 /*********************************************************************
 * Software License Agreement (BSD License)
 *
-*  Copyright (c) 2014, LABUST, UNIZG-FER
+*  Copyright (c) 2014-2016, LABUST, UNIZG-FER
 *  All rights reserved.
 *
 *  Redistribution and use in source and binary forms, with or without
@@ -40,20 +41,15 @@
 *  POSSIBILITY OF SUCH DAMAGE.
 *********************************************************************/
 
-#include <labust_mission/labustMission.hpp>
-#include <labust_mission/primitiveManager.hpp>
 #include <labust_mission/missionExecution.hpp>
-
-#include <tinyxml2.h>
-
 #include <decision_making/SynchCout.h>
 #include <decision_making/BT.h>
 #include <decision_making/FSM.h>
 #include <decision_making/ROSTask.h>
 #include <decision_making/DecisionMaking.h>
+#include <labust/mission/labustMission.hpp>
 
 using namespace decision_making;
-using namespace tinyxml2;
 
 /*********************************************************************
 *** Global variables
@@ -79,25 +75,29 @@ MainEventQueue(){ mainEventQueue = new RosEventQueue(); }
 			/*** Execution states */
 			Wait_state,
 			Dispatcher_state,
+			Pause_state,
 			placeholder_state,
 			/*** Primitive states */
-			go2point_FA_state,
+			go2point_state,
 			dynamic_positioning_state,
 			course_keeping_state,
-			//iso_state,
+			iso_state,
 			follow_state,
-			pointer_state
+			pointer_state,
+			go2depth_state
 		}
 		FSM_START(Wait_state);
 		FSM_BGN
 		{
 			FSM_STATE(Wait_state)
 			{
-				ROS_ERROR("Mission waiting...");
+				ROS_INFO("Mission execution: Mission execution ready.");
+				ME->onPrimitiveEndReset();
+				ME->nextPrimitive = 1;
 
 				FSM_ON_STATE_EXIT_BGN{
 
-					ROS_ERROR("Starting mission...");
+					ROS_INFO("Mission execution: Starting new mission.");
 					/** Wait for data and events initialization */
 					//ros::Rate(ros::Duration(1.0)).sleep(); Vidjeti je li potrebno
 
@@ -115,7 +115,7 @@ MainEventQueue(){ mainEventQueue = new RosEventQueue(); }
 			}
 			FSM_STATE(Dispatcher_state)
 			{
-				ROS_ERROR("Dispatcher active");
+				ROS_INFO("Mission execution: Dispatcher active");
 				ME->missionActive = true;
 				ME->requestPrimitive();
 
@@ -123,17 +123,37 @@ MainEventQueue(){ mainEventQueue = new RosEventQueue(); }
 				{
 					FSM_ON_EVENT("/STOP", FSM_NEXT(Wait_state));
 					FSM_ON_EVENT("/PLACEHOLDER", FSM_NEXT(placeholder_state));
-					FSM_ON_EVENT("/GO2POINT_FA", FSM_NEXT(go2point_FA_state));
+					FSM_ON_EVENT("/GO2POINT", FSM_NEXT(go2point_state));
 					FSM_ON_EVENT("/DYNAMIC_POSITIONING", FSM_NEXT(dynamic_positioning_state));
-					//FSM_ON_EVENT("/COURSE_KEEPING", FSM_NEXT(course_keeping_state));
+					FSM_ON_EVENT("/COURSE_KEEPING", FSM_NEXT(course_keeping_state));
 					//FSM_ON_EVENT("/ISO", FSM_NEXT(iso_state));
 					FSM_ON_EVENT("/FOLLOW", FSM_NEXT(follow_state));
 					FSM_ON_EVENT("/POINTER", FSM_NEXT(pointer_state));
+
+					FSM_ON_EVENT("/START_DISPATCHER", FSM_NEXT(Dispatcher_state)); //TODO CHECK THIS
+
+				}
+			}
+			FSM_STATE(Pause_state)
+			{
+				ROS_WARN("Mission execution: Mission paused");
+				ME->onPrimitiveEndReset();
+				ME->nextPrimitive--;
+
+				ME->pause_position.north = ME->state.position.north;
+				ME->pause_position.east = ME->state.position.east;
+				ME->pause_position.depth = ME->state.position.depth;
+
+				FSM_TRANSITIONS
+				{
+					FSM_ON_EVENT("/STOP", FSM_NEXT(Wait_state));
+					FSM_ON_EVENT("/START_DISPATCHER", FSM_NEXT(Dispatcher_state));
+					FSM_ON_EVENT("/CONTINUE", FSM_NEXT(Dispatcher_state));
 				}
 			}
 			FSM_STATE(placeholder_state)
 			{
-				ROS_ERROR("Placeholder active");
+				ROS_INFO("Mission execution: placeholder active");
 
 				FSM_TRANSITIONS
 				{
@@ -142,15 +162,15 @@ MainEventQueue(){ mainEventQueue = new RosEventQueue(); }
 					FSM_ON_EVENT("/TIMEOUT", FSM_NEXT(Dispatcher_state));
 				}
 			}
-			FSM_STATE(go2point_FA_state)
+			FSM_STATE(go2point_state)
 			{
-				ROS_ERROR("go2point_FA primitive active");
+				ROS_INFO("Mission execution: go2point primitive active");
 
-				ME->go2point_FA_state();
+				ME->go2point_state();
 
 				FSM_ON_STATE_EXIT_BGN{
 
-					ME->CM.go2point_FA(false,0,0,0,0,0,0);
+					ME->PM.go2point_disable();
 
 				}FSM_ON_STATE_EXIT_END
 
@@ -158,19 +178,20 @@ MainEventQueue(){ mainEventQueue = new RosEventQueue(); }
 				{
 					FSM_ON_EVENT("/STOP", FSM_NEXT(Wait_state));
 					FSM_ON_EVENT("/PRIMITIVE_FINISHED", FSM_NEXT(Dispatcher_state));
+					FSM_ON_EVENT("/PAUSE", FSM_NEXT(Pause_state));
 					FSM_ON_EVENT("/TIMEOUT", FSM_NEXT(Dispatcher_state));
 
 				}
 			}
 			FSM_STATE(dynamic_positioning_state)
 			{
-				ROS_ERROR("dynamic_positioning primitive active");
+				ROS_INFO("Mission execution: dynamic_positioning primitive active");
 
 				ME->dynamic_postitioning_state();
 
 				FSM_ON_STATE_EXIT_BGN{
 
-					ME->CM.dynamic_positioning(false,0,0,0);
+					ME->PM.dynamic_positioning_disable();
 
 				}FSM_ON_STATE_EXIT_END
 
@@ -178,6 +199,7 @@ MainEventQueue(){ mainEventQueue = new RosEventQueue(); }
 				{
 					FSM_ON_EVENT("/STOP", FSM_NEXT(Wait_state));
 					FSM_ON_EVENT("/PRIMITIVE_FINISHED", FSM_NEXT(Dispatcher_state));
+					FSM_ON_EVENT("/PAUSE", FSM_NEXT(Pause_state));
 					FSM_ON_EVENT("/TIMEOUT", FSM_NEXT(Dispatcher_state));
 				}
 			}
@@ -189,7 +211,7 @@ MainEventQueue(){ mainEventQueue = new RosEventQueue(); }
 
 				FSM_ON_STATE_EXIT_BGN{
 
-					ME->CM.course_keeping_FA(false,0,0,0);
+					ME->PM.course_keeping_FA(false,0,0,0);
 
 					ME->oldPosition.north = ME->state.position.north;
 					ME->oldPosition.east = ME->state.position.east;
@@ -213,7 +235,7 @@ MainEventQueue(){ mainEventQueue = new RosEventQueue(); }
 
 				FSM_ON_STATE_EXIT_BGN{
 
-					ME->CM.ISOprimitive(false,0,0,0,0,0);
+					ME->PM.ISOprimitive(false,0,0,0,0,0);
 
 					ME->oldPosition.north = ME->state.position.north;
 					ME->oldPosition.east = ME->state.position.east;
@@ -230,14 +252,14 @@ MainEventQueue(){ mainEventQueue = new RosEventQueue(); }
 			}*/
 			FSM_STATE(follow_state)
 			{
-				ROS_ERROR("follow primitive active");
+				ROS_INFO("Mission execution: follow primitive active");
 
 				ME->follow_state();
 
 
 				FSM_ON_STATE_EXIT_BGN
 				{
-					ME->CM.follow(false,0,0,0,0,0,0,0,0,0,0,0);
+					ME->PM.follow_disable();
 				}
 				FSM_ON_STATE_EXIT_END
 
@@ -245,19 +267,20 @@ MainEventQueue(){ mainEventQueue = new RosEventQueue(); }
 				{
 					FSM_ON_EVENT("/STOP", FSM_NEXT(Wait_state));
 					FSM_ON_EVENT("/PRIMITIVE_FINISHED", FSM_NEXT(Dispatcher_state));
+					FSM_ON_EVENT("/PAUSE", FSM_NEXT(Pause_state));
 					FSM_ON_EVENT("/TIMEOUT", FSM_NEXT(Dispatcher_state));
 				}
 			}
 			FSM_STATE(pointer_state)
 			{
-				ROS_ERROR("pointer primitive active");
+				ROS_INFO("Mission execution: pointer primitive active");
 
 				ME->pointer_state();
 
 
 				FSM_ON_STATE_EXIT_BGN
 				{
-					ME->CM.pointer(false,0,0,0,0,0,0,0,0,"","");
+					ME->PM.pointer_disable();
 				}
 				FSM_ON_STATE_EXIT_END
 
@@ -265,6 +288,7 @@ MainEventQueue(){ mainEventQueue = new RosEventQueue(); }
 				{
 					FSM_ON_EVENT("/STOP", FSM_NEXT(Wait_state));
 					FSM_ON_EVENT("/PRIMITIVE_FINISHED", FSM_NEXT(Dispatcher_state));
+					FSM_ON_EVENT("/PAUSE", FSM_NEXT(Pause_state));
 					FSM_ON_EVENT("/TIMEOUT", FSM_NEXT(Dispatcher_state));
 				}
 			}
@@ -281,10 +305,18 @@ int main(int argc, char** argv){
 
 	ros::init(argc, argv, "ControllerFSM");
 	ros_decision_making_init(argc, argv);
-	ros::NodeHandle nh;
+	ros::NodeHandle nh,ph("~");
+
+	std::string primitive_definitions_xml;
+	if(!ph.getParam("primitive_definitions_path",primitive_definitions_xml))
+	{
+		ROS_FATAL("NO PRIMITIVE DEFINITION XML PATH DEFINED.");
+		ROS_INFO("Path: %s", primitive_definitions_xml.c_str());
+		exit (EXIT_FAILURE);
+	}
 
 	/* Start Mission Execution */
-	labust::mission::MissionExecution MissExec(nh);
+	labust::mission::MissionExecution MissExec(nh,primitive_definitions_xml);
 	ME = &MissExec;
 
 	/* Global event queue */
