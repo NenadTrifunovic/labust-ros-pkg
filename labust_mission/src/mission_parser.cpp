@@ -150,7 +150,7 @@ namespace labust
 			ros::NodeHandle nh, ph("~");
 
 		    std::string primitive_definitions_xml;
-		    if(!ph.getParam("primitive_definitions_path",primitive_definitions_xml))
+		    if(!nh.getParam("primitive_definitions_path",primitive_definitions_xml))
 		    {
 		        ROS_FATAL("NO PRIMITIVE DEFINITION XML PATH DEFINED.");
 		    }
