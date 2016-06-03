@@ -74,7 +74,7 @@ namespace labust
 			 ***  Class functions
 			 ****************************************************************/
 
-			MissionParser();
+			MissionParser(std::string primitive_definitions_xml);
 
 			~MissionParser(){};
 
@@ -138,24 +138,16 @@ namespace labust
 		 ***  Class functions
 		 ****************************************************************/
 
-		MissionParser::MissionParser():ID(0),
+		MissionParser::MissionParser(std::string primitive_definitions_xml):ID(0),
 										   lastID(0),
 										   newTimeout(0),
 										   eventID(0),
 										   breakpoint(1),
 										   missionEvents(""),
 										   missionActive(false),
-										   PP()
+										   PP(primitive_definitions_xml)
 		{
 			ros::NodeHandle nh, ph("~");
-
-		    std::string primitive_definitions_xml;
-		    if(!nh.getParam("primitive_definitions_path",primitive_definitions_xml))
-		    {
-		        ROS_FATAL("NO PRIMITIVE DEFINITION XML PATH DEFINED.");
-		    }
-
-		    PP.generatePrimitiveData(primitive_definitions_xml);
 
 			/** Subscribers */
 			subRequestPrimitive = nh.subscribe<std_msgs::UInt16>("requestPrimitive",1,&MissionParser::onRequestPrimitive, this);
@@ -445,7 +437,19 @@ namespace labust
 int main(int argc, char** argv)
 {
 	ros::init(argc, argv, "mission_parser");
-	labust::mission::MissionParser MP;
+
+	ros::NodeHandle nh,ph("~");
+
+	std::string primitive_definitions_xml;
+	if(!nh.getParam("primitive_definitions_path",primitive_definitions_xml))
+	{
+		ROS_FATAL("Mission execution: NO PRIMITIVE DEFINITION XML PATH DEFINED.");
+		ROS_INFO("Path: %s", primitive_definitions_xml.c_str());
+		exit (EXIT_FAILURE);
+	}
+
+
+	labust::mission::MissionParser MP(primitive_definitions_xml);
 	ros::spin();
 	return 0;
 }

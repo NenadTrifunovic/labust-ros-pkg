@@ -74,8 +74,8 @@ namespace labust
 
 			vector<uint8_t> onEventNextActive, onEventNext;
 
-			ros::Publisher pubSendPrimitive, pubRiseEvent, pubMissionSetup;
-			ros::Subscriber subRequestPrimitive, subEventString, subReceiveXmlPath;
+			ros::Publisher pubRiseEvent, pubMissionSetup;
+			ros::Subscriber subEventString, subReceiveXmlPath;
 			ros::ServiceClient srvExprEval;
 
 			auv_msgs::NED offset;
@@ -101,19 +101,17 @@ namespace labust
 										   breakpoint(1),
 										   missionEvents(""),
 										   missionActive(false),
-										   PP()
+										   PP(primitive_definitions_xml)
 		{
 			ros::NodeHandle nh, ph("~");
 
-		    PP.generatePrimitiveData(primitive_definitions_xml);
+		    //PP.generatePrimitiveData(primitive_definitions_xml);
 
 			/** Subscribers */
-			//subRequestPrimitive = nh.subscribe<std_msgs::UInt16>("requestPrimitive",1,&MissionParser::onRequestPrimitive, this);
 			subEventString = nh.subscribe<std_msgs::String>("eventString",1,&MissionParser::onEventString, this);
 			subReceiveXmlPath = nh.subscribe<misc_msgs::StartParser>("startParser",1,&MissionParser::onReceiveMission, this);
 
 			/** Publishers */
-			pubSendPrimitive = nh.advertise<misc_msgs::SendPrimitive>("sendPrimitive",1);
 			pubRiseEvent = nh.advertise<std_msgs::String>("eventString",1);
 			pubMissionSetup = nh.advertise<misc_msgs::MissionSetup>("missionSetup",1);
 

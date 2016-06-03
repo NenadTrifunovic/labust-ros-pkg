@@ -135,7 +135,7 @@ namespace labust
 			ros::Timer timer;
 
 			/** Publishers */
-			ros::Publisher pubRequestPrimitive, pubEventString;
+			ros::Publisher  pubEventString;
 
 			/** Subscribers */
 			ros::Subscriber subDataEventsContainer, subEventString, subReceivePrimitive, subStateHat;
@@ -196,12 +196,10 @@ namespace labust
 		{
 			/** Subscribers */
 			subEventString = nh.subscribe<std_msgs::String>("eventString",3, &MissionExecution::onEventString, this);
-			//subReceivePrimitive = nh.subscribe<misc_msgs::SendPrimitive>("sendPrimitive",1, &MissionExecution::onReceivePrimitive, this);
 			subDataEventsContainer = nh.subscribe<misc_msgs::DataEventsContainer>("dataEventsContainer",1, &MissionExecution::onDataEventsContainer, this);
 			subStateHat = nh.subscribe<auv_msgs::NavSts>("stateHat",1, &MissionExecution::onStateHat, this);
 
 			/** Publishers */
-			pubRequestPrimitive = nh.advertise<std_msgs::UInt16>("requestPrimitive",1);
 			pubEventString = nh.advertise<std_msgs::String>("eventString",1);
 
 			/** Services */
