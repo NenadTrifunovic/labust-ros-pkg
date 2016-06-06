@@ -56,7 +56,7 @@ namespace labust
 		{
 		public:
 
-		  PrimitiveMapGenerator(){};
+		  //PrimitiveMapGenerator(){};
 
 			PrimitiveMapGenerator(string path):xml_path(path)
 			{
