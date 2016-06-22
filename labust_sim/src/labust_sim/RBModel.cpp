@@ -132,7 +132,7 @@ void RBModel::step(const vector& tau)
 		//ROS_ERROR("RBmodel.cpp - DEBUG2");
 
 	    //Surface behavior
-		double surface_depth = 0.05;
+		double surface_depth = 0.0;
 		if(eta(2) < surface_depth)
 		{
 			//ROS_ERROR("ON SURFACE");
