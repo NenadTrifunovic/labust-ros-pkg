@@ -1,50 +1,12 @@
-//\todo napravi da parser pamti pokazivac na zadnji poslani node koko se ne bi svaki put trebalo parsati korz cijeli xml
-//\todo napraviti missionParser (tj klasu koja direktno poziva primitive) klasu tako da extenda razlicite klase za parsanje (u buducnosti pojednostavljeno
-//prebacivanje na razlicite mission planere)
-//\todo Pogledja treba li poslati sve evente kao jednu poruku na poectku, kako bi se kasnije smanjila kolicina podataka koja se salje skupa s primitivom
-//\TODO Dodati mogucnost odabira vise evenata na koje primitiv može reagirati. (Nema potrebe za svaki slučaj nanovo definirati event)
-
-/*********************************************************************
- * mission_parser.cpp
+/*
+ * missionParser.h
  *
- *  Created on: Apr 18, 2014
- *      Author: Filip Mandic
- *
- ********************************************************************/
+ *  Created on: May 31, 2016
+ *      Author: filip
+ */
 
-/*********************************************************************
-* Software License Agreement (BSD License)
-*
-*  Copyright (c) 2014, LABUST, UNIZG-FER
-*  All rights reserved.
-*
-*  Redistribution and use in source and binary forms, with or without
-*  modification, are permitted provided that the following conditions
-*  are met:
-*
-*   * Redistributions of source code must retain the above copyright
-*     notice, this list of conditions and the following disclaimer.
-*   * Redistributions in binary form must reproduce the above
-*     copyright notice, this list of conditions and the following
-*     disclaimer in the documentation and/or other materials provided
-*     with the distribution.
-*   * Neither the name of the LABUST nor the names of its
-*     contributors may be used to endorse or promote products derived
-*     from this software without specific prior written permission.
-*
-*  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-*  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-*  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-*  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-*  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-*  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-*  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-*  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-*  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-*  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-*  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-*  POSSIBILITY OF SUCH DAMAGE.
-*********************************************************************/
+#ifndef LABUST_ROS_PKG_LABUST_MISSION_INCLUDE_LABUST_MISSION_MISSIONPARSER_H_
+#define LABUST_ROS_PKG_LABUST_MISSION_INCLUDE_LABUST_MISSION_MISSIONPARSER_H_
 
 #include <misc_msgs/StartParser.h>
 #include <misc_msgs/EvaluateExpression.h>
@@ -74,11 +36,9 @@ namespace labust
 			 ***  Class functions
 			 ****************************************************************/
 
-			MissionParser(std::string primitive_definitions_xml);
+			MissionParser(string primitive_definitions_xml);
 
 			~MissionParser(){};
-
-			void sendPrimitve(uint32_t id);
 
 			uint32_t parseMission(uint32_t id);
 
@@ -86,7 +46,7 @@ namespace labust
 
 			uint32_t parseMissionParam();
 
-			void onRequestPrimitive(const std_msgs::UInt16::ConstPtr& req);
+			misc_msgs::SendPrimitive requestPrimitive(unsigned int req);
 
 			void onEventString(const std_msgs::String::ConstPtr& msg);
 
@@ -95,8 +55,6 @@ namespace labust
 			/*****************************************************************
 			 ***  Helper functions
 			 ****************************************************************/
-
-			//void serializePrimitive(int id, vector<uint8_t> serializedData);
 
 			void onEventNextParse(XMLElement *elem2);
 
@@ -116,8 +74,8 @@ namespace labust
 
 			vector<uint8_t> onEventNextActive, onEventNext;
 
-			ros::Publisher pubSendPrimitive, pubRiseEvent, pubMissionSetup;
-			ros::Subscriber subRequestPrimitive, subEventString, subReceiveXmlPath;
+			ros::Publisher pubRiseEvent, pubMissionSetup;
+			ros::Subscriber subEventString, subReceiveXmlPath;
 			ros::ServiceClient srvExprEval;
 
 			auv_msgs::NED offset;
@@ -129,8 +87,6 @@ namespace labust
 			XMLDocument xmlDoc;
 
 			bool missionActive;
-
-			//boost::mutex missionActive;
 		};
 
 
@@ -138,7 +94,7 @@ namespace labust
 		 ***  Class functions
 		 ****************************************************************/
 
-		MissionParser::MissionParser(std::string primitive_definitions_xml):ID(0),
+		MissionParser::MissionParser(string primitive_definitions_xml):ID(0),
 										   lastID(0),
 										   newTimeout(0),
 										   eventID(0),
@@ -149,45 +105,18 @@ namespace labust
 		{
 			ros::NodeHandle nh, ph("~");
 
+		    //PP.generatePrimitiveData(primitive_definitions_xml);
+
 			/** Subscribers */
-			subRequestPrimitive = nh.subscribe<std_msgs::UInt16>("requestPrimitive",1,&MissionParser::onRequestPrimitive, this);
 			subEventString = nh.subscribe<std_msgs::String>("eventString",1,&MissionParser::onEventString, this);
 			subReceiveXmlPath = nh.subscribe<misc_msgs::StartParser>("startParser",1,&MissionParser::onReceiveMission, this);
 
 			/** Publishers */
-			pubSendPrimitive = nh.advertise<misc_msgs::SendPrimitive>("sendPrimitive",1);
 			pubRiseEvent = nh.advertise<std_msgs::String>("eventString",1);
 			pubMissionSetup = nh.advertise<misc_msgs::MissionSetup>("missionSetup",1);
 
 			/** Service */
 			srvExprEval = nh.serviceClient<misc_msgs::EvaluateExpression>("evaluate_expression");
-		}
-
-		void MissionParser::sendPrimitve(uint32_t id)
-		{
-			uint32_t primitive_type = parseMission(id);
-
-			if(primitive_type != none)
-			{
-				misc_msgs::SendPrimitive sendContainer;
-				sendContainer.primitiveID = primitive_type;
-				//sendContainer.primitiveData = serializedData; /* Remove from msg */
-				sendContainer.event.timeout = newTimeout;
-				sendContainer.event.onEventNextActive = onEventNextActive;
-				sendContainer.event.onEventNext = onEventNext;
-
-				sendContainer.primitiveString.data = primitiveString.str();
-
-				pubSendPrimitive.publish(sendContainer);
-
-			} else {
-
-				ROS_INFO("Mission parser: Mission ended.");
-				std_msgs::String tmp;
-				tmp.data = "/STOP"; //TODO Change to /missionEnded
-				pubRiseEvent.publish(tmp);
-			}
-
 		}
 
 		/* Function for parsing primitives in XML mission file */
@@ -360,17 +289,41 @@ namespace labust
 		 *** ROS subscriptions
 		 ************************************************************/
 
-		void MissionParser::onRequestPrimitive(const std_msgs::UInt16::ConstPtr& req)
+		misc_msgs::SendPrimitive MissionParser::requestPrimitive(unsigned int req)
 		{
-			if(req->data > 0)
+			misc_msgs::SendPrimitive sendContainer;
+			sendContainer.primitiveID = none;
+
+			if(req > 0)
 			{
-				ROS_INFO("Mission parser: Dispatcher requested primitive ID: %d", req->data);
-				sendPrimitve(req->data);
+				ROS_INFO("Mission parser: Dispatcher requested primitive ID: %d", req);
+				//sendPrimitve(req);
+
+				uint32_t primitive_type = parseMission(req);
+
+				if(primitive_type != none)
+				{
+					sendContainer.primitiveID = primitive_type;
+					//sendContainer.primitiveData = serializedData; /* Remove from msg */
+					sendContainer.event.timeout = newTimeout;
+					sendContainer.event.onEventNextActive = onEventNextActive;
+					sendContainer.event.onEventNext = onEventNext;
+
+					sendContainer.primitiveString.data = primitiveString.str();
+
+					return sendContainer;
+				}
+				else
+				{
+					//ROS_INFO("Mission parser: Mission ended.");
+				}
 			}
 			else
 			{
 				ROS_FATAL("Mission parser: INVALID ID REQUESTED.");
 			}
+
+			return sendContainer;
 		}
 
 		void MissionParser::onEventString(const std_msgs::String::ConstPtr& msg)
@@ -430,32 +383,4 @@ namespace labust
 	}
 }
 
-/*********************************************************************
- ***  Main function
- ********************************************************************/
-
-int main(int argc, char** argv)
-{
-	ros::init(argc, argv, "mission_parser");
-
-	ros::NodeHandle nh,ph("~");
-
-	std::string primitive_definitions_xml;
-	if(!nh.getParam("primitive_definitions_path",primitive_definitions_xml))
-	{
-		ROS_FATAL("Mission execution: NO PRIMITIVE DEFINITION XML PATH DEFINED.");
-		ROS_INFO("Path: %s", primitive_definitions_xml.c_str());
-		exit (EXIT_FAILURE);
-	}
-
-
-	labust::mission::MissionParser MP(primitive_definitions_xml);
-	ros::spin();
-	return 0;
-}
-
-
-
-
-
-
+#endif /* LABUST_ROS_PKG_LABUST_MISSION_INCLUDE_LABUST_MISSION_MISSIONPARSER_H_ */

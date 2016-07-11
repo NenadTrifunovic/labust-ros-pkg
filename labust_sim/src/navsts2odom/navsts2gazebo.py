@@ -88,6 +88,7 @@ class MessageTransformer:
             ''' Set initial frame pose '''
             pose = PoseStamped()
             pose.header.frame_id = data.header.frame_id
+            #pose.header.frame_id = 'local'
             pose.header.stamp = self.listener.getLatestCommonTime(child_frame,pose.header.frame_id)
             pose.pose.position.x = data.position.north
             pose.pose.position.y = data.position.east

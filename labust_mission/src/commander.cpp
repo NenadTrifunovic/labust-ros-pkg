@@ -54,9 +54,9 @@ int main(int argc, char** argv)
 	ros::NodeHandle nh,ph("~");
 
 	std::string primitive_definitions_xml;
-	if(!ph.getParam("primitive_definitions_path",primitive_definitions_xml))
+	if(!nh.getParam("primitive_definitions_path",primitive_definitions_xml))
 	{
-		ROS_FATAL("NO PRIMITIVE DEFINITION XML PATH DEFINED.");
+		ROS_FATAL("Commander: NO PRIMITIVE DEFINITION XML PATH DEFINED.");
 		exit (EXIT_FAILURE);
 	}
 

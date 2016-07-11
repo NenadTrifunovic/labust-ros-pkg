@@ -9,7 +9,7 @@
 /*********************************************************************
 * Software License Agreement (BSD License)
 *
-*  Copyright (c) 2014, LABUST, UNIZG-FER
+*  Copyright (c) 2014-2016, LABUST, UNIZG-FER
 *  All rights reserved.
 *
 *  Redistribution and use in source and binary forms, with or without
@@ -52,14 +52,16 @@
 using namespace tinyxml2;
 using namespace std;
 
-namespace labust{
-	namespace utils {
-
+namespace labust
+{
+	namespace utils
+	{
 		/*****************************************************************
 		 *** WriteXML Class definition
 		 ****************************************************************/
 
-		class WriteXML{
+		class WriteXML
+		{
 
 		public:
 

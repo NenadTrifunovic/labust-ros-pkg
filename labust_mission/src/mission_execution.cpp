@@ -1,6 +1,6 @@
 //TODO check what happens when pause is requested during dispatcher state.
 /*********************************************************************
- * mission_exec.cpp
+ * mission_execution.cpp
  *
  *  Created on: Mar 24, 2014
  *      Author: Filip Mandic
@@ -41,13 +41,18 @@
 *  POSSIBILITY OF SUCH DAMAGE.
 *********************************************************************/
 
-#include <labust_mission/missionExecution.hpp>
+#include <ros/ros.h>
+
+#include <labust/mission/mission_execution.h>
+#include <labust/mission/labustMission.hpp>
+
+//#include <labust_mission/missionExecution.hpp>
 #include <decision_making/SynchCout.h>
 #include <decision_making/BT.h>
 #include <decision_making/FSM.h>
 #include <decision_making/ROSTask.h>
 #include <decision_making/DecisionMaking.h>
-#include <labust/mission/labustMission.hpp>
+
 
 using namespace decision_making;
 
@@ -301,16 +306,16 @@ MainEventQueue(){ mainEventQueue = new RosEventQueue(); }
  ***  Main function
  ********************************************************************/
 
-int main(int argc, char** argv){
-
-	ros::init(argc, argv, "ControllerFSM");
+int main(int argc, char** argv)
+{
+	ros::init(argc, argv, "mission_execution");
 	ros_decision_making_init(argc, argv);
 	ros::NodeHandle nh,ph("~");
 
 	std::string primitive_definitions_xml;
 	if(!nh.getParam("primitive_definitions_path",primitive_definitions_xml))
 	{
-		ROS_FATAL("NO PRIMITIVE DEFINITION XML PATH DEFINED.");
+		ROS_FATAL("Mission execution: NO PRIMITIVE DEFINITION XML PATH DEFINED.");
 		ROS_INFO("Path: %s", primitive_definitions_xml.c_str());
 		exit (EXIT_FAILURE);
 	}

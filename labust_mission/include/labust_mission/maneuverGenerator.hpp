@@ -181,11 +181,10 @@ namespace labust {
 			 ********************************************************/
 		public:
 			WriteXML writeXML;
-			labust::primitive::PrimitiveMapGenerator PP;
 		};
 
 
-		ManeuverGenerator::ManeuverGenerator(std::string xml_path):writeXML(xml_path),PP(xml_path)
+		ManeuverGenerator::ManeuverGenerator(std::string xml_path):writeXML(xml_path)
 		{
 
 		}

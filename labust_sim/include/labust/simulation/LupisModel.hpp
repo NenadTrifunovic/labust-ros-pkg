@@ -134,7 +134,8 @@ namespace labust
   		lift << -20.6, 3.84, -20.6, -3.84, -6, -1.53, 6, -1.53;
   		linear_drag.resize(10);
   		linear_drag << -2.4, -23, -23, -0.3, -9.7, -9.7, 11.5, -11.5, 3.1, -3.1;
-  		mass = 18.054;
+  		//mass = 18.054;
+                mass = 18.04;
   		max_thrust = 10.0;
   		motor_friction = 0.006;
   		quadratic_drag.resize(10);
