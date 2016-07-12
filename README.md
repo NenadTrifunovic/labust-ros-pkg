@@ -12,7 +12,7 @@ This repository contains the ROS related code developed at the **LAB**oratory fo
 
 Compilation
 ------------------
-The repository depends on the **[labust-common-msgs](http://https://github.com/labust/labust-common-msgs)** packages that contain all required messages. Additionally, `labust_mission` depends on the third-party `decision_making` package. The LABUST fork can be found at **[decision_making](http://https://github.com/labust/decision_makinglabust-common-msgs)**. Before proceeding clone thess repositories into your workspace.
+The repository depends on the **[labust-common-msgs](http://https://github.com/labust/labust-common-msgs)** packages that contain all required messages. Additionally, `labust_mission` depends on the third-party `decision_making` package. The LABUST fork can be found at **[decision_making](http://https://github.com/labust/decision_makinglabust-common-msgs)**. Before proceeding clone these repositories into your workspace.
 
 Most dependencies can be installed using `rosdep` with: 
 
