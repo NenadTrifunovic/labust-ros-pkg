@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/labust/labust-ros-pkg.svg?branch=develop)](https://travis-ci.org/labust/labust-ros-pkg)
+
 Introduction
 ==============
 
