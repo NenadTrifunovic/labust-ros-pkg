@@ -20,13 +20,15 @@
 	<build_depend>tf2_ros</build_depend>
 	<build_depend>snippets</build_depend>
 	<build_depend>nav_msgs</build_depend>
-    <build_depend>visualization_msgs</build_depend>
+  <build_depend>visualization_msgs</build_depend>
 	
 	<run_depend>auv_msgs</run_depend>
 	<run_depend>roscpp</run_depend>
 	<run_depend>rospy</run_depend>
 	<run_depend>tf2_ros</run_depend>
+	<run_depend>snippets</run_depend>
 	<run_depend>nav_msgs</run_depend>
+  <run_depend>visualization_msgs</run_depend>
 	
 	<export>
 	    <!-- <labust_sim plugin="${prefix}/plugins.xml" /> -->

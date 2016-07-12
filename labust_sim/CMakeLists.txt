@@ -1,9 +1,6 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(labust_sim)
 
-## Find catkin macros and libraries
-## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
-## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS 
     cmake_modules
     auv_msgs 
@@ -14,53 +11,18 @@ find_package(catkin REQUIRED COMPONENTS
     snippets
     visualization_msgs)
 
-## System dependencies are found with CMake's conventions
+## System dependencies 
 find_package(Boost REQUIRED COMPONENTS random)
 find_package(Eigen REQUIRED)
-
-
-## Uncomment this if the package has a setup.py. This macro ensures
-## modules and global scripts declared therein get installed
-## See http://ros.org/doc/groovy/api/catkin/html/user_guide/setup_dot_py.html
-# catkin_python_setup()
-
-#######################################
-## Declare ROS messages and services ##
-#######################################
-
-## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
-
-## Generate services in the 'srv' folder
-# add_service_files(
-#   FILES
-#   Service1.srv
-#   Service2.srv
-# )
-
-## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   auv_msgs
-# )
 
 ###################################
 ## catkin specific configuration ##
 ###################################
-## The catkin_package macro generates cmake config files for your package
-## Declare things to be passed to dependent projects
-## LIBRARIES: libraries you create in this project that dependent projects also need
-## CATKIN_DEPENDS: catkin_packages dependent projects also need
-## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
    INCLUDE_DIRS include
-#  LIBRARIES labust_sim
-#  CATKIN_DEPENDS auv_msgs roscpp rospy tf
-#  DEPENDS system_lib
+   LIBRARIES labust_sim
+   CATKIN_DEPENDS auv_msgs roscpp rospy tf2_ros nav_msgs snippets nav_msgs visualization_msgs
+   DEPENDS boost eigen
 )
 
 ###########
@@ -74,56 +36,58 @@ include_directories(include
   ${catkin_INCLUDE_DIRS}
 )
 
+## Main simulation library
 file(GLOB SRC src/labust_sim/*.cpp)
 file(GLOB HPP include/labust/simulation/*.hpp include/labust/simulation/*.h) 
 add_library(labust_sim ${SRC} ${HPP})
+add_dependencies(labust_sim auv_msgs_gencpp)
 target_link_libraries(labust_sim ${Boost_RANDOM_LIBRARY})
 
-#file(GLOB SRC src/sim_sensors/*.cpp)
-#file(GLOB HPP include/labust/ros/*.hpp) 
-#add_library(sim_sensors ${SRC} ${HPP})
-
+## Main simulator node
 file(GLOB SRC src/uvsim/*.cpp)
 file(GLOB HPP include/labust/ros/*.hpp) 
 add_executable(uvsim ${SRC} ${HPP})
 target_link_libraries(uvsim ${catkin_LIBRARIES} labust_sim ${Boost_RANDOM_LIBRARY})
 
-#Simple simulated sensors
+## Simulated sensors
 add_executable(imu_sim src/sim_sensors/ImuSim.cpp)
 target_link_libraries(imu_sim ${catkin_LIBRARIES})
+
 add_executable(dvl_sim src/sim_sensors/DvlSim.cpp)
 target_link_libraries(dvl_sim ${catkin_LIBRARIES})
+
 add_executable(gps_sim src/sim_sensors/GPSSim.cpp)
 target_link_libraries(gps_sim ${catkin_LIBRARIES} Geographic)
-add_executable(diver_sim src/diver_sim/diver_sim.cpp)
-target_link_libraries(diver_sim labust_sim ${catkin_LIBRARIES})
-add_executable(navsts2odom src/navsts2odom/navsts2odom.cpp)
-target_link_libraries(navsts2odom ${catkin_LIBRARIES})
+
 add_executable(usbl_sim src/data_sim/USBLSim.cpp)
+add_dependencies(usbl_sim auv_msgs_gencpp)
 target_link_libraries(usbl_sim ${catkin_LIBRARIES})
+
+## Diver simulator
+add_executable(diver_sim src/diver_sim/diver_sim.cpp)
+add_dependencies(diver_sim auv_msgs_gencpp)
+target_link_libraries(diver_sim labust_sim ${catkin_LIBRARIES})
+
+add_executable(virtual_diver src/diver_sim/virtual_diver.cpp)
+add_dependencies(virtual_diver auv_msgs_gencpp)
+target_link_libraries(virtual_diver ${catkin_LIBRARIES})
+
+## Tools
+add_executable(navsts2odom src/navsts2odom/navsts2odom.cpp)
+add_dependencies(navsts2odom auv_msgs_gencpp)
+target_link_libraries(navsts2odom ${catkin_LIBRARIES})
+
 add_executable(uvsim_timing src/test/uvsim_timing.cpp)
 target_link_libraries(uvsim_timing labust_sim ${catkin_LIBRARIES})
 
 add_executable(diver_marker src/diver_sim/diver_marker.cpp)
+add_dependencies(diver_marker auv_msgs_gencpp)
 target_link_libraries(diver_marker ${catkin_LIBRARIES})
-add_executable(virtual_diver src/diver_sim/virtual_diver.cpp)
-target_link_libraries(virtual_diver ${catkin_LIBRARIES})
 
 add_executable(trajectory_generator src/labust_sim/trajectory_generator.cpp)
+add_dependencies(trajectory_generator auv_msgs_gencpp underwater_msgs_gencpp)
 target_link_libraries(trajectory_generator ${catkin_LIBRARIES})
 
-
-if (DEFINED catkin_EXPORTED_TARGETS)
- add_dependencies(imu_sim ${catkin_EXPORTED_TARGETS})
- add_dependencies(dvl_sim ${catkin_EXPORTED_TARGETS})
- add_dependencies(gps_sim ${catkin_EXPORTED_TARGETS})
- #add_dependencies(hdg_controller_direct ${catkin_EXPORTED_TARGETS})
- add_dependencies(usbl_sim ${catkin_EXPORTED_TARGETS})
- add_dependencies(uvsim ${catkin_EXPORTED_TARGETS})
- add_dependencies(diver_sim ${catkin_EXPORTED_TARGETS})
- add_dependencies(navsts2odom ${catkin_EXPORTED_TARGETS})
- add_dependencies(trajectory_generator ${catkin_EXPORTED_TARGETS})
-endif()
 #############
 ## Install ##
 #############

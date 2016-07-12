@@ -42,8 +42,8 @@
 #include <std_srvs/Trigger.h>
 #include <misc_msgs/Go2depthService.h>
 #include <misc_msgs/Go2pointService.h>
-#include <misc_msgs/PointerService.h>
-#include <misc_msgs/DPService.h>
+#include <misc_msgs/PointerPrimitiveService.h>
+#include <misc_msgs/DynamicPositioningPrimitiveService.h>
 
 #include <cstdio>
 
@@ -83,10 +83,10 @@ void CaddyMissions::onInit()
   vtcon = nh.serviceClient<navcon_msgs::EnableControl>("VT_enable");
   velcon = nh.serviceClient<navcon_msgs::ConfigureVelocityController>("ConfigureVelocityController");
 
-  pointer_srv = nh.serviceClient<misc_msgs::PointerService>("commander/pointer");
+  pointer_srv = nh.serviceClient<misc_msgs::PointerPrimitiveService>("commander/pointer");
   go2depth_srv = nh.serviceClient<misc_msgs::Go2depthService>("commander/go2depth");
   go2point_srv = nh.serviceClient<misc_msgs::Go2pointService>("commander/go2point");
-  dp_srv = nh.serviceClient<misc_msgs::DPService>("commander/dynamic_positioning");
+  dp_srv = nh.serviceClient<misc_msgs::DynamicPositioningPrimitiveService>("commander/dynamic_positioning");
   stop_srv = nh.serviceClient<std_srvs::Trigger>("commander/stop_mission");
   pause_srv = nh.serviceClient<std_srvs::Trigger>("commander/pause_mission");
   continue_srv = nh.serviceClient<std_srvs::Trigger>("commander/continue_mission");
@@ -242,7 +242,7 @@ void CaddyMissions::onGuideMe(const std_msgs::Int32::ConstPtr& data)
   {
     // Start the primitive
     ROS_INFO("Setup Pointer primitive.");
-    misc_msgs::PointerService srv_data;
+    misc_msgs::PointerPrimitiveService srv_data;
     srv_data.request.radius = 5.0;
     srv_data.request.radius_topic = "diver_distance";
     srv_data.request.vertical_offset = 0;
