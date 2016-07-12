@@ -73,6 +73,7 @@ target_link_libraries(ekf_simple_relative_localization_node ${catkin_LIBRARIES} 
 add_executable(euler_quat src/test/euler_quat.cpp)
 target_link_libraries(euler_quat ${catkin_LIBRARIES} labust_navigation)
 add_executable(quat_to_euler src/test/quat_to_euler.cpp)
+add_dependencies(quat_to_euler auv_msgs_gencpp)
 target_link_libraries(quat_to_euler ${catkin_LIBRARIES})
 add_executable(static_transform_publisher src/static_transform_publisher/static_transform_publisher.cpp)
 target_link_libraries(static_transform_publisher ${catkin_LIBRARIES})
