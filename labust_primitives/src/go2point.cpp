@@ -100,7 +100,7 @@ namespace labust
 				//ROS_DEBUG("On goal.");
 				//Set the flag to avoid disabling controllers on preemption
 				processNewGoal = true;
-				Goal::ConstPtr new_goal = aserver->acceptNewGoal();
+				Goal::Ptr new_goal = boost::make_shared<Goal>(*(aserver->acceptNewGoal()));
 				processNewGoal = false;
 
 				/*** Display goal info ***/
@@ -117,6 +117,8 @@ namespace labust
 					case Goal::GO2POINT_FA:
 						underactuated = false;
 						ROS_ERROR("go2point: Fully actuated");
+
+						new_goal->heading = atan2(new_goal->T2.point.y-new_goal->T1.point.y,new_goal->T2.point.x-new_goal->T1.point.x);
 						break;
 					case Goal::GO2POINT_FA_HDG:
 						underactuated = false;
