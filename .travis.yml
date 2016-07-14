@@ -44,6 +44,7 @@
 notifications:
     email:
         - dula.nad@gmail.com
+        - filip.mandic@fer.hr
 
 # Use ubuntu trusty (14.04) with sudo privileges.
 dist: trusty
@@ -103,8 +104,7 @@ before_script:
   - cd ~/catkin_ws
   - rosdep install -y --from-paths src --ignore-src --rosdistro $ROS_DISTRO
   # install additional dependencies and data files
-  - sudo src/labust-ros-pkg/labust_mission/scripts/install_tinyxml2.sh
-  - sudo src/labust-ros-pkg/labust_navigation/scripts/download_geographiclib_models.sh
+  - sudo src/labust-ros-pkg/scripts/precompile_setup.sh
 
 # Compile and test (fail if any step fails). If the CATKIN_OPTIONS file exists,
 # use it as an argument to catkin_make, for example to blacklist certain

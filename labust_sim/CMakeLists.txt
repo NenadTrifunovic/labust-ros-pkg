@@ -5,6 +5,7 @@ find_package(catkin REQUIRED COMPONENTS
     cmake_modules
     auv_msgs 
     nav_msgs
+    underwater_msgs
     roscpp 
     rospy 
     tf2_ros 
@@ -60,7 +61,7 @@ add_executable(gps_sim src/sim_sensors/GPSSim.cpp)
 target_link_libraries(gps_sim ${catkin_LIBRARIES} Geographic)
 
 add_executable(usbl_sim src/data_sim/USBLSim.cpp)
-add_dependencies(usbl_sim auv_msgs_gencpp)
+add_dependencies(usbl_sim auv_msgs_gencpp underwater_msgs_gencpp)
 target_link_libraries(usbl_sim ${catkin_LIBRARIES})
 
 ## Diver simulator

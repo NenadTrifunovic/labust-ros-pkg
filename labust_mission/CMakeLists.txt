@@ -14,6 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
   misc_msgs
   cmake_modules
   labust_primitives
+  std_srvs
 )
 
 ## System dependencies are found with CMake's conventions
