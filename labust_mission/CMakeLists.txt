@@ -1,14 +1,10 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(labust_mission)
 
-## Find catkin macros and libraries
-## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
-## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   decision_making
   decision_making_parser
   roscpp
-  #random_numbers
   sensor_msgs
   std_msgs
   geometry_msgs
@@ -18,6 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
   misc_msgs
   cmake_modules
   labust_primitives
+  std_srvs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -34,76 +31,12 @@ find_library(TinyXML2_LIBRARY
 	PATH_SUFFIXES lib64 lib
 	PATHS /usr/local /usr)
 
-## Uncomment this if the package has a setup.py. This macro ensures
-## modules and global scripts declared therein get installed
-## See http://ros.org/doc/api/catkin/html/user_guide/setup_dot_py.html
-# catkin_python_setup()
-
-################################################
-## Declare ROS messages, services and actions ##
-################################################
-
-## To declare and build messages, services or actions from within this
-## package, follow these steps:
-## * Let MSG_DEP_SET be the set of packages whose message types you use in
-##   your messages/services/actions (e.g. std_msgs, actionlib_msgs, ...).
-## * In the file package.xml:
-##   * add a build_depend and a run_depend tag for each package in MSG_DEP_SET
-##   * If MSG_DEP_SET isn't empty the following dependencies might have been
-##     pulled in transitively but can be declared for certainty nonetheless:
-##     * add a build_depend tag for "message_generation"
-##     * add a run_depend tag for "message_runtime"
-## * In this file (CMakeLists.txt):
-##   * add "message_generation" and every package in MSG_DEP_SET to
-##     find_package(catkin REQUIRED COMPONENTS ...)
-##   * add "message_runtime" and every package in MSG_DEP_SET to
-##     catkin_package(CATKIN_DEPENDS ...)
-##   * uncomment the add_*_files sections below as needed
-##     and list every .msg/.srv/.action file to be processed
-##   * uncomment the generate_messages entry below
-##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
-
-## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
-
-## Generate services in the 'srv' folder
-# add_service_files(
-#   FILES
-#   Service1.srv
-#   Service2.srv
-# )
-
-## Generate actions in the 'action' folder
-# add_action_files(
-#   FILES
-#   Action1.action
-#   Action2.action
-# )
-
-## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   auv_msgs#   navcon_msgs#   std_msgs
-# )
-
 ###################################
 ## catkin specific configuration ##
 ###################################
-## The catkin_package macro generates cmake config files for your package
-## Declare things to be passed to dependent projects
-## INCLUDE_DIRS: uncomment this if you package contains header files
-## LIBRARIES: libraries you create in this project that dependent projects also need
-## CATKIN_DEPENDS: catkin_packages dependent projects also need
-## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
   INCLUDE_DIRS include
-#  LIBRARIES caddy_state_machine
- CATKIN_DEPENDS decision_making decision_making_parser roscpp
-#  DEPENDS system_lib
+  CATKIN_DEPENDS decision_making decision_making_parser roscpp labust_primitives
 )
 
 ###########
@@ -119,56 +52,38 @@ include_directories(
   ${Boost_INCLUDE_DIRS}
   ${GeographicLib_INCLUDE_DIRS})
 
+## Main mission control nodes
 if (TinyXML2_LIBRARY)
 	include_directories(${TinyXML2_INCLUDE_DIR})
 	
 	add_executable(mission_exec src/mission_exec.cpp)
-    add_executable(neptus_parser src/neptus_parser.cpp)
-	#add_executable(mission_exec_INTEGRATED src/mission_exec_INTEGRATED.cpp)
-	add_executable(mission_parser src/mission_parser.cpp)
-	add_executable(data_event_manager src/data_event_manager.cpp)
-	#add_executable(testSerialization src/serialization_test.cpp)
-	#add_executable(mission_control_test src/mission_control_test.cpp)
-	
-	if (DEFINED catkin_EXPORTED_TARGETS)
-	  add_dependencies(mission_exec ${catkin_EXPORTED_TARGETS})
-	  #add_dependencies(mission_exec_INTEGRATED ${catkin_EXPORTED_TARGETS})
-	  add_dependencies(mission_parser ${catkin_EXPORTED_TARGETS})
-	  add_dependencies(neptus_parser ${catkin_EXPORTED_TARGETS})
-	  add_dependencies(data_event_manager ${catkin_EXPORTED_TARGETS})
-	  #add_dependencies(testSerialization ${catkin_EXPORTED_TARGETS})
-	endif()
-	
+  add_dependencies(mission_exec misc_msgs_gencpp auv_msgs_gencpp)
 	target_link_libraries(mission_exec ${catkin_LIBRARIES} ${TinyXML2_LIBRARY})
-	#target_link_libraries(mission_exec_INTEGRATED ${catkin_LIBRARIES}  ${TinyXML2_LIBRARY})
+  decision_making_parsing(src/mission_exec.cpp)
+	
+  add_executable(mission_execution src/mission_execution.cpp)
+  add_dependencies(mission_execution misc_msgs_gencpp auv_msgs_gencpp)
+	target_link_libraries(mission_execution ${catkin_LIBRARIES} ${TinyXML2_LIBRARY})
+	
+  add_executable(mission_parser src/mission_parser.cpp)
+  add_dependencies(mission_parser misc_msgs_gencpp auv_msgs_gencpp)
 	target_link_libraries(mission_parser ${catkin_LIBRARIES} ${TinyXML2_LIBRARY})
+	
+  add_executable(data_event_manager src/data_event_manager.cpp)
+  add_dependencies(data_event_manager misc_msgs_gencpp auv_msgs_gencpp)
 	target_link_libraries(data_event_manager ${catkin_LIBRARIES} ${TinyXML2_LIBRARY})
-	target_link_libraries(neptus_parser ${catkin_LIBRARIES} ${TinyXML2_LIBRARY} ${GeographicLib_LIBRARIES})
-	#target_link_libraries(testSerialization ${catkin_LIBRARIES} ${TinyXML2_LIBRARY})
+	
+  add_executable(commander src/commander.cpp)
+  add_dependencies(commander misc_msgs_gencpp auv_msgs_gencpp)
+	target_link_libraries(commander ${catkin_LIBRARIES} ${TinyXML2_LIBRARY})
 else()
   message("WARNING" "Custom installation of TinyXML2 library is missing.")
 endif()
 
-add_executable(lod missions/lawnmower_on_demand.cpp)
+## Caddy mission control node
 add_executable(caddy_missions src/caddy_missions.cpp)
-add_executable(ckt missions/course_keeping_turns.cpp)
-add_executable(mzos missions/mzos.cpp)
-#add_executable(mission_control_test src/mission_control_test.cpp)
-
-if (DEFINED catkin_EXPORTED_TARGETS)
-  add_dependencies(lod ${catkin_EXPORTED_TARGETS})
-  add_dependencies(ckt ${catkin_EXPORTED_TARGETS})
-  add_dependencies(mzos ${catkin_EXPORTED_TARGETS})
-  #add_dependencies(mission_control_test ${catkin_EXPORTED_TARGETS})
-endif()
-
-#link_directories(/usr/include/)
-target_link_libraries(lod ${catkin_LIBRARIES})
-target_link_libraries(ckt ${catkin_LIBRARIES})
-target_link_libraries(mzos ${catkin_LIBRARIES})
-target_link_libraries(caddy_missions  ${catkin_LIBRARIES})
-
-decision_making_parsing(src/mission_exec.cpp)
+add_dependencies(caddy_missions misc_msgs_gencpp auv_msgs_gencpp)
+target_link_libraries(caddy_missions ${catkin_LIBRARIES})
 
 #############
 ## Install ##

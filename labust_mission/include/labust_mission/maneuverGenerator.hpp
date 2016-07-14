@@ -1,5 +1,3 @@
-//\todo Dodati strukturu s raznim parametrima primitiva ??????????
-
 /*********************************************************************
  * maneuverGenerator.hpp
  *
@@ -11,7 +9,7 @@
 /*********************************************************************
 * Software License Agreement (BSD License)
 *
-*  Copyright (c) 2014, LABUST, UNIZG-FER
+*  Copyright (c) 2014-2016, LABUST, UNIZG-FER
 *  All rights reserved.
 *
 *  Redistribution and use in source and binary forms, with or without
@@ -45,8 +43,10 @@
 #ifndef MANEUVERGENERATOR_HPP_
 #define MANEUVERGENERATOR_HPP_
 
-#include <labust_mission/labustMission.hpp>
+#include <labust/mission/labustMission.hpp>
 #include <labust_mission/xmlPrinter.hpp>
+
+#include <boost/lexical_cast.hpp>
 #include <Eigen/Dense>
 
 
@@ -67,17 +67,97 @@ namespace labust {
 			/*********************************************************
 			 *** Class functions
 			 ********************************************************/
+			ManeuverGenerator(std::string xml_path);
 
-			ManeuverGenerator();
+			~ManeuverGenerator();
 
-			void generateGoTo(double north, double east, double speed, double victory_radius);
+			void generateGo2Point_FA(
+					double north,
+					double east,
+					double depth,
+					double speed,
+					double victory_radius);
 
-			void generateRows(double north, double east, double speed, double victory_radius, double width, double length, double hstep, double alternationPercent,
-					double curvOff, bool squareCurve, double bearing, double crossAngle, bool invertY);
+			void generateStationKeeping(
+					double north,
+					double east,
+					double depth,
+					double heading);
 
-			void generateStationKeeping(double north, double east, double heading);
+			void generateRows(
+					double north,
+					double east,
+					double depth,
+					double speed,
+					double victory_radius,
+					double width,
+					double length,
+					double hstep,
+					double alternationPercent,
+					double curvOff,
+					bool squareCurve,
+					double bearing,
+					double crossAngle,
+					bool invertY);
 
-			void writePrimitives(int primitiveID, std::vector<Eigen::Vector4d> points, double heading, double speed, double victoryRadius);
+
+			/*********************************************************
+			 *** Full primitive generation prototypes
+			 ********************************************************/
+
+			void generateGo2Point(
+					bool enable_fully_actuated,
+					double north,
+					double east,
+					double depth,
+					double heading,
+					double speed,
+					double victory_radius,
+					bool north_enable,
+					bool east_enable,
+					bool depth_enable,
+					bool heading_enable,
+					bool altitude_enable,
+					std::string heading_topic,
+					std::string speed_topic);
+
+			void generateDynamicPositioning(
+					double north,
+					double east,
+					double depth,
+					double heading,
+					bool north_enable,
+					bool east_enable,
+					bool depth_enable,
+					bool heading_enable,
+					bool altitude_enable,
+					bool track_heading_enable,
+					bool point_to_target,
+					std::string target_topic,
+					std::string heading_topic
+					);
+
+			void generatePointer(
+					double radius,
+					double vertical_offset,
+					double guidance_target_x,
+					double guidance_target_y,
+					double guidance_target_z,
+					bool guidance_enable,
+					bool wrapping_enable,
+					bool streamline_orientation,
+					std::string guidance_topic,
+					std::string radius_topic);
+
+
+
+			/*********************************************************
+			 *** Helper functions
+			 ********************************************************/
+
+		private:
+
+			void writePrimitives(int primitiveID, std::vector<Eigen::Vector4d> points, double depth, double heading, double speed, double victoryRadius);
 
 			std::vector<Eigen::Vector4d> calcRIPatternPoints(double width, double hstep,
 								double alternationPercent, double curvOff, bool squareCurve, double bearingRad);
@@ -99,20 +179,25 @@ namespace labust {
 			/*********************************************************
 			 *** Class variables
 			 ********************************************************/
-
+		public:
 			WriteXML writeXML;
 		};
 
 
-		ManeuverGenerator::ManeuverGenerator(){}
-
-		/*** North and east parameters must include offset in case of relative mission start. */
-		void ManeuverGenerator::generateGoTo(double north, double east, double speed, double victory_radius)
+		ManeuverGenerator::ManeuverGenerator(std::string xml_path):writeXML(xml_path)
 		{
-			writeXML.addGo2point_FA(north, east, speed, victory_radius);
+
 		}
 
-		void ManeuverGenerator::generateRows(double north, double east, double speed, double victory_radius, double width, double length, double hstep, double alternationPercent,
+		ManeuverGenerator::~ManeuverGenerator(){}
+
+		/*** North and east parameters must include offset in case of relative mission start. */
+		void ManeuverGenerator::generateGo2Point_FA(double north, double east, double depth, double speed, double victory_radius)
+		{
+			generateGo2Point(true,north,east,depth,0,speed,victory_radius,true,true,true,false,false,"","");
+		}
+
+		void ManeuverGenerator::generateRows(double north, double east, double depth, double speed, double victory_radius, double width, double length, double hstep, double alternationPercent,
 				double curvOff, bool squareCurve, double bearing, double crossAngle, bool invertY)
 		{
 			/* Generate maneuver points */
@@ -122,8 +207,8 @@ namespace labust {
 						crossAngle*M_PI/180, invertY);
 
 			/* For each point subtract offset and add start point */
-			for(std::vector<Eigen::Vector4d>::iterator it = tmpPoints.begin(); it != tmpPoints.end(); ++it){
-
+			for(std::vector<Eigen::Vector4d>::iterator it = tmpPoints.begin(); it != tmpPoints.end(); ++it)
+			{
 				Eigen::Vector4d vTmp = *it;
 				vTmp[X] += north;
 				vTmp[Y] += east;
@@ -131,42 +216,138 @@ namespace labust {
 				*it = vTmp;
 			}
 
-			writePrimitives(go2point_FA, tmpPoints, 0, speed, victory_radius); /* heading, speed, victoryRadius */
+			writePrimitives(go2point, tmpPoints, depth, 0, speed, victory_radius); /* heading, speed, victoryRadius */
 		}
 
-		void ManeuverGenerator::generateStationKeeping(double north, double east, double heading)
+		void ManeuverGenerator::generateStationKeeping(double north, double east, double depth, double heading)
 		{
-			writeXML.addDynamic_positioning(north, east, heading);
+			generateDynamicPositioning(north,east,depth,heading,true,true,true,true,false,false,false,"","");
 		}
 
-		void ManeuverGenerator::writePrimitives(int primitiveID, std::vector<Eigen::Vector4d> points, double heading, double speed, double victoryRadius){
 
-			switch(primitiveID){
 
-				case go2point_FA:
+		/*********************************************************
+		 *** Full primitive generation prototypes
+		 ********************************************************/
 
-					for(std::vector<Eigen::Vector4d>::iterator it = points.begin() ; it != points.end(); ++it){
+		/*** North and east parameters must include offset in case of relative mission start. */
+		void ManeuverGenerator::generateGo2Point(
+				bool enable_fully_actuated,
+				double north,
+				double east,
+				double depth,
+				double heading,
+				double speed,
+				double victory_radius,
+				bool north_enable,
+				bool east_enable,
+				bool depth_enable,
+				bool heading_enable,
+				bool altitude_enable,
+				std::string heading_topic,
+				std::string speed_topic)
+		{
+			std::vector<std::string> data;
+			data.push_back(boost::lexical_cast<std::string>(enable_fully_actuated));
+			data.push_back(boost::lexical_cast<std::string>(north));
+			data.push_back(boost::lexical_cast<std::string>(east));
+			data.push_back(boost::lexical_cast<std::string>(depth));
+			data.push_back(boost::lexical_cast<std::string>(heading));
+			data.push_back(boost::lexical_cast<std::string>(speed));
+			data.push_back(boost::lexical_cast<std::string>(victory_radius));
+			data.push_back(boost::lexical_cast<std::string>(north_enable));
+			data.push_back(boost::lexical_cast<std::string>(east_enable));
+			data.push_back(boost::lexical_cast<std::string>(depth_enable));
+			data.push_back(boost::lexical_cast<std::string>(heading_enable));
+			data.push_back(boost::lexical_cast<std::string>(altitude_enable));
+			data.push_back("#"+heading_topic);
+			data.push_back("#"+speed_topic);
 
-							Eigen::Vector4d vTmp = *it;
+			writeXML.addPrimitive(go2point,data);
 
-							writeXML.addGo2point_FA(vTmp[X], vTmp[Y], speed, victoryRadius);
+		}
 
+		void ManeuverGenerator::generateDynamicPositioning(
+				double north,
+				double east,
+				double depth,
+				double heading,
+				bool north_enable,
+				bool east_enable,
+				bool depth_enable,
+				bool heading_enable,
+				bool altitude_enable,
+				bool track_heading_enable,
+				bool point_to_target,
+				std::string target_topic,
+				std::string heading_topic)
+			{
+				std::vector<std::string> data;
+				data.push_back(boost::lexical_cast<std::string>(north));
+				data.push_back(boost::lexical_cast<std::string>(east));
+				data.push_back(boost::lexical_cast<std::string>(depth));
+				data.push_back(boost::lexical_cast<std::string>(heading));
+				data.push_back(boost::lexical_cast<std::string>(north_enable));
+				data.push_back(boost::lexical_cast<std::string>(east_enable));
+				data.push_back(boost::lexical_cast<std::string>(depth_enable));
+				data.push_back(boost::lexical_cast<std::string>(heading_enable));
+				data.push_back(boost::lexical_cast<std::string>(altitude_enable));
+				data.push_back(boost::lexical_cast<std::string>(track_heading_enable));
+				data.push_back(boost::lexical_cast<std::string>(point_to_target));
+				data.push_back("#"+target_topic);
+				data.push_back("#"+heading_topic);
+
+				writeXML.addPrimitive(dynamic_positioning,data);
+
+			}
+
+		void ManeuverGenerator::generatePointer(
+				double radius,
+				double vertical_offset,
+				double guidance_target_x,
+				double guidance_target_y,
+				double guidance_target_z,
+				bool guidance_enable,
+				bool wrapping_enable,
+				bool streamline_orientation,
+				std::string guidance_topic,
+				std::string radius_topic)
+		{
+			std::vector<std::string> data;
+			data.push_back(boost::lexical_cast<std::string>(radius));
+			data.push_back(boost::lexical_cast<std::string>(vertical_offset));
+			data.push_back(boost::lexical_cast<std::string>(guidance_target_x));
+			data.push_back(boost::lexical_cast<std::string>(guidance_target_y));
+			data.push_back(boost::lexical_cast<std::string>(guidance_target_z));
+			data.push_back(boost::lexical_cast<std::string>(double(guidance_enable)));
+			data.push_back(boost::lexical_cast<std::string>(double(wrapping_enable)));
+			data.push_back(boost::lexical_cast<std::string>(double(streamline_orientation)));
+			data.push_back("#"+guidance_topic);
+			data.push_back("#"+radius_topic);
+			writeXML.addPrimitive(pointer,data);
+		}
+
+
+
+
+
+		/*************************************************************
+		 *** Helper functions
+		 ************************************************************/
+
+		void ManeuverGenerator::writePrimitives(int primitiveID, std::vector<Eigen::Vector4d> points, double depth, double heading, double speed, double victoryRadius)
+		{
+			switch(primitiveID)
+			{
+				case go2point:
+
+					for(std::vector<Eigen::Vector4d>::iterator it = points.begin() ; it != points.end(); ++it)
+					{
+							//Eigen::Vector4d vTmp = *it;
+							generateGo2Point_FA(double((*it)[X]), double((*it)[Y]), 0, speed, victoryRadius);
 					}
 
 					//ROS_ERROR("T1 = %f,%f, T2 = %f,%f, Heading = %f, Speed = %f, Victory radius = %f", CM->Xpos, CM->Ypos, newXpos, newYpos, newHeading, newSpeed, newVictoryRadius);
-					break;
-
-				case go2point_UA:
-
-					for(std::vector<Eigen::Vector4d>::iterator it = points.begin() ; it != points.end(); ++it){
-
-							Eigen::Vector4d vTmp = *it;
-
-							writeXML.addGo2point_UA(vTmp[X],vTmp[Y], speed, victoryRadius);
-
-					}
-
-					//ROS_ERROR("T1 = %f,%f, T2 = %f,%f, Speed = %f, Victory radius = %f", CM->Xpos, CM->Ypos, newXpos, newYpos, newSpeed, newVictoryRadius);
 					break;
 
 				case dynamic_positioning:
@@ -175,12 +356,12 @@ namespace labust {
 
 					break;
 
-				case course_keeping_FA:
+				case course_keeping:
 					//ROS_ERROR("Course = %f, Heading = %f, Speed = %f", newCourse, newHeading, newSpeed);
 
 					break;
 
-				case course_keeping_UA:
+				case follow:
 
 					//ROS_ERROR("Course = %f, Speed = %f", newCourse, newSpeed);
 

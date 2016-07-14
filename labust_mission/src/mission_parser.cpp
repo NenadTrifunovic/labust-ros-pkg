@@ -46,12 +46,12 @@
 *  POSSIBILITY OF SUCH DAMAGE.
 *********************************************************************/
 
-#include <labust_mission/labustMission.hpp>
-
 #include <misc_msgs/StartParser.h>
 #include <misc_msgs/EvaluateExpression.h>
 
 #include <boost/thread.hpp>
+#include <labust/mission/labustMission.hpp>
+#include <labust/primitive/PrimitiveMapGenerator.h>
 
 #include <tinyxml2.h>
 
@@ -74,7 +74,7 @@ namespace labust
 			 ***  Class functions
 			 ****************************************************************/
 
-			MissionParser();
+			MissionParser(std::string primitive_definitions_xml);
 
 			~MissionParser(){};
 
@@ -106,6 +106,9 @@ namespace labust
 			 ***  Class variables
 			 ****************************************************************/
 
+			labust::primitive::PrimitiveMapGenerator PP;
+
+
 			int ID, lastID, eventID;
 			double newTimeout;
 
@@ -123,8 +126,6 @@ namespace labust
 			/** Send primitive to mission execution as string with general data */
 			stringstream primitiveString;
 
-			PrimitiveParams PP;
-
 			XMLDocument xmlDoc;
 
 			bool missionActive;
@@ -137,15 +138,16 @@ namespace labust
 		 ***  Class functions
 		 ****************************************************************/
 
-		MissionParser::MissionParser():ID(0),
+		MissionParser::MissionParser(std::string primitive_definitions_xml):ID(0),
 										   lastID(0),
 										   newTimeout(0),
 										   eventID(0),
 										   breakpoint(1),
 										   missionEvents(""),
-										   missionActive(false)
+										   missionActive(false),
+										   PP(primitive_definitions_xml)
 		{
-			ros::NodeHandle nh;
+			ros::NodeHandle nh, ph("~");
 
 			/** Subscribers */
 			subRequestPrimitive = nh.subscribe<std_msgs::UInt16>("requestPrimitive",1,&MissionParser::onRequestPrimitive, this);
@@ -164,10 +166,9 @@ namespace labust
 		void MissionParser::sendPrimitve(uint32_t id)
 		{
 			uint32_t primitive_type = parseMission(id);
-			ROS_ERROR("PRIMITIVE TYPE: %s", PRIMITIVES[primitive_type]);
 
-			if(primitive_type != none){
-
+			if(primitive_type != none)
+			{
 				misc_msgs::SendPrimitive sendContainer;
 				sendContainer.primitiveID = primitive_type;
 				//sendContainer.primitiveData = serializedData; /* Remove from msg */
@@ -181,7 +182,7 @@ namespace labust
 
 			} else {
 
-				ROS_ERROR("Mission ended.");
+				ROS_INFO("Mission parser: Mission ended.");
 				std_msgs::String tmp;
 				tmp.data = "/STOP"; //TODO Change to /missionEnded
 				pubRiseEvent.publish(tmp);
@@ -205,7 +206,6 @@ namespace labust
 			   {
 				   XMLElement *elem = primitive->ToElement();
 				   string primitiveName = elem->Attribute("name");
-				   ROS_INFO("%s", primitiveName.c_str());
 
 				   primitiveParam = primitive->FirstChildElement("id");
 				   XMLElement *elemID = primitiveParam->ToElement();
@@ -260,7 +260,7 @@ namespace labust
 		   }
 		   else
 		   {
-			   ROS_ERROR("No mission defined");
+			   ROS_ERROR("Mission parser: No mission defined.");
 			   return -1;
 		   }
 		}
@@ -313,7 +313,7 @@ namespace labust
 		   }
 		   else
 		   {
-			   ROS_ERROR("No events defined");
+			   ROS_WARN("Mission parser: No events defined");
 			   return -1;
 		   }
 		   return 0;
@@ -340,7 +340,7 @@ namespace labust
 		   }
 		   else
 		   {
-			   ROS_ERROR("No mission parameters defined");
+			   ROS_WARN("Mission parser: No mission parameters defined");
 			   return -1;
 		   }
 		   return 0;
@@ -364,12 +364,12 @@ namespace labust
 		{
 			if(req->data > 0)
 			{
-				ROS_ERROR("REQUESTED PRIMITIVE ID: %d", req->data); //TODO
+				ROS_INFO("Mission parser: Dispatcher requested primitive ID: %d", req->data);
 				sendPrimitve(req->data);
 			}
 			else
 			{
-				ROS_FATAL("REQUESTED INVALID ID");
+				ROS_FATAL("Mission parser: INVALID ID REQUESTED.");
 			}
 		}
 
@@ -424,7 +424,7 @@ namespace labust
 			}
 			else
 			{
-				ROS_FATAL("INVALID MISSION PARSER REQUEST");
+				ROS_FATAL("Mission parser: CANNOT LOAD MISSION XML.");
 			}
 		}
 	}
@@ -437,7 +437,19 @@ namespace labust
 int main(int argc, char** argv)
 {
 	ros::init(argc, argv, "mission_parser");
-	labust::mission::MissionParser MP;
+
+	ros::NodeHandle nh,ph("~");
+
+	std::string primitive_definitions_xml;
+	if(!nh.getParam("primitive_definitions_path",primitive_definitions_xml))
+	{
+		ROS_FATAL("Mission execution: NO PRIMITIVE DEFINITION XML PATH DEFINED.");
+		ROS_INFO("Path: %s", primitive_definitions_xml.c_str());
+		exit (EXIT_FAILURE);
+	}
+
+
+	labust::mission::MissionParser MP(primitive_definitions_xml);
 	ros::spin();
 	return 0;
 }

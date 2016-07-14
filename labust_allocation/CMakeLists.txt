@@ -1,12 +1,6 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(labust_allocation)
 
-# Build this in Debug
-set(CMAKE_BUILD_TYPE "Debug")
-
-## Find catkin macros and libraries
-## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
-## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   std_msgs
   auv_msgs
@@ -16,33 +10,21 @@ find_package(catkin REQUIRED COMPONENTS
   pluginlib
 )
 
-## System dependencies are found with CMake's conventions
 find_package(Eigen REQUIRED)
 find_package(CGAL)
-# find_package(Boost REQUIRED COMPONENTS system)
 
 ###################################
 ## catkin specific configuration ##
 ###################################
-## The catkin_package macro generates cmake config files for your package
-## Declare things to be passed to dependent projects
-## INCLUDE_DIRS: uncomment this if you package contains header files
-## LIBRARIES: libraries you create in this project that dependent projects also need
-## CATKIN_DEPENDS: catkin_packages dependent projects also need
-## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
   INCLUDE_DIRS include
-#  LIBRARIES labust_allocation
-#  CATKIN_DEPENDS auv_msgs nodelet roscpp
-#  DEPENDS eigen
+  LIBRARIES labust_allocation
+  CATKIN_DEPENDS auv_msgs roscpp std_msgs pluginlib
 )
 
 ###########
 ## Build ##
 ###########
-
-## Specify additional locations of header files
-## Your package locations should be listed before other locations
 include_directories(
   include
   ${Eigen_INCLUDE_DIRS}
@@ -54,40 +36,30 @@ set(ALLOCATION_SRC src/labust_allocation/thruster_configuration.cpp
    src/labust_allocation/x2d_vp.cpp)
 
 ## Declare a cpp executable
-add_executable(allocation_node src/allocation_node/allocation_node.cpp)
 if (${CGAL_FOUND})
 	include(${CGAL_USE_FILE})
 	include_directories(${CGAL_INCLUDE_DIR})
  	set(ALLOCATION_SRC ${ALLOCATION_SRC} src/labust_allocation/x2d_vp_qp.cpp)
-	add_executable(qp_solver_test src/test/qp_solver.cpp)
-	target_link_libraries(qp_solver_test
- 	  ${catkin_LIBRARIES}
-   	  ${CGAL_LIBRARIES}
-	)
 endif()
 
 ## The main project 
 add_library(labust_allocation ${ALLOCATION_SRC})
+target_link_libraries(labust_allocation ${catkin_LIBRARIES})
 
+## Allocation nodes
+add_executable(allocation_node src/allocation_node/allocation_node.cpp)
+add_dependencies(allocation_node auv_msgs_gencpp)
+target_link_libraries(allocation_node ${catkin_LIBRARIES})
 
-## Add cmake target dependencies of the executable/library
-## as an example, message headers may need to be generated before nodes
-if (DEFINED catkin_EXPORTED_TARGETS)
- add_dependencies(allocation_node ${catkin_EXPORTED_TARGETS})
+## Test
+if (${CGAL_FOUND})
+	add_executable(qp_solver_test src/test/qp_solver.cpp)
+	target_link_libraries(qp_solver_test ${catkin_LIBRARIES} ${CGAL_LIBRARIES})
 endif()
 
-## Specify libraries to link a library or executable target against
-target_link_libraries(allocation_node
-   ${catkin_LIBRARIES}
-)
-
-target_link_libraries(labust_allocation
-   ${catkin_LIBRARIES}
-)
-
-##########
-## Docs ##
-##########
+###################
+## Documentation ##
+##################
 add_custom_target(docs_${PROJECT_NAME} 
   rosdoc_lite -o ${CATKIN_DEVEL_PREFIX}/docs/${PROJECT_NAME} 
   ${CMAKE_CURRENT_LIST_DIR}

@@ -47,9 +47,10 @@ void RosbagFilter::setOutputBag(const std::string& out_filename) {
   out_bag_name_ = out_filename;
 }
 
-void RosbagFilter::setInputBags(const std::vector<std::string>& in_bags, const std::vector<std::string>& nspace) {
+void RosbagFilter::setInputBags(const std::vector<std::string>& in_bags, const std::vector<std::string>& nspace, const std::vector<double>& delay) {
   in_bags_ = in_bags;
   nspace_ = nspace;
+  delay_ = delay;
 }
 
 void RosbagFilter::setTopics(const std::vector<std::string>& topics) {
@@ -74,7 +75,8 @@ void RosbagFilter::start() {
     while (!bag_reader.done()) {
       rosbag::MessageInstance m = bag_reader.nextMessageInstance();
       const std::string namespaced_topic = nspace_[i] + m.getTopic();
-      bag_writer.addMessage(namespaced_topic, m.getTime(), m);
+      ros::Time time(m.getTime().toSec() + delay_[i]);
+      bag_writer.addMessage(namespaced_topic, time, m);
     }
     ROS_INFO("Done with bag, closing.");
     bag_reader.close();
@@ -88,6 +90,7 @@ int main(int argc, char **argv) {
   std::vector<std::string> in_bags;
   std::vector<std::string> topics;
   std::vector<std::string> nspace;
+  std::vector<double> delay;
   ros::Time time_start = ros::TIME_MIN;
   ros::Time time_end = ros::TIME_MAX;
   for (int i=1; i<argc; ++i) {
@@ -102,6 +105,8 @@ int main(int argc, char **argv) {
       topics.push_back(curr_argv);
     } else if (curr_flag == "-ns") {
         nspace.push_back(curr_argv);
+    } else if (curr_flag == "-delay") {
+        delay.push_back(strtod(argv[i], NULL));
     } else if (curr_flag == "-o") {
       out_bag_filename = curr_argv; 
     } else if (curr_flag == "-start_time") {
@@ -111,6 +116,14 @@ int main(int argc, char **argv) {
     }
   }
   
+  if(delay.empty())
+  {
+	  for(int i=0;i<in_bags.size();++i)
+	  {
+		  delay.push_back(0.0);
+	  }
+  }
+
   if(nspace.empty())
   {
 	  for(int i=0;i<in_bags.size();++i)
@@ -130,7 +143,7 @@ int main(int argc, char **argv) {
 
   RosbagFilter filter;
   filter.setOutputBag(out_bag_filename);
-  filter.setInputBags(in_bags,nspace);
+  filter.setInputBags(in_bags,nspace, delay);
   filter.setTopics(topics);
   filter.setTime(time_start, time_end);
   filter.start();

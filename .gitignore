@@ -1,3 +1,5 @@
+#ignore clang files
+.clang-format
 #ignore Eclipse project files
 .project
 .cproject

@@ -40,7 +40,7 @@
 *  POSSIBILITY OF SUCH DAMAGE.
 *********************************************************************/
 
-#include<labust_mission/labustMission.hpp>
+#include <labust/mission/labustMission.hpp>
 #include<labust_mission/dataManager.hpp>
 #include<labust_mission/eventEvaluation.hpp>
 

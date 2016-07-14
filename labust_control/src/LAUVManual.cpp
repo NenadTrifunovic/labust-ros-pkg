@@ -98,7 +98,7 @@ namespace labust
 				servo_pos(1) = 0.25*mapped(0);
 				servo_pos(2) = 0.25*mapped(0);
 
-				servo_pos(0) = -1.0*mapped(5);
+				servo_pos(0) = 1.0*mapped(5);
 				servo_pos(3) = servo_pos(0);
 
 				_allocation.inverseAllocate(thruster_act,_nu_in,servo_pos,tau_out);

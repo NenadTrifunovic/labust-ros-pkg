@@ -232,9 +232,22 @@ class CppGen():
             if var.bits == None: 
                 print('All variables need a bit size in a bitfield.')
                 return ''
-            if var.cond != None:
-                code = code + indent + 'if (' + var.cond + '){\n'
+            has_cond = (var.gcond != None) or (var.cond != None)
+            if has_cond:
+                code = code + indent + 'if ('   
                 
+                if var.gcond != None:
+                    code = code + '(' + var.gcond + ')'
+                    if var.cond != None:
+                        code = code + ' && '  
+                
+                if var.cond != None:
+                    code = code + '(' + var.cond + ')'
+                
+                code = code + '){\n' 
+                                
+            # Debugging output
+            code = code + indent + 'std::cout<<"' + var.name + ' output:";'
             if self.is_array_type(var.type):
                 len = self.get_array_len(var.type)
                                
@@ -251,7 +264,7 @@ class CppGen():
             code = code + ',' + var.min + ',' + var.max + ','
             code = code + var.bits + ');\n'
         
-            if var.cond != None:
+            if has_cond:
                 code = code + indent + '}\n'
         
         #Minimum byte rounding to avoid having zeros
@@ -339,8 +352,21 @@ class CppGen():
                 print('All variables need a bit size in a bitfield.')
                 return ''
             
-            if var.cond != None:
-                code = code + indent + 'if (' + var.cond + '){\n'
+            has_cond = (var.gcond != None) or (var.cond != None)
+            if has_cond:
+                code = code + indent + 'if ('   
+                
+                if var.gcond != None:
+                    code = code + '(' + var.gcond + ')'
+                    if var.cond != None:
+                        code = code + ' && '  
+                
+                if var.cond != None:
+                    code = code + '(' + var.cond + ')'
+                
+                code = code + '){\n' 
+            
+            code = code + indent + 'std::cout<<"' + var.name + ' input:";'
                         
             if self.is_array_type(var.type):
                 len = self.get_array_len(var.type)
@@ -359,7 +385,7 @@ class CppGen():
             code = code + ',' + var.min + ',' + var.max + ','
             code = code + var.bits + ');\n'
             
-            if var.cond != None:
+            if has_cond:
                 code = code + indent + '}\n'
                 
         return code

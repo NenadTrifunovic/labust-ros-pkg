@@ -30,165 +30,167 @@
  *  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
- *
- *  Author: Dula Nad
- *  Created: 01.02.2010.
  *********************************************************************/
 #include <labust/simulation/RBModel.hpp>
 #include <labust/math/NumberManipulation.hpp>
 
 #include <labust/simulation/LupisModel.hpp>
 
-
 #include <ros/ros.h>
 
-using namespace labust::simulation;
+using labust::simulation::RBModel;
 
-RBModel::RBModel():
-    ae(0.15),be(0.2),ce(0.2),
-    B(0),
-    dT(0.1),
-    waterLevel(0),
-    nu0(vector::Zero()),
-    eta0(vector::Zero()),
-    nu(vector::Zero()),
-    eta(vector::Zero()),
-		lgacc(0,0,g_acc),
-    g(vector::Zero()),
-    isCoupled(false),
-	is_lauv_model(false),
-    current(vector3::Zero()),
-	lauv_model(lauv_parameters)
-	{this->init();};
+RBModel::RBModel()
+  : ae(0.15)
+  , be(0.2)
+  , ce(0.2)
+  , B(0)
+  , dT(0.1)
+  , waterLevel(0)
+  , nu0(vector::Zero())
+  , eta0(vector::Zero())
+  , nu(vector::Zero())
+  , eta(vector::Zero())
+  , lgacc(0, 0, g_acc)
+  , g(vector::Zero())
+  , isCoupled(false)
+  , is_lauv_model(false)
+  , current(vector3::Zero())
+  , lauv_model(lauv_parameters)
+{
+  this->init();
+};
 
-RBModel::~RBModel(){};
+RBModel::~RBModel()
+{
+}
 
 void RBModel::calculate_mrb()
 {
-	using namespace labust::math;
-	Mrb.block<3,3>(0,0) = m*matrix3::Identity();
-	Mrb.block<3,3>(0,3) = -m*skewSymm3(rg);
-	Mrb.block<3,3>(3,0) = -m*skewSymm3(rg);
-	Mrb.block<3,3>(3,3) = Io;
+  Mrb.block<3, 3>(0, 0) = m * matrix3::Identity();
+  Mrb.block<3, 3>(0, 3) = -m * skewSymm3(rg);
+  Mrb.block<3, 3>(3, 0) = -m * skewSymm3(rg);
+  Mrb.block<3, 3>(3, 3) = Io;
 }
 
-void RBModel::step(const vector& tau)
+void RBModel::step(const vector &tau)
 {
+  // Assemble the linear and angluar velocity transformation matrices
+  using Eigen::FullPivLU;
+  using Eigen::AngleAxisd;
+  using Eigen::Vector3d;
 
-		//Assemble the linear and angluar velocity transformation matrices
-		using namespace Eigen;
-		matrix3 J1;
-		J1 = AngleAxisd(eta(psi), Vector3d::UnitZ())
-				* AngleAxisd(eta(theta), Vector3d::UnitY())
-				* AngleAxisd(eta(phi), Vector3d::UnitX());
-		double c1 = cos(eta(phi)), s1 = sin(eta(phi));
-		double c2 = cos(eta(theta)), t2 = tan(eta(theta));
-		if (!c2) c2 = 0.1;
-		matrix3 J2;
-		J2<<1,s1*t2,c1*t2,
-				0,c1,-s1,
-				0,s1/c2,c1/c2;
-		//Calculate restoring forces
-		restoring_force(J1);
+  matrix3 J1;
+  J1 = AngleAxisd(eta(psi), Vector3d::UnitZ()) *
+       AngleAxisd(eta(theta), Vector3d::UnitY()) *
+       AngleAxisd(eta(phi), Vector3d::UnitX());
+  double c1 = cos(eta(phi)), s1 = sin(eta(phi));
+  double c2 = cos(eta(theta)), t2 = tan(eta(theta));
+  if (!c2)
+    c2 = 0.1;
+  matrix3 J2;
+  J2 << 1, s1 *t2, c1 *t2, 0, c1, -s1, 0, s1 / c2, c1 / c2;
+  // Calculate restoring forces
+  restoring_force(J1);
 
-		matrix M = Ma + Mrb;
-		vector nu_old(nu);
+  matrix M = Ma + Mrb;
+  vector nu_old(nu);
 
-		if(!is_lauv_model)
-				{
-		if (isCoupled)
-		{
-			//Assemble coriolis
-			coriolis();
-			//Calculate the absolute values of the speed
-			matrix CD = Ca + Crb + Dlin + Dquad*nu.cwiseAbs2().asDiagonal();
-			FullPivLU<matrix> decomp(M+dT*CD);
-			if (decomp.isInvertible())
-			{
-				//Backward propagation model
-				nu = decomp.inverse()*(M*nu + dT*(tau-g));
-			}
-			else
-			{
-				std::cerr<<"Mass matrix is singular."<<std::endl;
-			}
-		}
-		else
-		{
-			//Simplification for uncoupled
-			for (size_t i=0; i<nu.size(); ++i)
-			{
-				double beta = Dlin(i,i) + Dquad(i,i)*fabs(nu(i));
-				//Backward propagation model
-				nu(i) = (M(i,i)*nu(i) + dT*(tau(i)- g(i)))/(M(i,i) + dT*beta);
-			};
-		}
-	}
-	else
-	{
-		//ROS_ERROR("RBmodel.cpp - DEBUG1");
-		nu = nu+lauv_model.stepInv(tau, nu, eta)*dT;
-		//ROS_ERROR_STREAM(nu);
-		//ROS_ERROR("RBmodel.cpp - DEBUG2");
+  if (!is_lauv_model)
+  {
+    if (isCoupled)
+    {
+      // Assemble coriolis
+      coriolis();
+      // Calculate the absolute values of the speed
+      matrix CD = Ca + Crb + Dlin + Dquad * nu.cwiseAbs2().asDiagonal();
+      FullPivLU<matrix> decomp(M + dT * CD);
+      if (decomp.isInvertible())
+      {
+        // Backward propagation model
+        nu = decomp.inverse() * (M * nu + dT * (tau - g));
+      }
+      else
+      {
+        std::cerr << "Mass matrix is singular." << std::endl;
+      }
+    }
+    else
+    {
+      // Simplification for uncoupled
+      for (size_t i = 0; i < nu.size(); ++i)
+      {
+        double beta = Dlin(i, i) + Dquad(i, i) * fabs(nu(i));
+        // Backward propagation model
+        nu(i) =
+            (M(i, i) * nu(i) + dT * (tau(i) - g(i))) / (M(i, i) + dT * beta);
+      };
+    }
+  }
+  else
+  {
+    // ROS_ERROR("RBmodel.cpp - DEBUG1");
+    nu = nu + lauv_model.stepInv(tau, nu, eta) * dT;
+    // ROS_ERROR_STREAM(nu);
+    // ROS_ERROR("RBmodel.cpp - DEBUG2");
 
-	    //Surface behavior
-		double surface_depth = 0.05;
-		if(eta(2) < surface_depth)
-		{
-			//ROS_ERROR("ON SURFACE");
-			nu(2) = std::fabs(nu(2)); // Check this solution!!
-			//nu(4) = -std::fabs(nu(4));
-			eta(2) = surface_depth;
-		}
-	}
+    // Surface behavior
+    double surface_depth = -0.0;
+    if (eta(2) < surface_depth)
+    {
+      // ROS_ERROR("ON SURFACE");
+      nu(2) = std::fabs(nu(2));  // Check this solution!!
+      // nu(4) = -std::fabs(nu(4));
+      eta(2) = surface_depth;
+    }
+  }
 
+  vector grav;
+  grav << lgacc, 0, 0, 0;
+  nuacc = (nu - nu_old) / dT + grav;
 
-
-	vector grav;
-	grav<<lgacc,0,0,0;
-	nuacc = (nu - nu_old)/dT + grav;
-
-
-
-	//From body to world coordinates
-	eta.block<3,1>(0,0) += dT*(J1*nu.block<3,1>(0,0)+current);
-	eta.block<3,1>(3,0) += dT*J2*nu.block<3,1>(3,0);
+  // From body to world coordinates
+  eta.block<3, 1>(0, 0) += dT * (J1 * nu.block<3, 1>(0, 0) + current);
+  eta.block<3, 1>(3, 0) += dT * J2 * nu.block<3, 1>(3, 0);
 }
 
 void RBModel::coriolis()
 {
-	using namespace labust::math;
-	//We assume that Mrb and Ma matrices are set
-	vector3 nu1 = nu.block<3,1>(0,0);
-	vector3 nu2 = nu.block<3,1>(3,0);
+  // We assume that Mrb and Ma matrices are set
+  vector3 nu1 = nu.block<3, 1>(0, 0);
+  vector3 nu2 = nu.block<3, 1>(3, 0);
 
-	Crb.block<3,3>(0,3) = -m*skewSymm3(nu1) - m*skewSymm3(nu2)*skewSymm3(rg);
-	Crb.block<3,3>(3,0) = -m*skewSymm3(nu1) + m*skewSymm3(rg)*skewSymm3(nu2);
-	Crb.block<3,3>(3,3) = -skewSymm3(Io*nu2);
+  Crb.block<3, 3>(0, 3) =
+      -m * skewSymm3(nu1) - m * skewSymm3(nu2) * skewSymm3(rg);
+  Crb.block<3, 3>(3, 0) =
+      -m * skewSymm3(nu1) + m * skewSymm3(rg) * skewSymm3(nu2);
+  Crb.block<3, 3>(3, 3) = -skewSymm3(Io * nu2);
 
-	matrix3 M11=Ma.block<3,3>(0,0);
-	matrix3 M12=Ma.block<3,3>(0,3);
-	matrix3 M21=Ma.block<3,3>(3,0);
-	matrix3 M22=Ma.block<3,3>(3,3);
+  matrix3 M11 = Ma.block<3, 3>(0, 0);
+  matrix3 M12 = Ma.block<3, 3>(0, 3);
+  matrix3 M21 = Ma.block<3, 3>(3, 0);
+  matrix3 M22 = Ma.block<3, 3>(3, 3);
 
-	Ca.block<3,3>(0,3) = -skewSymm3(M11*nu1 + M12*nu2);
-	Ca.block<3,3>(3,0) = -skewSymm3(M11*nu1 + M21*nu2);
-	Ca.block<3,3>(3,3) = -skewSymm3(M21*nu1 + M22*nu2);
+  Ca.block<3, 3>(0, 3) = -skewSymm3(M11 * nu1 + M12 * nu2);
+  Ca.block<3, 3>(3, 0) = -skewSymm3(M11 * nu1 + M21 * nu2);
+  Ca.block<3, 3>(3, 3) = -skewSymm3(M21 * nu1 + M22 * nu2);
 }
 
-void RBModel::restoring_force(const matrix3& J1)
+void RBModel::restoring_force(const matrix3 &J1)
 {
-	matrix3 invJ1;
-	invJ1=J1.inverse();
+  matrix3 invJ1;
+  invJ1 = J1.inverse();
 
-	//Update the lift force
-	//Currently a simple model
-	B=2*labust::math::coerce((eta(z)+waterLevel+rb(z)/2)/ce+1,0,2)*M_PI/3*ae*be*ce*rho*g_acc;
+  // Update the lift force
+  // Currently a simple model
+  B = 2 *
+      labust::math::coerce((eta(z) + waterLevel + rb(z) / 2) / ce + 1, 0, 2) *
+      M_PI / 3 * ae * be * ce * rho * g_acc;
 
-	lgacc = g_acc*invJ1*vector3::UnitZ();
-	vector3 fg = m*lgacc;
-	vector3 fb = -invJ1*(B*vector3::UnitZ());
+  lgacc = g_acc * invJ1 * vector3::UnitZ();
+  vector3 fg = m * lgacc;
+  vector3 fb = -invJ1 * (B * vector3::UnitZ());
 
-	g.block<3,1>(0,0) = -fg-fb;
-	g.block<3,1>(3,0) = -skewSymm3(rg)*fg-skewSymm3(rb)*fb;
+  g.block<3, 1>(0, 0) = -fg - fb;
+  g.block<3, 1>(3, 0) = -skewSymm3(rg) * fg - skewSymm3(rb) * fb;
 }

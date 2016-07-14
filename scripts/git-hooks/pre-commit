@@ -1,0 +1,57 @@
+#!/usr/bin/env python
+import argparse
+import subprocess
+import os
+
+def parse_args():
+    pass
+
+def filesize_test(args=None):
+    pass
+
+def clang_test(args=None):
+    output = subprocess.check_output(["git", "clang-format", "--diff"])
+
+    if output not in ['no modified files to format\n', 
+            'clang-format did not modify any files\n']:
+        print("Run git clang-format, then commit.\n")
+        return 1
+    else:
+        print("No code needs reformatting.")
+        return 0
+
+def roslint_test(flist):  
+    valid_ext = ['.cpp','.c','.h','.hpp']
+
+    for file in flist:
+        name, ext = os.path.splitext(file)
+        if ext in valid_ext:
+            try:
+                print('Linting ' + file + '.')
+                output = subprocess.check_output(
+                       ["rosrun", "roslint", "cpplint", file])
+            except subprocess.CalledProcessError:
+                print('Linting failed for ' + file + '.')
+                return 1
+        else:
+           print('Skipping lint for ' + file + '.')
+
+    return 0
+
+def main(args=None):
+    # Test files formating
+    if clang_test(args) != 0:
+        exit(1)
+
+    # Get staged files
+    output = subprocess.check_output(
+            ["git", "diff", "--name-only", "--cached"])
+    flist = output.decode("utf-8").splitlines()
+
+    if roslint_test(flist) != 0:
+        exit(1)
+
+if __name__ == "__main__":
+    args = parse_args()
+    main(args)
+
