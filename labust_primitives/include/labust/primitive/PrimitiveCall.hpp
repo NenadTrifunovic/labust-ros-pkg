@@ -144,7 +144,8 @@ namespace labust
 																	  	  navcon_msgs::DynamicPositioningFeedback>
 		{
 		public:
-			PrimitiveCallDynamicPositioning():PrimitiveCallBase("dynamic_positioning")
+			PrimitiveCallDynamicPositioning():PrimitiveCallBase("dynamic_positioning"),
+												display_counter(0)
 			{
 
 			}
@@ -171,9 +172,13 @@ namespace labust
 			/*** Callback called every time feedback is received for the goal ***/
 			void feedbackCb(const Feedback::ConstPtr& feedback)
 			{
-				ROS_ERROR("Feedback - dynamic_positioning - x-error: %f, y-error: %f, distance: %f, bearing: %f",
+				if((display_counter++)%10 == 0)
+					ROS_INFO("Feedback - dynamic_positioning - x-error: %f, y-error: %f, distance: %f, bearing: %f",
 						feedback->error.point.x, feedback->error.point.y, feedback->distance, feedback->bearing);
 			}
+
+			int display_counter;
+
 		};
 
 		class PrimitiveCallDOFIdentification : public PrimitiveCallBase<navcon_msgs::DOFIdentificationAction,
