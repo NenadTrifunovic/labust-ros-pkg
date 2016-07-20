@@ -27,14 +27,19 @@ include_directories(
 )
 
 ## Main library
-file(GLOB SRC src/BatteryDiagnostics.cpp src/ThrusterDiagnostics.cpp)
-file(GLOB HPP include/labust/diagnostics/{BatteryDiagnostics.hpp include/labust/diagnostics/ThrusterDiagnostics.hpp)
+#file(GLOB SRC src/BatteryDiagnostics.cpp src/ThrusterDiagnostics.cpp)
+#file(GLOB HPP include/labust/diagnostics/{BatteryDiagnostics.hpp include/labust/diagnostics/ThrusterDiagnostics.hpp)
+file(GLOB SRC src/StatusHandler.cpp)
+file(GLOB HPP)
 add_library(labust_diagnostics ${SRC} ${HPP})
 target_link_libraries(labust_diagnostics ${catkin_LIBRARIES})
 
 ## Diagnostic nodes
-add_executable(system_diagnostics_node src/SystemDiagnosticsNode.cpp)
-target_link_libraries(system_diagnostics_node labust_diagnostics ${catkin_LIBRARIES})
+#add_executable(system_diagnostics_node src/SystemDiagnosticsNode.cpp)
+#target_link_libraries(system_diagnostics_node labust_diagnostics ${catkin_LIBRARIES})
+
+add_executable(diagnostic_node src/diagnostic_node.cpp)
+target_link_libraries(diagnostic_node labust_diagnostics ${catkin_LIBRARIES})
 
 #############
 ## Install ##

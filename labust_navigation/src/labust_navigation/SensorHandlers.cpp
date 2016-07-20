@@ -38,6 +38,8 @@
 #include <geometry_msgs/TransformStamped.h>
 #include <Eigen/Dense>
 
+#include <boost/lexical_cast.hpp>
+
 using namespace labust::navigation;
 
 void GPSHandler::configure(ros::NodeHandle& nh)
@@ -47,10 +49,17 @@ void GPSHandler::configure(ros::NodeHandle& nh)
 
 	gps = nh.subscribe<sensor_msgs::NavSatFix>("gps", 1,
 			&GPSHandler::onGps, this);
+
+	//status_handler_.addKeyValue("Bottom lock");
+	status_handler_.setEntityStatus(diagnostic_msgs::DiagnosticStatus::WARN);
+	status_handler_.setEntityMessage("Status handler initialized.");
+	status_handler_.publishStatus();
 }
 
 void GPSHandler::onGps(const sensor_msgs::NavSatFix::ConstPtr& data)
 {
+	status_handler_.setEntityStatus(diagnostic_msgs::DiagnosticStatus::ERROR);
+
 	//Calculate to X-Y tangent plane
 	geometry_msgs::TransformStamped transformDeg, transformLocal, transformGPS;
 	try
@@ -117,11 +126,15 @@ void GPSHandler::onGps(const sensor_msgs::NavSatFix::ConstPtr& data)
 		posLL.second = lat;
 		posLL.first = lon;
 		isNew = true;
+
+		status_handler_.setEntityStatus(diagnostic_msgs::DiagnosticStatus::OK);
 	}
 	catch(tf2::TransformException& ex)
 	{
 		ROS_WARN("Unable to decode GPS measurement. Missing frame : %s",ex.what());
 	}
+
+	status_handler_.publishStatus();
 };
 
 void ImuHandler::configure(ros::NodeHandle& nh)
@@ -133,10 +146,17 @@ void ImuHandler::configure(ros::NodeHandle& nh)
 			&ImuHandler::onImu, this);
 	mag_dec = nh.subscribe<std_msgs::Float64>("magnetic_declination",1,
 					&ImuHandler::onMagDec, this);
+
+	//status_handler_.addKeyValue("Bottom lock");
+	status_handler_.setEntityStatus(diagnostic_msgs::DiagnosticStatus::WARN);
+	status_handler_.setEntityMessage("Status handler initialized.");
+	status_handler_.publishStatus();
 }
 
 void ImuHandler::onImu(const sensor_msgs::Imu::ConstPtr& data)
 {
+	status_handler_.setEntityStatus(diagnostic_msgs::DiagnosticStatus::ERROR);
+
 	geometry_msgs::TransformStamped transform;
 	try
 	{
@@ -177,11 +197,13 @@ void ImuHandler::onImu(const sensor_msgs::Imu::ConstPtr& data)
 		axyz[az] = angvel(2);
 
 		isNew = true;
+		status_handler_.setEntityStatus(diagnostic_msgs::DiagnosticStatus::OK);
 	}
 	catch (tf2::TransformException& ex)
 	{
 		ROS_WARN("Failed converting the IMU data: %s",ex.what());
 	}
+	status_handler_.publishStatus();
 };
 
 void DvlHandler::configure(ros::NodeHandle& nh)
@@ -197,17 +219,29 @@ void DvlHandler::configure(ros::NodeHandle& nh)
 	bottom_lock = false;
 
 	uvw[u] = uvw[v] = uvw[w] = 0;
+
+	status_handler_.addKeyValue("Bottom lock");
+	status_handler_.setEntityStatus(diagnostic_msgs::DiagnosticStatus::WARN);
+	status_handler_.setEntityMessage("Status handler initialized.");
+	status_handler_.publishStatus();
+
+
 }
 
 void DvlHandler::onBottomLock(const std_msgs::Bool::ConstPtr& data)
 {
 		this->bottom_lock = data->data;
+		status_handler_.updateKeyValue("Bottom lock", boost::lexical_cast<std::string>(bottom_lock));
+
 }
 
 void DvlHandler::onDvl(const geometry_msgs::TwistStamped::ConstPtr& data)
 {
+	status_handler_.setEntityStatus(diagnostic_msgs::DiagnosticStatus::ERROR);
+
 	//Ignore water lock data (?)
-	if (!bottom_lock)	ROS_WARN("No bottom lock.");
+	if (!bottom_lock)
+		ROS_WARN("No bottom lock.");
 
 	if (data->header.frame_id.find("dvl_frame") != std::string::npos)
 	{
@@ -309,6 +343,8 @@ void DvlHandler::onDvl(const geometry_msgs::TwistStamped::ConstPtr& data)
 	}
 
 	isNew = true;
+	status_handler_.setEntityStatus(diagnostic_msgs::DiagnosticStatus::OK);
+	status_handler_.publishStatus();
 }
 
 void iUSBLHandler::configure(ros::NodeHandle& nh)
@@ -322,6 +358,11 @@ void iUSBLHandler::configure(ros::NodeHandle& nh)
 			&iUSBLHandler::onSurfacePos, this);
 
 	pos[x] = pos[y] = pos[z] = 0;
+
+	//status_handler_.addKeyValue("Bottom lock");
+	status_handler_.setEntityStatus(diagnostic_msgs::DiagnosticStatus::WARN);
+	status_handler_.setEntityMessage("Status handler initialized.");
+	status_handler_.publishStatus();
 }
 
 void iUSBLHandler::onSurfacePos(const auv_msgs::NavSts::ConstPtr& data)
@@ -340,6 +381,8 @@ void iUSBLHandler::onUSBL(const underwater_msgs::USBLFix::ConstPtr& data)
 
 void iUSBLHandler::merge()
 {
+	status_handler_.setEntityStatus(diagnostic_msgs::DiagnosticStatus::ERROR);
+
 	//Reset arrivals
 	fix_arrived = remote_arrived = false;
 	//Offset compensation
@@ -375,11 +418,13 @@ void iUSBLHandler::merge()
 			ROS_INFO("Received new position: %f %f", pos[x], pos[y]);
 
 			isNew = true;
+			status_handler_.setEntityStatus(diagnostic_msgs::DiagnosticStatus::OK);
 		}
 		catch (std::exception& e)
 		{
 		   ROS_WARN("%s",e.what());
 		}
+		status_handler_.publishStatus();
 	}
 
 	

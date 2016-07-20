@@ -47,6 +47,8 @@
 #include <GeographicLib/Geocentric.hpp>
 #include <GeographicLib/LocalCartesian.hpp>
 
+#include <labust/diagnostics/StatusHandler.h>
+
 #include <ros/ros.h>
 
 #include <Eigen/Dense>
@@ -79,7 +81,7 @@ namespace labust
 		class GPSHandler : public NewArrived
 		{
 		public:
-			GPSHandler():listener(buffer),originh(0),tf_prefix(""){};
+			GPSHandler():listener(buffer),originh(0),tf_prefix(""),status_handler_("GPS","gps"){};
 			void configure(ros::NodeHandle& nh);
 
 			inline const std::pair<double, double>&
@@ -106,6 +108,7 @@ namespace labust
 			Eigen::Quaternion<double> rot;
 			double originh;
 			std::string tf_prefix;
+			labust::diagnostic::StatusHandler status_handler_;
 		};
 
 		/**
@@ -118,7 +121,7 @@ namespace labust
 			enum {p=0,q,r};
 			enum {ax,ay,az};
 
-			ImuHandler():listener(buffer),gps(0),magdec(0),tf_prefix(""){};
+			ImuHandler():listener(buffer),gps(0),magdec(0),tf_prefix(""),status_handler_("IMU","imu"){};
 			
 			void setGpsHandler(GPSHandler* gps){this->gps = gps;};
 
@@ -140,6 +143,8 @@ namespace labust
 			double rpy[3], pqr[3], axyz[3], magdec;
 			GPSHandler* gps;
 			std::string tf_prefix;
+			labust::diagnostic::StatusHandler status_handler_;
+
 		};
 
 		class DvlHandler : public NewArrived
@@ -147,7 +152,7 @@ namespace labust
 		public:
 			enum {u=0,v,w};
 
-			DvlHandler():r(0),listener(buffer),bottom_lock(false),tf_prefix(""){};
+			DvlHandler():r(0),listener(buffer),bottom_lock(false),tf_prefix(""),status_handler_("DVL","dvl"){};
 
 			void configure(ros::NodeHandle& nh);
 
@@ -166,6 +171,7 @@ namespace labust
 			tf2_ros::Buffer buffer;
 			tf2_ros::TransformListener listener;
 			std::string tf_prefix;
+			labust::diagnostic::StatusHandler status_handler_;
 		};
 
 		class iUSBLHandler : public NewArrived
@@ -173,7 +179,7 @@ namespace labust
 		public:
 			enum {x=0,y,z};
 
-			iUSBLHandler():depth(0),listener(buffer),tf_prefix(""),fix_arrived(false),
+			iUSBLHandler():depth(0),listener(buffer),tf_prefix(""),fix_arrived(false),status_handler_("iUSBL","iusbl"),
 					remote_arrived(false){};
 
 			void configure(ros::NodeHandle& nh);
@@ -198,6 +204,7 @@ namespace labust
 			underwater_msgs::USBLFix fix;
 			bool fix_arrived;
 			bool remote_arrived;
+			labust::diagnostic::StatusHandler status_handler_;
 		};
 	}
 }
