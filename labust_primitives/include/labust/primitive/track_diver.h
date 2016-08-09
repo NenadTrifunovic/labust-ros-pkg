@@ -139,11 +139,10 @@ namespace labust
 			ros::Subscriber radius_sub;
 			///Path speed frame progression
 			ros::Subscriber dpi_r_sub;
-
-			///Transform frame publisher
-
 			///Diver state
 			ros::Subscriber diver_state;
+			/// Heading reference publisher
+			ros::Publisher heading_pub;
 			///Current action goal
 			Goal::Ptr cgoal;
 			///New goal processing flag

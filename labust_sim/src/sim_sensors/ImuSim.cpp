@@ -100,7 +100,7 @@ struct ImuSim
 				msg->pose.pose.orientation.z);
 		double roll, pitch, yaw;
 		labust::tools::eulerZYXFromQuaternion(meas,roll, pitch, yaw);
-		yaw += magdec;
+		yaw -= magdec;
 		labust::tools::quaternionFromEulerZYX(roll, pitch, yaw, meas);
 		Eigen::Quaternion<double> sim_meas = meas*orot.inverse();
 		imu->orientation.x = sim_meas.x();

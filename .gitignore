@@ -40,3 +40,6 @@ logs
 CATKIN_IGNORE
 #Python stuff
 *.pyc
+# Generated documentation
+*/html
+*/latex

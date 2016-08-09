@@ -35,6 +35,7 @@
 #include <labust/tools/conversions.hpp>
 
 #include <auv_msgs/FSPathInfo.h>
+#include <auv_msgs/NavStsReq.h>
 #include <navcon_msgs/EnableControl.h>
 
 using namespace labust::primitive;
@@ -73,8 +74,10 @@ void TrackDiver::init()
 	//Set default curvature
 	path.curvature = 1/radius;
 	path.torsion = 0;
+	// init publishers
+	heading_pub = nh.advertise<auv_msgs::NavStsReq>("state_ref", 1);
 	//Init subscribers
-	diver_state = nh.subscribe("diver_state",1,
+	diver_state = nh.subscribe("diver_position",1,
 			&TrackDiver::onDiverState, this);
 	dpi_r_sub = nh.subscribe("dpi_r", 1,
 			&TrackDiver::onPathSpeed,this);
@@ -235,12 +238,12 @@ void TrackDiver::setDesiredPathPosition()
 	{
 		finfo.gamma_r = finfo.mu_r;
 		path.xi_r = finfo.mu_r;
-		path.dxi_r = 0*diver_pos.orientation_rate.yaw*nr;
+		path.dxi_r = diver_pos.orientation_rate.yaw*nr;
 	}
 
 	double dx = diver_pos.position.north - vehicle_pos.position.north;
 	double dy = diver_pos.position.east - vehicle_pos.position.east;
-	path.pi_tilda = (path.pi - path.xi_r);0/cosh(5*(sqrt(dx*dx+dy*dy) - nr));
+	path.pi_tilda = (path.pi - path.xi_r);
 	if (cgoal->wrapping_enable) path.pi_tilda = nr*labust::math::wrapRad(path.pi_tilda/nr);
 }
 
@@ -253,6 +256,10 @@ void TrackDiver::setDesiredOrientation(const auv_msgs::NavSts& estimate)
 	path.k = 0;
 	if (cgoal->streamline_orientation)
 		path.k = 0.5*(tanh((sqrt(dx*dx+dy*dy) - sigma_m)/kpsi) + 1);
+	// Publish the heading here
+	auv_msgs::NavStsReq::Ptr heading_out(new auv_msgs::NavStsReq());
+	heading_out->orientation.yaw = path.delta_r;
+	heading_pub.publish(heading_out);
 }
 
 void TrackDiver::updateFS()

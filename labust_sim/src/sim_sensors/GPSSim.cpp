@@ -34,6 +34,8 @@
  *  Author: Dula Nad
  *  Created: 01.02.2013.
  *********************************************************************/
+#include <labust/simulation/NoiseModel.hpp>
+
 #include <nav_msgs/Odometry.h>
 #include <sensor_msgs/NavSatFix.h>
 #include <tf2_ros/buffer.h>
@@ -46,20 +48,36 @@
 #include <GeographicLib/Geocentric.hpp>
 #include <GeographicLib/LocalCartesian.hpp>
 
+#include <boost/random/normal_distribution.hpp>
+#include <boost/random/variate_generator.hpp>
+#include <boost/nondet_random.hpp>
+
+using labust::simulation::NoiseGenerators;
+
 struct GPSSim
 {
+    typedef boost::variate_generator<boost::random_device&, boost::normal_distribution<> > NoiseGenerator;
+    typedef boost::shared_ptr<NoiseGenerator> NoiseGeneratorPtr;
+
 	GPSSim():
 		last_gps(ros::Time::now()),
 		rate(10),
 		listener(buffer),
 		gps_z(0),
-		tf_prefix("")
+		tf_prefix(""),
+		sigma(0),
+		max_walk(0)
 	{
 		ros::NodeHandle nh,ph("~");
 		ph.param("gps_pub",rate,rate);
 		std::vector<double> offset(3,0), orot(3,0);
 		ph.param("offset", offset, offset);
 		ph.param("orot", orot, orot);
+		ph.param("sigma", sigma, sigma);
+		ph.param("max_walk", max_walk, max_walk);
+		gen.addNew(0,sigma);
+		gen.addNew(0,sigma);
+
 		this->offset<<offset[0],offset[1],offset[2];
 		labust::tools::quaternionFromEulerZYX(M_PI*orot[0]/180,
 				M_PI*orot[1]/180,
@@ -90,7 +108,7 @@ struct GPSSim
 					transformLocal.transform.rotation.x,
 					transformLocal.transform.rotation.y,
 					transformLocal.transform.rotation.z);
-			Eigen::Vector3d gps_w = qrot.toRotationMatrix().transpose()*offset;
+			Eigen::Vector3d gps_w = qrot.toRotationMatrix()*offset;
 			//Update the simulated position of GPS with offset
 			//Eigen::Vector3d ned;
 			//ned<<msg->pose.pose.position.x,
@@ -99,10 +117,14 @@ struct GPSSim
 			//labust::tools::quaternionFromEulerZYX(M_PI,0,M_PI/2,qrot);
 			//Eigen::Vector3d enu = qrot.matrix().transpose()*ned + gps_w;
 			Eigen::Vector3d enu;
-			enu<<transformLocal.transform.translation.x,
-					transformLocal.transform.translation.y,
+
+			enu<<transformLocal.transform.translation.x + noisex,
+					transformLocal.transform.translation.y + noisey,
 					transformLocal.transform.translation.z;
 			enu += gps_w;
+
+            // Make some noise.
+            updateNoise();
 
 			transformLocal.transform.translation.x = enu(0);
 			transformLocal.transform.translation.y = enu(1);
@@ -138,6 +160,22 @@ struct GPSSim
 		}
 	}
 
+	void updateNoise()
+	{
+	    double nx = gen(0);
+	    double ny = gen(1);
+        if ((noisex*noisex + noisey*noisey) > max_walk*max_walk)
+        {
+            if (fabs(noisex) >= fabs(noisey)) noisex = nx;
+            if (fabs(noisey) >= fabs(noisex)) noisey = ny;
+        }
+        else
+        {
+            noisex += nx;
+            noisey += ny;
+        }
+	}
+
 private:
 	ros::Subscriber odom;
 	ros::Publisher gps_pub;
@@ -152,6 +190,11 @@ private:
 	//The ENU frame
 	GeographicLib::LocalCartesian proj;
 	std::string tf_prefix;
+    double noisex;
+    double noisey;
+    NoiseGenerators gen;
+    double sigma;
+    double max_walk;
 };
 
 int main(int argc, char* argv[])

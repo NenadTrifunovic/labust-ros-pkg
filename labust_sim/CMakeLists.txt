@@ -6,11 +6,11 @@ find_package(catkin REQUIRED COMPONENTS
     auv_msgs 
     nav_msgs
     underwater_msgs
+    navcon_msgs
     roscpp 
     rospy 
     tf2_ros 
-    snippets
-    visualization_msgs)
+    snippets)
 
 ## System dependencies 
 find_package(Boost REQUIRED COMPONENTS random)
@@ -22,7 +22,7 @@ find_package(Eigen REQUIRED)
 catkin_package(
    INCLUDE_DIRS include
    LIBRARIES labust_sim
-   CATKIN_DEPENDS auv_msgs roscpp rospy tf2_ros nav_msgs snippets nav_msgs visualization_msgs
+   CATKIN_DEPENDS auv_msgs roscpp rospy tf2_ros nav_msgs snippets nav_msgs underwater_msgs navcon_msgs
    DEPENDS boost eigen
 )
 
@@ -55,14 +55,18 @@ add_executable(imu_sim src/sim_sensors/ImuSim.cpp)
 target_link_libraries(imu_sim ${catkin_LIBRARIES})
 
 add_executable(dvl_sim src/sim_sensors/DvlSim.cpp)
-target_link_libraries(dvl_sim ${catkin_LIBRARIES})
+target_link_libraries(dvl_sim ${catkin_LIBRARIES} ${Boost_RANDOM_LIBRARY})
 
 add_executable(gps_sim src/sim_sensors/GPSSim.cpp)
-target_link_libraries(gps_sim ${catkin_LIBRARIES} Geographic)
+target_link_libraries(gps_sim ${catkin_LIBRARIES} Geographic ${Boost_RANDOM_LIBRARY})
 
 add_executable(usbl_sim src/data_sim/USBLSim.cpp)
 add_dependencies(usbl_sim auv_msgs_gencpp underwater_msgs_gencpp)
 target_link_libraries(usbl_sim ${catkin_LIBRARIES})
+
+add_executable(sonar_sim src/sim_sensors/SonarSim.cpp)
+add_dependencies(sonar_sim navcon_msgs_gencpp)
+target_link_libraries(sonar_sim ${catkin_LIBRARIES} ${Boost_RANDOM_LIBRARY})
 
 ## Diver simulator
 add_executable(diver_sim src/diver_sim/diver_sim.cpp)
@@ -80,10 +84,6 @@ target_link_libraries(navsts2odom ${catkin_LIBRARIES})
 
 add_executable(uvsim_timing src/test/uvsim_timing.cpp)
 target_link_libraries(uvsim_timing labust_sim ${catkin_LIBRARIES})
-
-add_executable(diver_marker src/diver_sim/diver_marker.cpp)
-add_dependencies(diver_marker auv_msgs_gencpp)
-target_link_libraries(diver_marker ${catkin_LIBRARIES})
 
 add_executable(trajectory_generator src/labust_sim/trajectory_generator.cpp)
 add_dependencies(trajectory_generator auv_msgs_gencpp underwater_msgs_gencpp)

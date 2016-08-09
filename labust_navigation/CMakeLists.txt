@@ -59,6 +59,9 @@ add_executable(llnode src/latlon_node/LLNode.cpp)
 target_link_libraries(llnode ${catkin_LIBRARIES} ${GeographicLib_LIBRARIES})
 add_executable(ltp_node src/latlon_node/ltp_node.cpp)
 target_link_libraries(ltp_node ${catkin_LIBRARIES})
+add_executable(tf_publisher_node src/nav_node/tf_publisher_node.cpp)
+add_dependencies(tf_publisher_node auv_msgs_gencpp)
+target_link_libraries(tf_publisher_node ${catkin_LIBRARIES})
 
 ## Filters 
 add_executable(ekf3d_node src/nav_node/EKF3D.cpp)

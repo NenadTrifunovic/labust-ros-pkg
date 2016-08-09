@@ -117,6 +117,33 @@ namespace labust
 			 */
 			boost::array<ng_ptr,6> ngW,ngV;
 		};
+
+		/// Vector of noise generators.
+		class NoiseGenerators
+		{
+		public:
+		    typedef boost::variate_generator<boost::random_device&, boost::normal_distribution<> > NoiseGenerator;
+		    typedef boost::shared_ptr<NoiseGenerator> NoiseGeneratorPtr;
+
+		    void addNew(double mean, double sigma)
+		    {
+		        gen.push_back(NoiseGeneratorPtr(new NoiseGenerator(rd, boost::normal_distribution<>(mean,sigma))));
+		    }
+
+		    double operator()(int i)
+		    {
+		        if (i < gen.size())
+		        {
+		            return (*gen[i])();
+		        }
+		    return 0;
+		    }
+
+		protected:
+		    boost::random_device rd;
+		    std::vector<NoiseGeneratorPtr> gen;
+		};
+
 	}
 }
 /* NOISEMODEL_HPP_ */

@@ -72,7 +72,7 @@ namespace labust
 				//Normalize data
 				uint64_t xw = uint64_t(round(mask * (rdata - min)/(max-min)));
 				xw &= mask;
-        std::cout<<"\t Encoder number:"<<xw<<std::endl;
+        //std::cout<<"\t Encoder number:"<<xw<<std::endl;
 
 				uint8_t rembits(bitsz);
 				while (rembits)
@@ -130,7 +130,7 @@ namespace labust
 					rembits -= rem;
 				}
 
-        std::cout<<"\t Decoder number:"<<xw<<std::endl;
+        //std::cout<<"\t Decoder number:"<<xw<<std::endl;
 
 				data = ValueType(((max-min)*xw)/mask + min);
 				return true;

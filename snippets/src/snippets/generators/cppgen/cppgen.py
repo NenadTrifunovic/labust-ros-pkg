@@ -247,7 +247,7 @@ class CppGen():
                 code = code + '){\n' 
                                 
             # Debugging output
-            code = code + indent + 'std::cout<<"' + var.name + ' output:";'
+            #code = code + indent + 'std::cout<<"' + var.name + ' output:";'
             if self.is_array_type(var.type):
                 len = self.get_array_len(var.type)
                                
@@ -366,7 +366,7 @@ class CppGen():
                 
                 code = code + '){\n' 
             
-            code = code + indent + 'std::cout<<"' + var.name + ' input:";'
+            #code = code + indent + 'std::cout<<"' + var.name + ' input:";'
                         
             if self.is_array_type(var.type):
                 len = self.get_array_len(var.type)

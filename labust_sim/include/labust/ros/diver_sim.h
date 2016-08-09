@@ -92,6 +92,8 @@ namespace labust
 
 			///Navigation state publisher
 			ros::Publisher navsts;
+            ///Navigation odometry publisher
+            ros::Publisher odom_pub;
 			///Joint state publisher
 			ros::Publisher joints;
 			///Subscriber to commanded speeds

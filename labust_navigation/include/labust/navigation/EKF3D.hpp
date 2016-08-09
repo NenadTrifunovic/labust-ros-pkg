@@ -211,6 +211,10 @@ namespace labust
 			ros::Time last_alt;
 			///The altitude covariance Timeout
 			double altitude_timeout;
+			/// Enable publishing of the local->base_pose transform
+			bool enable_base_pose_tf;
+			/// Enable publishing of the base_pose->base_link transform
+			bool enable_base_link_tf;
 
 			/**
 			 * Callbacks for relative/absolute mode switching

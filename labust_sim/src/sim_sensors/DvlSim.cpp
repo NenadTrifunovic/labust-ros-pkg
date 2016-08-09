@@ -35,6 +35,7 @@
  *  Created: 01.02.2013.
  *********************************************************************/
 #include <labust/tools/conversions.hpp>
+#include <labust/simulation/NoiseModel.hpp>
 
 #include <nav_msgs/Odometry.h>
 #include <geometry_msgs/TwistStamped.h>
@@ -44,6 +45,8 @@
 
 #include <Eigen/Dense>
 
+using labust::simulation::NoiseGenerators;
+
 struct DvlSim
 {
 	DvlSim():
@@ -51,7 +54,8 @@ struct DvlSim
 		maxDepth(30),
 		dvl_pub(1),
 		lastPubTime(ros::Time::now()),
-		tf_prefix("")
+		tf_prefix(""),
+		sigma(0)
 	{
 		ros::NodeHandle nh,ph("~");
 
@@ -61,6 +65,10 @@ struct DvlSim
 		std::vector<double> offset(3,0), orot(3,0);
 		ph.param("offset", offset, offset);
 		ph.param("orot", orot, orot);
+		ph.param("sigma", sigma, sigma);
+
+        for(int i=0; i<3; ++i) gen.addNew(0,sigma);
+
 		this->offset<<offset[0],offset[1],offset[2];
 		labust::tools::quaternionFromEulerZYX(M_PI*orot[0]/180,
 				M_PI*orot[1]/180,
@@ -108,6 +116,7 @@ struct DvlSim
 			}
 			nu_b = qv.toRotationMatrix().transpose()*nu_l;
 		}
+		nu_b += Eigen::Vector3d(gen(0),gen(1),gen(2));
 		//Incorporate offsets for DVL frame
 		Eigen::Vector3d nur;
 		labust::tools::pointToVector(msg->twist.twist.angular, nur);
@@ -163,6 +172,8 @@ private:
 	ros::Time lastPubTime;
 	double maxBottomLock, maxDepth;
 	std::string tf_prefix;
+	NoiseGenerators gen;
+	double sigma;
 };
 
 int main(int argc, char* argv[])

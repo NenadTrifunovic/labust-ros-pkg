@@ -51,6 +51,7 @@ using labust::mission::CaddyMissions;
 
 CaddyMissions::CaddyMissions():
                 ipaddress("10.0.10.1"),
+                pointer_radius(4.0),
                 mission_state(IDLE),
                 go_and_carry_substate(NONE)
 {
@@ -68,6 +69,7 @@ void CaddyMissions::onInit()
 
   //Setup parameters
   ph.param("ipaddress",ipaddress,ipaddress);
+  ph.param("pointer_radius", pointer_radius, pointer_radius);
 
   //Initialize publishers
   timeout_pub = nh.advertise<std_msgs::Bool>("mission_timeout", 1);
@@ -83,14 +85,13 @@ void CaddyMissions::onInit()
   vtcon = nh.serviceClient<navcon_msgs::EnableControl>("VT_enable");
   velcon = nh.serviceClient<navcon_msgs::ConfigureVelocityController>("ConfigureVelocityController");
 
-  pointer_srv = nh.serviceClient<misc_msgs::PointerPrimitiveService>("commander/pointer");
+  pointer_srv = nh.serviceClient<misc_msgs::PointerPrimitiveService>("commander/primitive/pointer");
   go2depth_srv = nh.serviceClient<misc_msgs::Go2depthService>("commander/go2depth");
   go2point_srv = nh.serviceClient<misc_msgs::Go2pointService>("commander/go2point");
-  dp_srv = nh.serviceClient<misc_msgs::DynamicPositioningPrimitiveService>("commander/dynamic_positioning");
+  dp_srv = nh.serviceClient<misc_msgs::DynamicPositioningPrimitiveService>("commander/primitive/dynamic_positioning");
   stop_srv = nh.serviceClient<std_srvs::Trigger>("commander/stop_mission");
   pause_srv = nh.serviceClient<std_srvs::Trigger>("commander/pause_mission");
   continue_srv = nh.serviceClient<std_srvs::Trigger>("commander/continue_mission");
-
 
   //Initialze subscribers
   position_sub = nh.subscribe<auv_msgs::NavSts>("position", 1, &CaddyMissions::onPosition,this);
@@ -240,10 +241,13 @@ void CaddyMissions::onGuideMe(const std_msgs::Int32::ConstPtr& data)
 {
   if ((data->data == 1) && (mission_state != GUIDE_ME))
   {
+    // Turn off primitives and controllers
+    this->stopControllers();
+
     // Start the primitive
     ROS_INFO("Setup Pointer primitive.");
     misc_msgs::PointerPrimitiveService srv_data;
-    srv_data.request.radius = 5.0;
+    srv_data.request.radius = pointer_radius;
     srv_data.request.radius_topic = "diver_distance";
     srv_data.request.vertical_offset = 0;
     srv_data.request.guidance_enable = false;
@@ -251,7 +255,7 @@ void CaddyMissions::onGuideMe(const std_msgs::Int32::ConstPtr& data)
     srv_data.request.guidance_target.y = 0;
     srv_data.request.guidance_target.z = 0;
     srv_data.request.guidance_topic = "guide_target";
-    srv_data.request.streamline_orientation = true;
+    srv_data.request.streamline_orientation = false;
     srv_data.request.wrapping_enable = false;
 
     pointer_srv.call(srv_data);
@@ -267,10 +271,9 @@ void CaddyMissions::onGuideMe(const std_msgs::Int32::ConstPtr& data)
     navcon_msgs::EnableControl flag;
     flag.request.enable = true;
     bool hdgconOK = hdgcon.call(flag);
-    bool depthconOK = depthcon.call(flag);
     bool vtconOK = vtcon.call(flag);
 
-    if (hdgconOK && velconOK && depthconOK && vtconOK)
+    if (hdgconOK && velconOK && vtconOK)
     {
       ROS_INFO("Guide-Me controller setup complete.");
       mission_state = GUIDE_ME;
@@ -315,6 +318,7 @@ void CaddyMissions::stopControllers()
   velcon.call(srv);
   navcon_msgs::EnableControl flag;
   flag.request.enable = false;
+  dpcon.call(flag);
   hdgcon.call(flag);
   altcon.call(flag);
   depthcon.call(flag);

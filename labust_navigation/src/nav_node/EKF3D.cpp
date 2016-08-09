@@ -77,7 +77,9 @@ Estimator3D::Estimator3D():
 		nsamples_alt(10),
 		altok_var(2),
 		dvl_fp(0.1),
-		tf_prefix(""){this->onInit();};
+		tf_prefix(""),
+		enable_base_pose_tf(true),
+		enable_base_link_tf(true){this->onInit();};
 
 void Estimator3D::onInit()
 {
@@ -99,7 +101,7 @@ void Estimator3D::onInit()
 	modelUpdate = nh.subscribe<navcon_msgs::ModelParamsUpdate>("model_update", 1, &Estimator3D::onModelUpdate,this);
 	resetTopic = nh.subscribe<std_msgs::Bool>("reset_nav_covariance", 1, &Estimator3D::onReset,this);
 	useGyro = nh.subscribe<std_msgs::Bool>("use_gyro", 1, &Estimator3D::onUseGyro,this);
-  useAltSampling = nh.subscribe<std_msgs::Bool>("use_alt_sampling", 1, &Estimator3D::onAltSampling,this);
+    useAltSampling = nh.subscribe<std_msgs::Bool>("use_alt_sampling", 1, &Estimator3D::onAltSampling,this);
 	altNSample = nh.subscribe<std_msgs::Int32>("alt_n_samples", 1, &Estimator3D::onAltNSamples,this);
 
 	KFmode = quadMeasAvailable = false;
@@ -121,6 +123,8 @@ void Estimator3D::onInit()
 	ph.param("absoluteEKF", absoluteEKF,absoluteEKF);
 	ph.param("altitude_cov_timeout",altitude_timeout, altitude_timeout);
 	ph.param("altitude_sampling",alt_sample, alt_sample);
+	ph.param("enable_base_pose_tf", enable_base_pose_tf, enable_base_pose_tf);
+	ph.param("enable_base_link_tf", enable_base_link_tf, enable_base_link_tf);
 
 	std::string key;
 	if (nh.searchParam("tf_prefix", key)) nh.getParam(key, tf_prefix);
@@ -554,7 +558,7 @@ void Estimator3D::publishState()
 			state->position.depth;
 	double h;
 	Eigen::Vector3d enu =  qrot.toRotationMatrix().transpose()*ned;
-  proj.Reverse(enu(0),
+    proj.Reverse(enu(0),
   		enu(1),
 			enu(2),
 			state->global_position.latitude,
@@ -630,35 +634,42 @@ void Estimator3D::start()
 		//Update DVL sensor
 		if (updateDVL) dvl.current_r(cstate(KFNav::r));
 
-		//local -> base_pose
-		transform.transform.translation.x = cstate(KFNav::xp);
-		transform.transform.translation.y = cstate(KFNav::yp);
-		transform.transform.translation.z = cstate(KFNav::zp);
-		labust::tools::quaternionFromEulerZYX(0, 0, 0, transform.transform.rotation);
-		if(absoluteEKF){
-			transform.child_frame_id = tf_prefix + "base_pose_abs";
-		} else{
-			transform.child_frame_id = tf_prefix + "base_pose";
+		if (enable_base_pose_tf)
+		{
+		    //local -> base_pose
+		    transform.transform.translation.x = cstate(KFNav::xp);
+		    transform.transform.translation.y = cstate(KFNav::yp);
+		    transform.transform.translation.z = cstate(KFNav::zp);
+		    labust::tools::quaternionFromEulerZYX(0, 0, 0, transform.transform.rotation);
+		    if(absoluteEKF){
+		        transform.child_frame_id = tf_prefix + "base_pose_abs";
+		    } else{
+		        transform.child_frame_id = tf_prefix + "base_pose";
+		    }
+		    transform.header.frame_id = tf_prefix + "local";
+		    transform.header.stamp = ros::Time::now();
+		    broadcaster.sendTransform(transform);
 		}
-		transform.header.frame_id = tf_prefix + "local";
-		transform.header.stamp = ros::Time::now();
-		broadcaster.sendTransform(transform);
 
-		//local -> base_pose
-		transform.transform.translation.x = 0;
-		transform.transform.translation.y = 0;
-		transform.transform.translation.z = 0;
-		labust::tools::quaternionFromEulerZYX(cstate(KFNav::phi),
-				cstate(KFNav::theta),
-				cstate(KFNav::psi),
-				transform.transform.rotation);
-		if(absoluteEKF){
-			transform.child_frame_id = tf_prefix + "base_link_abs";
-		} else{
-			transform.child_frame_id = tf_prefix + "base_link";
+		if (enable_base_link_tf)
+		{
+		    //base_pose->base_link
+		    transform.transform.translation.x = 0;
+		    transform.transform.translation.y = 0;
+		    transform.transform.translation.z = 0;
+		    labust::tools::quaternionFromEulerZYX(cstate(KFNav::phi),
+		            cstate(KFNav::theta),
+		            cstate(KFNav::psi),
+		            transform.transform.rotation);
+		    if(absoluteEKF){
+		        transform.child_frame_id = tf_prefix + "base_link_abs";
+		    } else{
+		        transform.child_frame_id = tf_prefix + "base_link";
+		    }
+		    transform.header.frame_id = tf_prefix + "base_pose";
+		    broadcaster.sendTransform(transform);
 		}
-		transform.header.frame_id = tf_prefix + "base_pose";
-		broadcaster.sendTransform(transform);
+
 
 		rate.sleep();
 		ros::spinOnce();

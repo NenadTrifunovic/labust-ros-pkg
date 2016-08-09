@@ -44,218 +44,217 @@
 
 using namespace labust::control;
 
-const char dofNames[]={'X','Y','Z','K','M','N','A'};
+const char dofNames[] = { 'X', 'Y', 'Z', 'K', 'M', 'N', 'A' };
 
-IdentificationNode::IdentificationNode():
-				measurements(MeasVec::Zero()),
-				integrateUV(true),
-				useUV(false),
-				useW(false)
+IdentificationNode::IdentificationNode()
+  : measurements(MeasVec::Zero()), integrateUV(true), useUV(false), useW(false)
 {
-	this->onInit();
+  this->onInit();
 }
 
 void IdentificationNode::onInit()
 {
-	ros::NodeHandle nh,ph("~");
-	aserver.reset(new ActionServer(nh,
-			"Identification",
-			boost::bind(&IdentificationNode::doIdentification, this, _1),
-			false));
-	aserver->start();
+  ros::NodeHandle nh, ph("~");
+  aserver.reset(new ActionServer(
+      nh, "Identification",
+      boost::bind(&IdentificationNode::doIdentification, this, _1), false));
+  aserver->start();
 
-	tauOut = nh.advertise<auv_msgs::BodyForceReq>("tauOut", 1);
-	stateOut = nh.advertise<auv_msgs::NavSts>("identState", 1);
-	meas = nh.subscribe<auv_msgs::NavSts>("meas", 1,
-			&IdentificationNode::onMeasurement,this);
+  tauOut = nh.advertise<auv_msgs::BodyForceReq>("tauOut", 1);
+  stateOut = nh.advertise<auv_msgs::NavSts>("identState", 1);
+  meas = nh.subscribe<auv_msgs::NavSts>(
+      "meas", 1, &IdentificationNode::onMeasurement, this);
 
-	ph.param("integrateUV",integrateUV, true);
-	ph.param("useUV",useUV, false);
-	ph.param("useW",useW, false);
+  ph.param("integrateUV", integrateUV, true);
+  ph.param("useUV", useUV, false);
+  ph.param("useW", useW, false);
 }
 
 void IdentificationNode::onMeasurement(const auv_msgs::NavSts::ConstPtr& meas)
 {
-	static ros::Time lastSampleTime=ros::Time::now();
+  static ros::Time lastSampleTime = ros::Time::now();
 
-	if (integrateUV)
-	{
-		boost::mutex::scoped_lock l(measmux);
-		double dT = (ros::Time::now() - lastSampleTime).toSec();
-		lastSampleTime = ros::Time::now();
-		//ROS_INFO("Estimated rate: %f",dT);
-		measurements(x) += meas->body_velocity.x*dT;
-		measurements(y) += meas->body_velocity.y*dT;
-		ROS_DEBUG("Estimated pos: Ts=%f, x=%f, y=%f",dT, measurements(x), measurements(y));
-	}
-	else
-	{
-		boost::mutex::scoped_lock l(measmux);
-		measurements(x) = meas->position.north;
-		measurements(y) = meas->position.east;
-	}
-	measurements(z) = meas->position.depth;
-	measurements(roll) = meas->orientation.roll;
-	measurements(pitch) = meas->orientation.pitch;
-	measurements(yaw) = meas->orientation.yaw;
+  if (integrateUV)
+  {
+    boost::mutex::scoped_lock l(measmux);
+    double dT = (ros::Time::now() - lastSampleTime).toSec();
+    lastSampleTime = ros::Time::now();
+    // ROS_INFO("Estimated rate: %f",dT);
+    measurements(x) += meas->body_velocity.x * dT;
+    measurements(y) += meas->body_velocity.y * dT;
+    ROS_DEBUG("Estimated pos: Ts=%f, x=%f, y=%f", dT, measurements(x),
+              measurements(y));
+  }
+  else
+  {
+    boost::mutex::scoped_lock l(measmux);
+    measurements(x) = meas->position.north;
+    measurements(y) = meas->position.east;
+  }
+  measurements(z) = meas->position.depth;
+  measurements(roll) = meas->orientation.roll;
+  measurements(pitch) = meas->orientation.pitch;
+  measurements(yaw) = meas->orientation.yaw;
 
-	measurements(altitude) = meas->altitude;
-	measurements(u) = meas->body_velocity.x;
-	measurements(v) = meas->body_velocity.y;
-	measurements(w) = meas->body_velocity.z;
+  measurements(altitude) = meas->altitude;
+  measurements(u) = meas->body_velocity.x;
+  measurements(v) = meas->body_velocity.y;
+  measurements(w) = meas->body_velocity.z;
 }
 
 void IdentificationNode::doIdentification(const Goal::ConstPtr& goal)
 {
-	ROS_INFO("Recevied goal.");
+  ROS_INFO("Recevied goal.");
 
-	//Some run-time sanity checking.
-	if ((goal->sampling_rate <= 0) ||
-			(goal->command == 0) ||
-			(goal->hysteresis == 0) ||
-			(goal->dof < Goal::Surge) || (goal->dof > Goal::Altitude))
-	{
-		ROS_ERROR("Some identification criteria are faulty: "
-				"command: (%f != 0), "
-				"hysteresis: (%f != 0), "
-				"dof: (abs(%d) < 6), "
-				"(sampling_rate: (%f >=0)", goal->command,
-				goal->hysteresis, goal->dof, goal->sampling_rate);
-		return;
-	}
+  // Some run-time sanity checking.
+  if ((goal->sampling_rate <= 0) || (goal->command == 0) ||
+      (goal->hysteresis == 0) || (goal->dof < Goal::Surge) ||
+      (goal->dof > Goal::Altitude))
+  {
+    ROS_ERROR("Some identification criteria are faulty: "
+              "command: (%f != 0), "
+              "hysteresis: (%f != 0), "
+              "dof: (abs(%d) < 6), "
+              "(sampling_rate: (%f >=0)",
+              goal->command, goal->hysteresis, goal->dof, goal->sampling_rate);
+    return;
+  }
 
-	ros::Rate rate(goal->sampling_rate);
-	int oscnum(0);
+  ros::Rate rate(goal->sampling_rate);
+  int oscnum(0);
 
-	SOIdentification ident;
-	ident.setRelay(goal->command,goal->hysteresis);
-	ident.Ref(goal->reference);
+  SOIdentification ident;
+  ident.setRelay(goal->command, goal->hysteresis);
+  ident.Ref(goal->reference);
 
-	ROS_INFO("Started identification of %c DOF.",dofNames[goal->dof]);
+  ROS_INFO("Started identification of %c DOF.", dofNames[goal->dof]);
 
-	//Reset the integrals
-	if (integrateUV)
-	{
-		boost::mutex::scoped_lock l(measmux);
-		measurements(x)=0;
-		measurements(y)=0;
-	}
+  // Reset the integrals
+  if (integrateUV)
+  {
+    boost::mutex::scoped_lock l(measmux);
+    measurements(x) = 0;
+    measurements(y) = 0;
+  }
 
-	//Reset the cumulative error
-	if (useUV)
-	{
-		cumulative_error = 0;
-	}
+  // Reset the cumulative error
+  if (useUV)
+  {
+    cumulative_error = 0;
+  }
 
-	while (!ident.isFinished())
-	{
-		double error = goal->reference - measurements(goal->dof);
+  while (!ident.isFinished())
+  {
+    double error = goal->reference - measurements(goal->dof);
 
-		if (((goal->dof <= Goal::Sway) && useUV) || ((goal->dof == Goal::Heave) && useW))
-		{
-			enum {stateDiff = 7};
-			//This takes "u,v,w" when "x,y,z" is identified
-			error = goal->reference - measurements(goal->dof + stateDiff);
-			cumulative_error += error/goal->sampling_rate;
-			error = cumulative_error;
-		}
+    if (((goal->dof <= Goal::Sway) && useUV) ||
+        ((goal->dof == Goal::Heave) && useW))
+    {
+      enum
+      {
+        stateDiff = 7
+      };
+      // This takes "u,v,w" when "x,y,z" is identified
+      error = goal->reference - measurements(goal->dof + stateDiff);
+      cumulative_error += error / goal->sampling_rate;
+      error = cumulative_error;
+    }
 
-		//Handle angular values
-		if ((goal->dof >= Goal::Roll) && (goal->dof <=Goal::Yaw))
-	  	{
-			error = labust::math::wrapRad(
-					labust::math::wrapRad(goal->reference) -
-					labust::math::wrapRad(measurements(goal->dof)));
-		}
-		//Perform one step
-		if ((goal->dof >= Goal::Surge) && (goal->dof <= Goal::Yaw))
-		{
-			this->setTau(goal->dof, ident.step(error, 1/goal->sampling_rate));
-		}
-		else if (goal->dof == Goal::Altitude)
-		{
-			ROS_INFO("Doing identification: %f %f %f.",goal->reference, measurements[goal->dof], error);
-			this->setTau(Goal::Heave, -ident.step(error, 1/goal->sampling_rate));
-		}
+    // Handle angular values
+    if ((goal->dof >= Goal::Roll) && (goal->dof <= Goal::Yaw))
+    {
+      error = labust::math::wrapRad(
+          labust::math::wrapRad(goal->reference) -
+          labust::math::wrapRad(measurements(goal->dof)));
+    }
+    // Perform one step
+    if ((goal->dof >= Goal::Surge) && (goal->dof <= Goal::Yaw))
+    {
+      this->setTau(goal->dof, ident.step(error, 1 / goal->sampling_rate));
+    }
+    else if (goal->dof == Goal::Altitude)
+    {
+      ROS_INFO("Doing identification: %f %f %f.", goal->reference,
+               measurements[goal->dof], error);
+      this->setTau(Goal::Heave, -ident.step(error, 1 / goal->sampling_rate));
+    }
 
-		//Check for preemption
-		if (aserver->isPreemptRequested() || !ros::ok())
-		{
-			ROS_INFO("DOFIdentification for %d: Preempted", goal->dof);
-			//Set output to zero
-			this->setTau(0, 0.0);
-			// set the action state to preempted
-			aserver->setPreempted();
-			return;
-		}
+    // Check for preemption
+    if (aserver->isPreemptRequested() || !ros::ok())
+    {
+      ROS_INFO("DOFIdentification for %d: Preempted", goal->dof);
+      // Set output to zero
+      this->setTau(0, 0.0);
+      // set the action state to preempted
+      aserver->setPreempted();
+      return;
+    }
 
-		//Send feedback about progress
-		if (ident.hasSwitched())
-		{
-			navcon_msgs::DOFIdentificationFeedback feedback;
-			feedback.dof = goal->dof;
-			feedback.error = ident.avgError();
-			feedback.oscillation_num = ++oscnum/2;
-			aserver->publishFeedback(feedback);
-		}
+    // Send feedback about progress
+    if (ident.hasSwitched())
+    {
+      navcon_msgs::DOFIdentificationFeedback feedback;
+      feedback.dof = goal->dof;
+      feedback.error = ident.avgError();
+      feedback.oscillation_num = ++oscnum / 2;
+      aserver->publishFeedback(feedback);
+    }
 
-		auv_msgs::NavSts::Ptr outsts(new auv_msgs::NavSts);
-		outsts->position.north = measurements(x);
-		outsts->position.east = measurements(y);
-		outsts->position.depth = measurements(z);
-		outsts->orientation.roll = measurements(roll);
-		outsts->orientation.pitch = measurements(pitch);
-		outsts->orientation.yaw = measurements(yaw);
-		stateOut.publish(outsts);
+    auv_msgs::NavSts::Ptr outsts(new auv_msgs::NavSts);
+    outsts->position.north = measurements(x);
+    outsts->position.east = measurements(y);
+    outsts->position.depth = measurements(z);
+    outsts->orientation.roll = measurements(roll);
+    outsts->orientation.pitch = measurements(pitch);
+    outsts->orientation.yaw = measurements(yaw);
+    stateOut.publish(outsts);
 
-		//Set the feedback value
-		rate.sleep();
-	}
+    // Set the feedback value
+    rate.sleep();
+  }
 
-	//Stop the vessel
-	this->setTau(0, 0.0);
+  // Stop the vessel
+  this->setTau(0, 0.0);
 
-	if (ident.isFinished())
-	{
-		const std::vector<double>& params = ident.parameters();
-		Result result;
-		result.dof = goal->dof;
-		result.alpha = params[SOIdentification::alpha];
-		result.beta = params[SOIdentification::kx];
-		result.betaa = params[SOIdentification::kxx];
-		result.delta = params[SOIdentification::delta];
-		result.wn = params[SOIdentification::wn];
+  if (ident.isFinished())
+  {
+    const std::vector<double>& params = ident.parameters();
+    Result result;
+    result.dof = goal->dof;
+    result.alpha = params[SOIdentification::alpha];
+    result.beta = params[SOIdentification::kx];
+    result.betaa = params[SOIdentification::kxx];
+    result.delta = params[SOIdentification::delta];
+    result.wn = params[SOIdentification::wn];
 
-		ROS_INFO("Identified parameters: %f %f %f %f",
-				params[SOIdentification::alpha],
-				params[SOIdentification::kx],
-				params[SOIdentification::kxx],
-				params[SOIdentification::delta],
-				params[SOIdentification::wn]);
+    ROS_INFO("Identified parameters: %f %f %f %f",
+             params[SOIdentification::alpha], params[SOIdentification::kx],
+             params[SOIdentification::kxx], params[SOIdentification::delta],
+             params[SOIdentification::wn]);
 
-		// set the action state to succeeded
-		aserver->setSucceeded(result);
-	}
+    // set the action state to succeeded
+    aserver->setSucceeded(result);
+  }
 }
 
 void IdentificationNode::setTau(int elem, double value)
 {
-	labust::simulation::vector tauvec = labust::simulation::vector::Zero();
-	tauvec(elem) = value;
-	std::ostringstream out;
-	out<<"ident_"<<dofNames[elem];
-	auv_msgs::BodyForceReqPtr tau(new auv_msgs::BodyForceReq());
-	tau->header.stamp = ros::Time::now();
-	tau->goal.requester = out.str();
-	labust::tools::vectorToPoint(tauvec,tau->wrench.force);
-	labust::tools::vectorToPoint(tauvec,tau->wrench.torque,3);
-	tauOut.publish(tau);
+  labust::simulation::vector tauvec = labust::simulation::vector::Zero();
+  tauvec(elem) = value;
+  std::ostringstream out;
+  out << "ident_" << dofNames[elem];
+  auv_msgs::BodyForceReqPtr tau(new auv_msgs::BodyForceReq());
+  tau->header.stamp = ros::Time::now();
+  tau->goal.requester = out.str();
+  labust::tools::vectorToPoint(tauvec, tau->wrench.force);
+  labust::tools::vectorToPoint(tauvec, tau->wrench.torque, 3);
+  tauOut.publish(tau);
 }
 
 int main(int argc, char* argv[])
 {
-	ros::init(argc,argv,"ident_node");
-	labust::control::IdentificationNode ident;
-	ros::spin();
-	return 0;
+  ros::init(argc, argv, "ident_node");
+  labust::control::IdentificationNode ident;
+  ros::spin();
+  return 0;
 }

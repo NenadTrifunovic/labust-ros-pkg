@@ -154,6 +154,8 @@ namespace labust
 
 			/// The reference IP address on network
 			std::string ipaddress;
+			/// The predefined distance to the diver in pointer experiments.
+			double pointer_radius;
 
 			uint8_t mission_state;
 

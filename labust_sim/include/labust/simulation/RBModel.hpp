@@ -147,9 +147,9 @@ namespace labust
       {
     	this->reset();
       	calculate_mrb();
-      	//Calculate and set the the neutral depth where W=B
-        eta(z) = (m/(2*ae*be*ce*M_PI/3*rho)-1)*ce - waterLevel - rb(z);
-
+      	//Calculate and set the the neutral depth where W=B when init z=0.
+      	if (eta(z) == 0)
+      	   eta(z) = (m/(2*ae*be*ce*M_PI/3*rho)-1)*ce - waterLevel - rb(z);
       }
       /**
        * The method restarts the model to initial parameters.
