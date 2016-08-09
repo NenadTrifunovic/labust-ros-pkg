@@ -86,7 +86,7 @@ add_executable(uvsim_timing src/test/uvsim_timing.cpp)
 target_link_libraries(uvsim_timing labust_sim ${catkin_LIBRARIES})
 
 add_executable(trajectory_generator src/labust_sim/trajectory_generator.cpp)
-add_dependencies(trajectory_generator auv_msgs_gencpp underwater_msgs_gencpp)
+add_dependencies(trajectory_generator auv_msgs_gencpp underwater_msgs_gencpp ${underwater_msgs_EXPORTED_TARGETS})
 target_link_libraries(trajectory_generator ${catkin_LIBRARIES})
 
 #############
