@@ -75,6 +75,15 @@ protected:
     EXPECT_EQ(val.value, decoded);
   }
 
+  void setupMultiValued(BitStorage& storage)
+  {
+    storage.put(bitval.value, bitval.min, bitval.max, bitval.bitsz);
+    storage.put(byteval.value, byteval.min, byteval.max, byteval.bitsz);
+    storage.put(nzdoubleval.value, nzdoubleval.min, nzdoubleval.max,
+                nzdoubleval.bitsz);
+    storage.put(intval.value, intval.min, intval.max, intval.bitsz);
+  }
+
   Element<uint8_t> bitval;
   Element<uint8_t> byteval;
   Element<int> intval;
@@ -122,13 +131,8 @@ TEST_F(BitStorageTest, nonzeroDoubleEncoding)
 TEST_F(BitStorageTest, multiValueEncoding)
 {
   BitStorage storage;
-  storage.put(bitval.value, bitval.min, bitval.max, bitval.bitsz);
-  storage.put(byteval.value, byteval.min, byteval.max, byteval.bitsz);
-  storage.put(nzdoubleval.value, nzdoubleval.min, nzdoubleval.max,
-              nzdoubleval.bitsz);
-  storage.put(intval.value, intval.min, intval.max, intval.bitsz);
+  setupMultiValued(storage);
   EXPECT_EQ(multival_encoded.size(), storage.storage().size());
-
   for (int i = 0; i < multival_encoded.size(); ++i)
     EXPECT_EQ(multival_encoded[i], storage.storage()[i]);
 }
@@ -166,6 +170,17 @@ TEST_F(BitStorageTest, nonZeroDoubleDecoding)
 TEST_F(BitStorageTest, multiValueDecoding)
 {
   BitStorage storage(multival_encoded);
+  testDecoding(storage, bitval);
+  testDecoding(storage, byteval);
+  testDecoding(storage, nzdoubleval);
+  testDecoding(storage, intval);
+}
+
+TEST_F(BitStorageTest, multiValueEncodeAndDecode)
+{
+  BitStorage storage;
+  setupMultiValued(storage);
+  storage.reset();
   testDecoding(storage, bitval);
   testDecoding(storage, byteval);
   testDecoding(storage, nzdoubleval);

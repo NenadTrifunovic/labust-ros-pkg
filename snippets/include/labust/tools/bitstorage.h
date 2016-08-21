@@ -65,10 +65,6 @@ struct BitStorage
   template <class ValueType>
   void put(const ValueType& data, double min, double max, uint8_t bitsz)
   {
-    assert((min != max) && "Minimum and maximum should differ.");
-    assert((bitsz > 0) && "Bit size should be larger than zero.");
-    assert((min < max) && "Minimum should be smaller than maximum.");
-
     // Coerce to avoid overflow
     ValueType rdata = data;
     if (rdata > max)
@@ -80,13 +76,10 @@ struct BitStorage
     // Normalize data
     uint64_t xw = uint64_t(round(mask * (rdata - min) / (max - min)));
     xw &= mask;
-    // std::cout << "\t Encoder number:" << xw << std::endl;
 
     uint8_t rembits(bitsz);
     while (rembits)
     {
-      // introspect();
-      // std::cout<<"\t rembits:"<<int(rembits)<<std::endl;
       // Check if enough size is available
       if (_storage.size() <= bytept)
         _storage.push_back(0);
@@ -98,7 +91,6 @@ struct BitStorage
       }
       _storage[bytept] |= uint8_t((xw >> (rembits - rem)) << (bitpt));
       bitpt += rem;
-      // std::cout<<"\t rem:"<<int(rem)<<std::endl;
       if (bitpt == 8)
       {
         ++(bytept);
@@ -107,23 +99,18 @@ struct BitStorage
       rembits -= rem;
       xw &= (one << rembits) - one;
     }
-    // introspect();
   }
 
   template <class ValueType>
   bool get(ValueType& data, double min, double max, uint8_t bitsz)
   {
-    assert((min != max) && "Minimum and maximum should differ.");
-    assert((bitsz > 0) && "Bit size should be larger than zero.");
-    assert((min < max) && "Minimum should be smaller than maximum.");
-
     // Get the size mask (maximum 64 bits for data representation)
     uint64_t mask = (one << bitsz) - one;
     // Init data
     uint64_t xw(0);
 
     // Check if enough size is available
-    if (((_storage.size() - bytept) * 8 - bitpt) < bitsz)
+    if ((remaining() * 8 - bitpt) < bitsz)
       return false;
 
     uint8_t rembits(bitsz);
@@ -145,28 +132,26 @@ struct BitStorage
       rembits -= rem;
     }
 
-    // std::cout<<"\t Decoder number:"<<xw<<std::endl;
-
     data = ValueType(((max - min) * xw) / mask + min);
     return true;
   }
 
-  /// Introspection into the storage
-  void introspect()
-  {
-    // Introspection
-    std::cout << "BitStorage state" << std::endl;
-    std::cout << "\t Size:" << _storage.size() << std::endl;
-    std::cout << "\t Bitpt:" << int(bitpt) << std::endl;
-    std::cout << "\t Bytept:" << bytept << std::endl;
-    std::cout << "\t Storage:";
-    for (int i = 0; i < _storage.size(); ++i)
-    {
-      std::cout << std::bitset<8>(_storage[i]) << " ";
-    }
-    std::cout << std::endl;
-    usleep(2000 * 1000);
-  }
+  /// Introspection into the storage (Deprecated)
+  // void introspect()
+  //{
+  //  // Introspection
+  //  std::cout << "BitStorage state" << std::endl;
+  //  std::cout << "\t Size:" << _storage.size() << std::endl;
+  //  std::cout << "\t Bitpt:" << int(bitpt) << std::endl;
+  //  std::cout << "\t Bytept:" << bytept << std::endl;
+  //  std::cout << "\t Storage:";
+  //  for (int i = 0; i < _storage.size(); ++i)
+  //  {
+  //    std::cout << std::bitset<8>(_storage[i]) << " ";
+  //  }
+  //  std::cout << std::endl;
+  //  usleep(2000 * 1000);
+  //}
 
   /// Get storage
   const std::vector<uint8_t>& storage() const
