@@ -124,4 +124,4 @@ script:
   - catkin_make run_tests && catkin_make test
 # Add code coverage update
 after_success:
-  - bash <(curl -s https://codecov.io/bash)
+  - bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"
