@@ -18,7 +18,7 @@
 /*********************************************************************
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2015, LABUST, UNIZG-FER
+ *  Copyright (c) 2015-2016, LABUST, UNIZG-FER
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -129,11 +129,15 @@ void Estimator3D::onInit()
       "out_acoustic_heading", 1, &Estimator3D::onSecond_heading, this);
   subSecond_position = nh.subscribe<geometry_msgs::Point>(
       "out_acoustic_position", 1, &Estimator3D::onSecond_position, this);
+  subSecond_navsts = nh.subscribe<auv_msgs::NavSts>(
+        "second_navsts", 1, &Estimator3D::onSecond_navsts, this);
   subSecond_speed = nh.subscribe<std_msgs::Float32>(
       "out_acoustic_speed", 1, &Estimator3D::onSecond_speed, this);
   subSecond_usbl_fix = nh.subscribe<underwater_msgs::USBLFix>(
       "usbl_fix", 1, &Estimator3D::onSecond_usbl_fix, this);
-  subSecond_sonar_fix = nh.subscribe<underwater_msgs::SonarFix>(
+  //subSecond_sonar_fix = nh.subscribe<underwater_msgs::SonarFix>(
+  //    "sonar_fix", 1, &Estimator3D::onSecond_sonar_fix, this);
+  subSecond_sonar_fix = nh.subscribe<navcon_msgs::RelativePosition>(
       "sonar_fix", 1, &Estimator3D::onSecond_sonar_fix, this);
 
   resetTopic = nh.subscribe<std_msgs::Bool>("reset_nav_covariance", 1,
@@ -228,6 +232,15 @@ void Estimator3D::onSecond_position(const geometry_msgs::Point::ConstPtr& data)
   newMeas(KFNav::zb) = 1;
 }
 
+void Estimator3D::onSecond_navsts(const auv_msgs::NavSts::ConstPtr& data)
+{
+  measurements(KFNav::zb) = data->position.depth;
+  newMeas(KFNav::zb) = 1;
+
+  measurements(KFNav::psib) = data->orientation.yaw;
+  newMeas(KFNav::psib) = 1;
+}
+
 void Estimator3D::onSecond_speed(const std_msgs::Float32::ConstPtr& data)
 {
   measurements(KFNav::ub) = data->data;
@@ -272,7 +285,7 @@ void Estimator3D::onSecond_usbl_fix(
 }
 
 void Estimator3D::onSecond_sonar_fix(
-    const underwater_msgs::SonarFix::ConstPtr& data)
+    const navcon_msgs::RelativePosition::ConstPtr& data)
 {
   /*** Get sonar measurements ***/
   measurements(KFNav::sonar_range) = (data->range > 0.1) ? data->range : 0.1;

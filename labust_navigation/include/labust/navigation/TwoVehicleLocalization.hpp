@@ -57,6 +57,8 @@
 #include <auv_msgs/BodyForceReq.h>
 #include <underwater_msgs/USBLFix.h>
 #include <underwater_msgs/SonarFix.h>
+#include <navcon_msgs/RelativePosition.h>
+
 
 #include <auv_msgs/NED.h>
 #include <std_msgs/Bool.h>
@@ -125,6 +127,10 @@ namespace labust
 			 */
 			void onSecond_position(const geometry_msgs::Point::ConstPtr& data);
 			/**
+			 * Handle the second vehicle position measurement.
+			 */
+			void onSecond_navsts(const auv_msgs::NavSts::ConstPtr& data);
+			/**
 			 * Handle the second vehicle speed measurement.
 			 */
 			void onSecond_speed(const std_msgs::Float32::ConstPtr& data);
@@ -135,7 +141,7 @@ namespace labust
 			/**
 			 * Handle the sonar measurement.
 			 */
-			void onSecond_sonar_fix(const underwater_msgs::SonarFix::ConstPtr& data);
+			void onSecond_sonar_fix(const navcon_msgs::RelativePosition::ConstPtr& data);
 			/**
 			 * Helper method to process measurements.
 			 */
@@ -187,7 +193,7 @@ namespace labust
 			/**
 			 * Sensors and input subscribers.
 			 */
-			ros::Subscriber subLocalStateHat, resetTopic;
+			ros::Subscriber subLocalStateHat, resetTopic, subSecond_navsts;
 			ros::Subscriber subSecond_heading, subSecond_position, subSecond_speed, subSecond_usbl_fix, subSecond_sonar_fix;
 			/**
 			 * The transform broadcaster.
