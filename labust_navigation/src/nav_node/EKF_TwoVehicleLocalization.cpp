@@ -187,8 +187,8 @@ void Estimator3D::onLocalStateHat(const auv_msgs::NavSts::ConstPtr& data)
   newMeas(KFNav::zp) = 1;
 
   // Temporary !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
-  measurements(KFNav::zb) = data->position.depth;
-  newMeas(KFNav::zb) = 1;
+  //measurements(KFNav::zb) = data->position.depth;
+  //newMeas(KFNav::zb) = 1;
 
   measurements(KFNav::hdg) = unwrap(data->orientation.yaw);
   newMeas(KFNav::hdg) = 1;
