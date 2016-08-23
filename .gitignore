@@ -43,3 +43,5 @@ CATKIN_IGNORE
 # Generated documentation
 */html
 */latex
+# Precompiled headers
+*.gch

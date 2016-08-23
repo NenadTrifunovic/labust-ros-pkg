@@ -31,29 +31,30 @@
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
+#include <auv_msgs/NavSts.h>
 #include <labust/mission/caddy_missions.h>
 #include <navcon_msgs/ConfigureVelocityController.h>
 #include <navcon_msgs/EnableControl.h>
-#include <auv_msgs/NavSts.h>
 #include <std_msgs/Bool.h>
 #include <std_msgs/Int32.h>
 #include <std_msgs/String.h>
 
-#include <std_srvs/Trigger.h>
+#include <misc_msgs/DynamicPositioningPrimitiveService.h>
 #include <misc_msgs/Go2depthService.h>
 #include <misc_msgs/Go2pointService.h>
 #include <misc_msgs/PointerPrimitiveService.h>
-#include <misc_msgs/DynamicPositioningPrimitiveService.h>
+#include <std_srvs/Trigger.h>
 
 #include <cstdio>
 
 using labust::mission::CaddyMissions;
 
-CaddyMissions::CaddyMissions():
-                ipaddress("10.0.10.1"),
-                pointer_radius(4.0),
-                mission_state(IDLE),
-                go_and_carry_substate(NONE)
+CaddyMissions::CaddyMissions()
+  : ipaddress("10.0.10.1")
+  , pointer_radius(4.0)
+  , mosaic_altitude(true)
+  , mission_state(IDLE)
+  , go_and_carry_substate(NONE)
 {
   this->onInit();
 }
@@ -65,49 +66,70 @@ CaddyMissions::~CaddyMissions()
 
 void CaddyMissions::onInit()
 {
-  ros::NodeHandle nh,ph("~");
+  ros::NodeHandle nh, ph("~");
 
-  //Setup parameters
-  ph.param("ipaddress",ipaddress,ipaddress);
+  // Setup parameters
+  ph.param("ipaddress", ipaddress, ipaddress);
   ph.param("pointer_radius", pointer_radius, pointer_radius);
+  ph.param("mosaic_in_altitude", mosaic_altitude, mosaic_altitude);
 
-  //Initialize publishers
+  // Initialize publishers
   timeout_pub = nh.advertise<std_msgs::Bool>("mission_timeout", 1);
   lawnmower_pub = nh.advertise<std_msgs::Bool>("stop_follow_section", 1);
 
   event_string_pub = nh.advertise<std_msgs::String>("eventString", 1);
 
-  //Initialize service clients
+  // Initialize service clients
   dpcon = nh.serviceClient<navcon_msgs::EnableControl>("FADP_enable");
   hdgcon = nh.serviceClient<navcon_msgs::EnableControl>("HDG_enable");
   altcon = nh.serviceClient<navcon_msgs::EnableControl>("ALT_enable");
   depthcon = nh.serviceClient<navcon_msgs::EnableControl>("DEPTH_enable");
   vtcon = nh.serviceClient<navcon_msgs::EnableControl>("VT_enable");
-  velcon = nh.serviceClient<navcon_msgs::ConfigureVelocityController>("ConfigureVelocityController");
+  velcon = nh.serviceClient<navcon_msgs::ConfigureVelocityController>(
+      "ConfigureVelocityController");
 
-  pointer_srv = nh.serviceClient<misc_msgs::PointerPrimitiveService>("commander/primitive/pointer");
-  go2depth_srv = nh.serviceClient<misc_msgs::Go2depthService>("commander/go2depth");
-  go2point_srv = nh.serviceClient<misc_msgs::Go2pointService>("commander/go2point");
-  dp_srv = nh.serviceClient<misc_msgs::DynamicPositioningPrimitiveService>("commander/primitive/dynamic_positioning");
+  pointer_srv = nh.serviceClient<misc_msgs::PointerPrimitiveService>(
+      "commander/primitive/pointer");
+  go2depth_srv =
+      nh.serviceClient<misc_msgs::Go2depthService>("commander/go2depth");
+  go2point_srv =
+      nh.serviceClient<misc_msgs::Go2pointService>("commander/go2point");
+  dp_srv = nh.serviceClient<misc_msgs::DynamicPositioningPrimitiveService>(
+      "commander/primitive/dynamic_positioning");
   stop_srv = nh.serviceClient<std_srvs::Trigger>("commander/stop_mission");
   pause_srv = nh.serviceClient<std_srvs::Trigger>("commander/pause_mission");
-  continue_srv = nh.serviceClient<std_srvs::Trigger>("commander/continue_mission");
+  continue_srv =
+      nh.serviceClient<std_srvs::Trigger>("commander/continue_mission");
 
-  //Initialze subscribers
-  position_sub = nh.subscribe<auv_msgs::NavSts>("position", 1, &CaddyMissions::onPosition,this);
-  surfacecmd_sub = nh.subscribe<std_msgs::UInt8>("surface_cmd", 1, &CaddyMissions::onSurfaceCmd,this);
+  // Initialze subscribers
+  position_sub = nh.subscribe<auv_msgs::NavSts>(
+      "position", 1, &CaddyMissions::onPosition, this);
+  surfacecmd_sub = nh.subscribe<std_msgs::UInt8>(
+      "surface_cmd", 1, &CaddyMissions::onSurfaceCmd, this);
 
-  emergency_sub = nh.subscribe<std_msgs::Int32>("mission_controller/primitives/emergency", 1, &CaddyMissions::onEmergency,this);
-  go_and_carry_sub = nh.subscribe<std_msgs::Int32>("mission_controller/primitives/go_and_carry", 1, &CaddyMissions::onGoAndCarry,this);
-  guide_me_sub = nh.subscribe<std_msgs::Int32>("mission_controller/primitives/guide_me", 1, &CaddyMissions::onGuideMe,this);
-  take_photo_sub = nh.subscribe<std_msgs::Int32>("mission_controller/primitives/take_photo", 1, &CaddyMissions::onTakePhoto, this);
-  mosaic_sub = nh.subscribe<std_msgs::Int32>("mission_controller/primitives/mosaic", 1, &CaddyMissions::onMosaic, this);
-  idle_sub = nh.subscribe<std_msgs::Int32>("mission_controller/primitives/idle", 1, &CaddyMissions::onIdle,this);
+  emergency_sub = nh.subscribe("mission_controller/primitives/emergency", 1,
+                               &CaddyMissions::onEmergency, this);
+  go_and_carry_sub = nh.subscribe<std_msgs::Int32>(
+      "mission_controller/primitives/go_and_carry", 1,
+      &CaddyMissions::onGoAndCarry, this);
+  guide_me_sub =
+      nh.subscribe<std_msgs::Int32>("mission_controller/primitives/guide_me",
+                                    1, &CaddyMissions::onGuideMe, this);
+  take_photo_sub =
+      nh.subscribe<std_msgs::Int32>("mission_controller/primitives/take_photo",
+                                    1, &CaddyMissions::onTakePhoto, this);
+  mosaic_sub =
+      nh.subscribe<std_msgs::Int32>("mission_controller/primitives/mosaic", 1,
+                                    &CaddyMissions::onMosaic, this);
+  idle_sub = nh.subscribe<std_msgs::Int32>(
+      "mission_controller/primitives/idle", 1, &CaddyMissions::onIdle, this);
 
-  vehicle_state_sub = nh.subscribe<auv_msgs::NavSts>("position", 1, &CaddyMissions::onVehicleState,this);
+  vehicle_state_sub = nh.subscribe<auv_msgs::NavSts>(
+      "position", 1, &CaddyMissions::onVehicleState, this);
 
-  //Initialize timer
-  safety = nh.createTimer(ros::Duration(1.0),&CaddyMissions::onTimer, this, false, true);
+  // Initialize timer
+  safety = nh.createTimer(ros::Duration(1.0), &CaddyMissions::onTimer, this,
+                          false, true);
 }
 
 void CaddyMissions::onSurfaceCmd(const std_msgs::UInt8::ConstPtr& cmd)
@@ -144,7 +166,8 @@ void CaddyMissions::onSurfaceCmd(const std_msgs::UInt8::ConstPtr& cmd)
     }
     else
     {
-      ROS_ERROR("Controller or position estimate not ready for lawn-mower mission.");
+      ROS_ERROR("Controller or position estimate not ready for lawn-mower
+  mission.");
     }
   }
   else if (cmd->data == STOP)
@@ -168,13 +191,14 @@ void CaddyMissions::onTakePhoto(const std_msgs::Int32::ConstPtr& data)
 
 void CaddyMissions::onMosaic(const std_msgs::Int32::ConstPtr& data)
 {
-  if(data->data == 1)
+  if ((data->data == 1) && (mission_state != MOSAIC))
   {
     this->stopControllers();
     // Start the primitive
     ROS_INFO("Setup controllers for Mosaicing mission.");
     navcon_msgs::ConfigureVelocityController srv;
-    for(int i=0; i<6; ++i) srv.request.desired_mode[i] = DONT_CARE;
+    for (int i = 0; i < 6; ++i)
+      srv.request.desired_mode[i] = DONT_CARE;
     srv.request.desired_mode[u] = VELCON;
     srv.request.desired_mode[v] = DISABLED;
     srv.request.desired_mode[w] = VELCON;
@@ -183,9 +207,16 @@ void CaddyMissions::onMosaic(const std_msgs::Int32::ConstPtr& data)
     navcon_msgs::EnableControl flag;
     flag.request.enable = true;
     bool hdgconOK = hdgcon.call(flag);
-    bool altconOK = altcon.call(flag);
-
-    if (altconOK && hdgconOK && velconOK)
+    bool vertconOK(false);
+    if (mosaic_altitude)
+    {
+      vertconOK = altcon.call(flag);
+    }
+    else
+    {
+      vertconOK = depthcon.call(flag);
+    }
+    if (vertconOK && hdgconOK && velconOK)
     {
       ROS_INFO("Mosaic controller setup complete.");
       mission_state = MOSAIC;
@@ -200,7 +231,6 @@ void CaddyMissions::onMosaic(const std_msgs::Int32::ConstPtr& data)
 
 void CaddyMissions::onEmergency(const std_msgs::Int32::ConstPtr& data)
 {
-
 }
 
 void CaddyMissions::onGoAndCarry(const std_msgs::Int32::ConstPtr& data)
@@ -212,7 +242,8 @@ void CaddyMissions::onGoAndCarry(const std_msgs::Int32::ConstPtr& data)
 
     ROS_INFO("Setup controllers for go and carry mission.");
     navcon_msgs::ConfigureVelocityController srv;
-    for(int i=0; i<6; ++i) srv.request.desired_mode[i] = DONT_CARE;
+    for (int i = 0; i < 6; ++i)
+      srv.request.desired_mode[i] = DONT_CARE;
     srv.request.desired_mode[u] = VELCON;
     srv.request.desired_mode[v] = VELCON;
     srv.request.desired_mode[w] = VELCON;
@@ -262,7 +293,8 @@ void CaddyMissions::onGuideMe(const std_msgs::Int32::ConstPtr& data)
 
     ROS_INFO("Setup controllers for Guide-Me mission.");
     navcon_msgs::ConfigureVelocityController srv;
-    for(int i=0; i<6; ++i) srv.request.desired_mode[i] = DONT_CARE;
+    for (int i = 0; i < 6; ++i)
+      srv.request.desired_mode[i] = DONT_CARE;
     srv.request.desired_mode[u] = VELCON;
     srv.request.desired_mode[v] = VELCON;
     srv.request.desired_mode[w] = VELCON;
@@ -288,9 +320,9 @@ void CaddyMissions::onGuideMe(const std_msgs::Int32::ConstPtr& data)
 
 void CaddyMissions::onIdle(const std_msgs::Int32::ConstPtr& data)
 {
-  if(data->data == 1)
+  if (data->data == 1)
   {
-    if(mission_state != IDLE)
+    if (mission_state != IDLE)
     {
       std_srvs::Trigger srv_data;
       stop_srv.call(srv_data);
@@ -305,7 +337,6 @@ void CaddyMissions::onVehicleState(const auv_msgs::NavSts::ConstPtr& data)
   vehicle_state = *data;
 }
 
-
 void CaddyMissions::stopControllers()
 {
   // Stop primitives
@@ -314,7 +345,8 @@ void CaddyMissions::stopControllers()
   mission_state = IDLE;
   // Stop controllers
   navcon_msgs::ConfigureVelocityController srv;
-  for(int i=0; i<6; ++i) srv.request.desired_mode[i] = DISABLED;
+  for (int i = 0; i < 6; ++i)
+    srv.request.desired_mode[i] = DISABLED;
   velcon.call(srv);
   navcon_msgs::EnableControl flag;
   flag.request.enable = false;
@@ -327,8 +359,10 @@ void CaddyMissions::stopControllers()
 
 bool CaddyMissions::testControllers()
 {
-  bool retVal = velcon.exists() && hdgcon.exists() && altcon.exists() && depthcon.exists();
-  return retVal && ((ros::Time::now() - last_position).toSec() < POSITION_UPDATE);
+  bool retVal = velcon.exists() && hdgcon.exists() && altcon.exists() &&
+                depthcon.exists();
+  return retVal &&
+         ((ros::Time::now() - last_position).toSec() < POSITION_UPDATE);
 }
 
 void CaddyMissions::onPosition(const auv_msgs::NavSts::ConstPtr& msg)
@@ -346,7 +380,7 @@ void CaddyMissions::onTimer(const ros::TimerEvent& event)
     std_msgs::Bool timeout;
     timeout.data = true;
     timeout_pub.publish(timeout);
-    //this->stopControllers();
+    // this->stopControllers();
   }
 }
 
@@ -356,12 +390,13 @@ bool CaddyMissions::checkNetwork()
   char buff[512];
 
   std::string command = "fping -c2 -t800 " + ipaddress + " 2>&1";
-  //ROS_INFO("Command: %s", command.c_str());
-  if (!(in = popen(command.c_str(), "r"))) return false;
+  // ROS_INFO("Command: %s", command.c_str());
+  if (!(in = popen(command.c_str(), "r")))
+    return false;
 
-  //std::stringstream sout;
-  //while(fgets(buff, sizeof(buff), in)!=NULL) sout << buff;
-  //ROS_INFO("%s",sout.str().c_str());
+  // std::stringstream sout;
+  // while(fgets(buff, sizeof(buff), in)!=NULL) sout << buff;
+  // ROS_INFO("%s",sout.str().c_str());
 
   return pclose(in) == 0;
 }
