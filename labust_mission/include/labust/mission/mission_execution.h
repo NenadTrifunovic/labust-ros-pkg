@@ -274,6 +274,7 @@ namespace labust
 					primitiveBoolMap["depth_enable"],
 					primitiveBoolMap["heading_enable"],
 					primitiveBoolMap["altitude_enable"],
+					primitiveBoolMap["target_topic_enable"],
 					primitiveBoolMap["track_heading_enable"],
 					primitiveStringMap["target_topic"],
 					primitiveStringMap["heading_topic"]

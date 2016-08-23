@@ -270,6 +270,7 @@ namespace labust
                             req.depth_enable,
                             req.heading_enable,
                             req.altitude_enable,
+                            req.target_topic_enable,
                             req.track_heading_enable,
                             req.point_to_target,
                             req.target_topic,

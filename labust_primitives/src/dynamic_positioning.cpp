@@ -43,7 +43,9 @@
 #include <navcon_msgs/DynamicPositioningAction.h>
 #include <navcon_msgs/EnableControl.h>
 #include <geometry_msgs/Point.h>
+#include <geometry_msgs/PointStamped.h>
 #include <geometry_msgs/TransformStamped.h>
+#include <std_msgs/Float32.h>
 #include <tf2_ros/static_transform_broadcaster.h>
 #include <ros/ros.h>
 
@@ -68,7 +70,8 @@ namespace labust
 				ExecutorBase("dynamic_positioning"),
 				underactuated(true),
 				headingEnabled(false),
-				processNewGoal(false){};
+				processNewGoal(false),
+				heading_reference(0.0){};
 
 			void init(){
 				ros::NodeHandle ph("~");
@@ -103,22 +106,21 @@ namespace labust
 //								|| (new_goal->yaw != goal->yaw))
 //				{
 
-				if (goal == 0){
+	//			if (goal == 0){
 
 					//Save new goal
 					goal = new_goal;
 
 					//Update reference
 					stateRef.publish(step(lastState));
-                    controllers.state[fadp] = true;
-                    controllers.state[hdg] = true;
 
-
+                    controllers.state[fadp] = true && goal->axis_enable.x && goal->axis_enable.y;;
+                    controllers.state[hdg] = true && goal->axis_enable.yaw;
 					this->updateControllers();
-				}
+			//	}
 
 				//Save new goal
-				goal = new_goal;
+				//goal = new_goal;
 			}
 
 			void onPreempt()
@@ -138,8 +140,8 @@ namespace labust
 				aserver->setPreempted();
 			};
 
-			void updateControllers(){
-
+			void updateControllers()
+			{
 				/* Enable high level controllers */
 				ros::NodeHandle nh;
 				ros::ServiceClient cl;
@@ -196,14 +198,26 @@ namespace labust
 			{
 				auv_msgs::NavStsPtr ref(new auv_msgs::NavSts());
 
-				ref->position.north = goal->T1.point.x;
-				ref->position.east = goal->T1.point.y;
-				ref->orientation.yaw = goal->yaw;
+				ref->position.north = (goal->target_topic_enable)?target_reference.x:goal->T1.point.x;
+				ref->position.east = (goal->target_topic_enable)?target_reference.y:goal->T1.point.y;
+				ref->orientation.yaw = (goal->track_heading_enable)?heading_reference:goal->yaw;
 				ref->header.frame_id = tf_prefix + "local";
 				ref->header.stamp = ros::Time::now();
 
 				return ref;
 			}
+
+			void onTargetPoint(const geometry_msgs::PointStamped::ConstPtr& point)
+			{
+				target_reference = point->point;
+			}
+
+			void onHeading(const std_msgs::Float32::ConstPtr& heading)
+			{
+				heading_reference = heading->data;
+			}
+
+
 
 		private:
 			geometry_msgs::Point lastPosition;
@@ -216,6 +230,9 @@ namespace labust
 			auv_msgs::NavSts lastState;
 			boost::mutex state_mux;
 			navcon_msgs::ControllerSelectRequest controllers;
+
+			geometry_msgs::Point target_reference;
+			double heading_reference;
 		};
 	}
 }

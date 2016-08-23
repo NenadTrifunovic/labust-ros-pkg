@@ -130,6 +130,7 @@ namespace labust
 					bool depth_enable,
 					bool heading_enable,
 					bool altitude_enable,
+					bool target_topic_enable,
 					bool track_heading_enable,
 					std::string target_topic,
 					std::string heading_topic
@@ -296,6 +297,7 @@ void PrimitiveManager::dynamic_positioning(
 		bool depth_enable,
 		bool heading_enable,
 		bool altitude_enable,
+		bool target_topic_enable,
 		bool track_heading_enable,
 		std::string target_topic,
 		std::string heading_topic)
@@ -316,6 +318,9 @@ void PrimitiveManager::dynamic_positioning(
 	goal.axis_enable.yaw = heading_enable; /*** Enables fully actuated control with independent heading control. ***/
 
 	goal.altitude = altitude_enable;
+	goal.track_heading_enable = track_heading_enable; /*** Use topic as heading reference. ***/
+	goal.target_topic_enable = track_heading_enable; /*** Use topic as target reference. ***/
+
 
 	goal.heading_topic = heading_topic;
 	goal.target_topic = target_topic;

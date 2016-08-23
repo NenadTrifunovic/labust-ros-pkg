@@ -97,8 +97,7 @@ namespace labust
 			void onGoal()
 			{
 				boost::mutex::scoped_lock l(state_mux);
-				//ROS_DEBUG("On goal.");
-				//Set the flag to avoid disabling controllers on preemption
+				/*** Set the flag to avoid disabling controllers on preemption ***/
 				processNewGoal = true;
 				Goal::Ptr new_goal = boost::make_shared<Goal>(*(aserver->acceptNewGoal()));
 				processNewGoal = false;
@@ -127,7 +126,7 @@ namespace labust
 						break;
 				}
 
-				//Check if course keeping is possible.
+				/*** Check if course keeping is possible. ***/
 				if (new_goal->speed == 0)
 				{
 					ROS_ERROR("Cannot perform course keeping without forward speed.");
