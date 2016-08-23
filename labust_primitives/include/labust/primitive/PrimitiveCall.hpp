@@ -9,7 +9,7 @@
 /*********************************************************************
 * Software License Agreement (BSD License)
 *
-*  Copyright (c) 2015, LABUST, UNIZG-FER
+*  Copyright (c) 2015-2016, LABUST, UNIZG-FER
 *  All rights reserved.
 *
 *  Redistribution and use in source and binary forms, with or without
@@ -158,7 +158,7 @@ namespace labust
 			{
 				if (state == actionlib::SimpleClientGoalState::SUCCEEDED)
 				{
-					ROS_ERROR("Dynamic Positioning - Finished in state [%s]", state.toString().c_str());
+					ROS_INFO("Dynamic Positioning - Finished in state [%s]", state.toString().c_str());
 					publishEventString("/PRIMITIVE_FINISHED");
 				}
 			}
@@ -166,7 +166,7 @@ namespace labust
 			/*** Callback called once when the goal becomes active ***/
 			void activeCb()
 			{
-			ROS_ERROR("Goal just went active dynamic_positioning");
+			ROS_INFO("Mission execution: Goal just went active dynamic_positioning");
 			}
 
 			/*** Callback called every time feedback is received for the goal ***/
