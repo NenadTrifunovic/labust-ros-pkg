@@ -76,10 +76,7 @@ namespace labust
 						 processNewGoal(false),
 						 lastDistance(0.0),
 						 distVictory(0.0),
-						 Ddistance(0.0)
-			{
-
-			}
+						 Ddistance(0.0){}
 
 			void init()
 			{

@@ -56,13 +56,14 @@ namespace labust
 {
 	namespace primitive
 	{
-
-		struct DynamicPositionining : protected ExecutorBase<navcon_msgs::DynamicPositioningAction>{
-
+		/*************************************************************
+		 *** Dynamic positioning primitive class
+		 ************************************************************/
+		struct DynamicPositionining : protected ExecutorBase<navcon_msgs::DynamicPositioningAction>
+		{
 			typedef navcon_msgs::DynamicPositioningGoal Goal;
 			typedef navcon_msgs::DynamicPositioningResult Result;
 			typedef navcon_msgs::DynamicPositioningFeedback Feedback;
-
 
 			enum {ualf=0,falf, fadp, hdg, numcnt};
 
@@ -73,63 +74,57 @@ namespace labust
 				processNewGoal(false),
 				heading_reference(0.0){};
 
-			void init(){
+			void init()
+			{
 				ros::NodeHandle ph("~");
 
 				/*** Initialize controller names ***/
 				controllers.name.resize(numcnt);
 				controllers.state.resize(numcnt, false);
-
 				controllers.name[fadp] = "FADP_enable";
 				controllers.name[hdg] = "HDG_enable";
 			}
 
-			void onGoal(){
-
+			void onGoal()
+			{
 				boost::mutex::scoped_lock l(state_mux);
-				ROS_DEBUG("On goal.");
-				//Set the flag to avoid disabling controllers on preemption
-
-			//	if(aserver->isActive()){
-
-				//	aserver->setPreempted();
-				//}
-
+				/*** Set the flag to avoid disabling controllers on preemption ***/
 				processNewGoal = true;
 				Goal::ConstPtr new_goal = aserver->acceptNewGoal();
 				processNewGoal = false;
 
+				/*** Save new goal ***/
+				goal = new_goal;
 
-				//if ((goal == 0) || (new_goal->course != goal->course))
-//				if ((goal == 0) || (new_goal->T1.point.x != goal->T1.point.x)
-//								|| (new_goal->T1.point.y != goal->T1.point.y)
-//								|| (new_goal->yaw != goal->yaw))
-//				{
+				/*** Subscribe to reference topics (if enabled) ***/
+				if(goal->track_heading_enable)
+				{
+					ros::NodeHandle nh;
+					sub_heading = nh.subscribe("dynamic_positioning_heading_topic",1,&DynamicPositionining::onHeading,this);
+				}
 
-	//			if (goal == 0){
+				if(goal->target_topic_enable)
+				{
+					ros::NodeHandle nh;
+					sub_heading = nh.subscribe("dynamic_positioning_target_topic",1,&DynamicPositionining::onTargetPoint,this);
+				}
 
-					//Save new goal
-					goal = new_goal;
+				/*** Update reference ***/
+				stateRef.publish(step(lastState));
 
-					//Update reference
-					stateRef.publish(step(lastState));
-
-                    controllers.state[fadp] = true && goal->axis_enable.x && goal->axis_enable.y;;
-                    controllers.state[hdg] = true && goal->axis_enable.yaw;
-					this->updateControllers();
-			//	}
-
-				//Save new goal
-				//goal = new_goal;
+				/*** Enable controllers ***/
+				controllers.state[fadp] = true && goal->axis_enable.x && goal->axis_enable.y;;
+				controllers.state[hdg] = true && goal->axis_enable.yaw;
+				this->updateControllers();
 			}
 
 			void onPreempt()
 			{
-				ROS_ERROR("Preempted.");
+				ROS_WARN("dynamic_positioning: Goal preempted.");
 				if (!processNewGoal)
 				{
 					goal.reset();
-					ROS_INFO("Stopping controllers.");
+					ROS_INFO("dynamic_positioning: Stopping controllers.");
 					controllers.state.assign(numcnt, false);
 					this->updateControllers();
 				}
@@ -142,7 +137,7 @@ namespace labust
 
 			void updateControllers()
 			{
-				/* Enable high level controllers */
+				/*** Enable high level controllers ***/
 				ros::NodeHandle nh;
 				ros::ServiceClient cl;
 
@@ -156,11 +151,12 @@ namespace labust
 				cl.call(a);
 			}
 
-			void onStateHat(const auv_msgs::NavSts::ConstPtr& estimate){
-
+			void onStateHat(const auv_msgs::NavSts::ConstPtr& estimate)
+			{
 				boost::mutex::scoped_lock l(state_mux);
 
-				if (aserver->isActive()){
+				if (aserver->isActive())
+				{
 
 					stateRef.publish(step(*estimate));
 
@@ -183,14 +179,13 @@ namespace labust
 					feedback.bearing = bearing_to_endpoint.gamma();
 					aserver->publishFeedback(feedback);
 				}
-				else if (goal != 0){
-
+				else if (goal != 0)
+				{
 						goal.reset();
-						ROS_INFO("Stopping controllers.");
+						ROS_INFO("dynamic_positioning: Stopping controllers.");
 						controllers.state.assign(numcnt, false);
 						this->updateControllers();
 				}
-
 				lastState = *estimate;
 			}
 
@@ -217,8 +212,6 @@ namespace labust
 				heading_reference = heading->data;
 			}
 
-
-
 		private:
 			geometry_msgs::Point lastPosition;
 			labust::math::Line line;
@@ -233,12 +226,14 @@ namespace labust
 
 			geometry_msgs::Point target_reference;
 			double heading_reference;
+
+			ros::Subscriber sub_target, sub_heading;
 		};
 	}
 }
 
-int main(int argc, char* argv[]){
-
+int main(int argc, char* argv[])
+{
 	ros::init(argc,argv,"dynamic_positioning");
 
 	labust::primitive::PrimitiveBase<labust::primitive::DynamicPositionining> primitive;
