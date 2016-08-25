@@ -167,7 +167,10 @@ void ImuHandler::onImu(const sensor_msgs::Imu::ConstPtr& data)
 				transform.transform.rotation.x,
 				transform.transform.rotation.y,
 				transform.transform.rotation.z);
+		//ROS_ERROR("IMU raw topic quaternion: %f %f %f %f", meas.x(), meas.y(), meas.z(), meas.w());
+		//ROS_ERROR("IMU frame rot quaternion: %f %f %f %f", rot.x(), rot.y(), rot.z(), rot.w());
 		Eigen::Quaternion<double> result = meas*rot;
+		//ROS_ERROR("IMU resulting quaternion: %f %f %f %f", result.x(), result.y(), result.z(), result.w());
 		if (gps != 0) gps->setRotation(result);
 		//KDL::Rotation::Quaternion(result.x(),result.y(),result.z(),result.w()).GetEulerZYX
 		//		(rpy[yaw],rpy[pitch],rpy[roll]);
@@ -180,7 +183,8 @@ void ImuHandler::onImu(const sensor_msgs::Imu::ConstPtr& data)
 		angvel<<data->angular_velocity.x,
 				data->angular_velocity.y,
 				data->angular_velocity.z;
-		angvel = meas*angvel;
+		//angvel = meas*angvel;
+		angvel = rot.matrix()*angvel;
 
 		pqr[p] = angvel(0);
 		pqr[q] = angvel(1);
@@ -190,7 +194,7 @@ void ImuHandler::onImu(const sensor_msgs::Imu::ConstPtr& data)
 		angvel<<data->linear_acceleration.x,
 				data->linear_acceleration.y,
 				data->linear_acceleration.z;
-		angvel = meas*angvel;
+		angvel = rot.matrix()*angvel;
 
 		axyz[ax] = angvel(0);
 		axyz[ay] = angvel(1);
