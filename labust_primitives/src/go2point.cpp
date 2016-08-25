@@ -126,10 +126,14 @@ namespace labust
 				/*** Check if course keeping is possible. ***/
 				if (new_goal->speed == 0)
 				{
-					ROS_ERROR("Cannot perform course keeping without forward speed.");
+					ROS_ERROR("Cannot perform go2point without forward speed.");
 					aserver->setAborted(Result(), "Forward speed is zero.");
 				}
-
+				else if(new_goal->victory_radius <= 0)
+				{
+					ROS_ERROR("Cannot perform go2point without victory radius.");
+					aserver->setAborted(Result(), "Victory radius is zero.");
+				}
 //				if ((goal == 0) || (new_goal->T1.point.x != goal->T1.point.x)
 //								|| (new_goal->T1.point.y != goal->T1.point.y)
 //								|| (new_goal->T2.point.x != goal->T2.point.x)
