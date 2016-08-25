@@ -186,10 +186,12 @@ void Estimator3D::onLocalStateHat(const auv_msgs::NavSts::ConstPtr& data)
   measurements(KFNav::zp) = data->position.depth;
   newMeas(KFNav::zp) = 1;
 
-  // Temporary !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
-  //measurements(KFNav::zb) = data->position.depth;
-  //newMeas(KFNav::zb) = 1;
-
+  bool use_depth_approx(true);
+  if(use_depth_approx)
+  {
+    measurements(KFNav::zb) = data->position.depth;
+    newMeas(KFNav::zb) = 1;
+  }
   measurements(KFNav::hdg) = unwrap(data->orientation.yaw);
   newMeas(KFNav::hdg) = 1;
 
