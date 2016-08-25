@@ -186,7 +186,7 @@ void Estimator3D::onLocalStateHat(const auv_msgs::NavSts::ConstPtr& data)
   measurements(KFNav::zp) = data->position.depth;
   newMeas(KFNav::zp) = 1;
 
-  bool use_depth_approx(true);
+  bool use_depth_approx(false);
   if(use_depth_approx)
   {
     measurements(KFNav::zb) = data->position.depth;
@@ -236,6 +236,7 @@ void Estimator3D::onSecond_position(const geometry_msgs::Point::ConstPtr& data)
 
 void Estimator3D::onSecond_navsts(const auv_msgs::NavSts::ConstPtr& data)
 {
+  ROS_ERROR("DEBUG: diver depth received.");
   measurements(KFNav::zb) = data->position.depth;
   newMeas(KFNav::zb) = 1;
 
