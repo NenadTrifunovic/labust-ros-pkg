@@ -39,6 +39,7 @@
 #include <string>
 
 #include <auv_msgs/NavSts.h>
+#include <auv_msgs/BodyVelocityReq.h>
 #include <navcon_msgs/ControllerSelect.h>
 
 namespace labust
@@ -73,6 +74,10 @@ namespace labust
 			 */
 			ros::Publisher stateRef;
 			/**
+			 * The publisher of the reference for velocity controllers.
+			 */
+			ros::Publisher nuRef;
+			/**
 			 * The subscribed topics.
 			 */
 			ros::Subscriber stateHat;
@@ -91,10 +96,11 @@ namespace labust
 
 		template <class Executor,
 				   class OutputType = auv_msgs::NavSts,
-			       class StateType = auv_msgs::NavSts>
+			       class StateType = auv_msgs::NavSts,
+				   class NuRefType = auv_msgs::BodyVelocityReq>
 		class PrimitiveBase : public Executor
 		{
-			typedef PrimitiveBase<Executor,OutputType,StateType> Base;
+			typedef PrimitiveBase<Executor,OutputType,StateType,NuRefType> Base;
 		public:
 			/**
 			 * Main constructor
@@ -120,6 +126,7 @@ namespace labust
 				this->aserver->registerPreemptCallback(boost::bind(&Base::onPreempt, this));
 
 				this->stateRef = nh.advertise<OutputType>("out", 1);
+				this->nuRef = nh.advertise<NuRefType>("nuRef", 1);
 				this->stateHat = nh.subscribe<StateType>("state", 1,boost::bind(&Base::onStateHat,this,_1));
 
 				this->control_manager = nh.serviceClient<navcon_msgs::ControllerSelect>("controller_select", true);
