@@ -292,6 +292,47 @@ namespace labust
 						   ROS_ERROR("Feedback - Follow");
 					}
 				};
+
+		class PrimitiveCallDocking : public PrimitiveCallBase<navcon_msgs::DockingAction,
+																		 navcon_msgs::DockingGoal,
+																		 navcon_msgs::DockingResult,
+																		 navcon_msgs::DockingFeedback>
+				{
+				public:
+					PrimitiveCallDocking():PrimitiveCallBase("docking"),
+											display_counter(0)
+					{
+
+					}
+
+					~PrimitiveCallDocking(){};
+
+				protected:
+					/***  Callback called once when the goal completes ***/
+					void doneCb(const actionlib::SimpleClientGoalState& state, const Result::ConstPtr& result)
+					{
+						if (state == actionlib::SimpleClientGoalState::SUCCEEDED)
+						{
+							ROS_INFO("Mission execution: docking - Finished in state [%s]", state.toString().c_str());
+							publishEventString("/PRIMITIVE_FINISHED");
+						}
+					}
+
+					/*** Callback called once when the goal becomes active ***/
+					void activeCb()
+					{
+					ROS_INFO("Mission execution: Goal just went active docking");
+					}
+
+					/*** Callback called every time feedback is received for the goal ***/
+					void feedbackCb(const Feedback::ConstPtr& feedback)
+					{
+						if((display_counter++)%10 == 0)
+							ROS_INFO("Mission execution: Feedback - Docking - distance:, bearing:");
+					}
+
+					int display_counter;
+				};
 	}
 }
 

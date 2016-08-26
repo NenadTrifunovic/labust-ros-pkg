@@ -58,6 +58,7 @@
 #include <navcon_msgs/DOFIdentificationAction.h>
 #include <navcon_msgs/TrackDiverAction.h>
 #include <caddy_msgs/follow_sectionAction.h>
+#include <navcon_msgs/DockingAction.h>
 
 #include <labust/mission/labustMission.hpp>
 #include <labust_mission/lowLevelConfigure.hpp>
@@ -185,6 +186,12 @@ namespace labust
 					double R0
 					);
 
+			/** Docking primitive */
+			void docking_disable();
+			void docking(
+
+					);
+
 			/*********************************************************
 			 *** Class variables
 			 ********************************************************/
@@ -197,6 +204,8 @@ namespace labust
 			//labust::primitive::PrimitiveCallDOFIdentification DOFIdentification;
 			labust::primitive::PrimitiveCallPointer Pointer;
 			labust::primitive::PrimitiveCallFollow Follow;
+			labust::primitive::PrimitiveCallDocking Docking;
+
 
 			labust::LowLevelConfigure LLcfg;
 		};
@@ -481,6 +490,24 @@ void PrimitiveManager::follow(double xrefpoint, double yrefpoint, double xs, dou
 //		}
 //
 //	}
+
+/*** Docking primitive ***/
+void PrimitiveManager::docking_disable()
+{
+	Docking.stop();
+	LLcfg.LL_VELconfigure(true,1,1,1,1,1,1);
+}
+void PrimitiveManager::docking(
+)
+{
+	typedef navcon_msgs::DockingGoal Goal;
+	Goal goal;
+
+
+
+	LLcfg.LL_VELconfigure(true,2,2,1,1,1,2);
+	Docking.start(goal);
+}
 
 
 #endif /* PRIMITIVEMANAGER_HPP_ */

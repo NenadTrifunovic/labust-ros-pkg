@@ -44,6 +44,10 @@ add_executable(track_diver src/track_diver.cpp)
 add_dependencies(track_diver auv_msgs_gencpp navcon_msgs_gencpp)
 target_link_libraries(track_diver ${catkin_LIBRARIES})
 
+add_executable(docking src/docking.cpp)
+add_dependencies(docking auv_msgs_gencpp navcon_msgs_gencpp)
+target_link_libraries(docking ${catkin_LIBRARIES})
+
 #############
 ## Install ##
 #############

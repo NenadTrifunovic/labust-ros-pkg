@@ -150,6 +150,9 @@ namespace labust {
 					std::string guidance_topic,
 					std::string radius_topic);
 
+			void generateDocking(
+								);
+
 
 
 			/*********************************************************
@@ -328,6 +331,23 @@ namespace labust {
 			data.push_back("#"+guidance_topic);
 			data.push_back("#"+radius_topic);
 			writeXML.addPrimitive(pointer,data);
+		}
+
+		void ManeuverGenerator::generateDocking(
+		)
+		{
+			std::vector<std::string> data;
+//			data.push_back(boost::lexical_cast<std::string>(radius));
+//			data.push_back(boost::lexical_cast<std::string>(vertical_offset));
+//			data.push_back(boost::lexical_cast<std::string>(guidance_target_x));
+//			data.push_back(boost::lexical_cast<std::string>(guidance_target_y));
+//			data.push_back(boost::lexical_cast<std::string>(guidance_target_z));
+//			data.push_back(boost::lexical_cast<std::string>(double(guidance_enable)));
+//			data.push_back(boost::lexical_cast<std::string>(double(wrapping_enable)));
+//			data.push_back(boost::lexical_cast<std::string>(double(streamline_orientation)));
+//			data.push_back("#"+guidance_topic);
+//			data.push_back("#"+radius_topic);
+			writeXML.addPrimitive(docking,data);
 		}
 
 

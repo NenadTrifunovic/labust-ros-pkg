@@ -89,7 +89,7 @@ MainEventQueue(){ mainEventQueue = new RosEventQueue(); }
 			iso_state,
 			follow_state,
 			pointer_state,
-			go2depth_state
+			docking_state
 		}
 		FSM_START(Wait_state);
 		FSM_BGN
@@ -134,6 +134,7 @@ MainEventQueue(){ mainEventQueue = new RosEventQueue(); }
 					//FSM_ON_EVENT("/ISO", FSM_NEXT(iso_state));
 					FSM_ON_EVENT("/FOLLOW", FSM_NEXT(follow_state));
 					FSM_ON_EVENT("/POINTER", FSM_NEXT(pointer_state));
+					FSM_ON_EVENT("/DOCKING", FSM_NEXT(docking_state));
 
 					FSM_ON_EVENT("/START_DISPATCHER", FSM_NEXT(Dispatcher_state)); //TODO CHECK THIS
 
@@ -295,6 +296,27 @@ MainEventQueue(){ mainEventQueue = new RosEventQueue(); }
 					FSM_ON_EVENT("/PRIMITIVE_FINISHED", FSM_NEXT(Dispatcher_state));
 					FSM_ON_EVENT("/PAUSE", FSM_NEXT(Pause_state));
 					FSM_ON_EVENT("/TIMEOUT", FSM_NEXT(Dispatcher_state));
+				}
+			}
+			FSM_STATE(docking_state)
+			{
+				ROS_INFO("Mission execution: docking primitive active");
+
+				ME->docking_state();
+
+				FSM_ON_STATE_EXIT_BGN{
+
+					ME->PM.docking_disable();
+
+				}FSM_ON_STATE_EXIT_END
+
+				FSM_TRANSITIONS
+				{
+					FSM_ON_EVENT("/STOP", FSM_NEXT(Wait_state));
+					FSM_ON_EVENT("/PRIMITIVE_FINISHED", FSM_NEXT(Dispatcher_state));
+					FSM_ON_EVENT("/PAUSE", FSM_NEXT(Pause_state));
+					FSM_ON_EVENT("/TIMEOUT", FSM_NEXT(Dispatcher_state));
+
 				}
 			}
 		}

@@ -99,6 +99,8 @@ namespace labust
 
 		    void pointer_state();
 
+		    void docking_state();
+
 			/*****************************************************************
 			 ***  ROS Subscriptions Callback
 			 ****************************************************************/
@@ -367,6 +369,23 @@ namespace labust
 					primitiveBoolMap["streamline_orientation"],
 					primitiveStringMap["guidance_topic"],
 					primitiveStringMap["radius_topic"]);
+	    }
+
+	    void MissionExecution::docking_state()
+	    {
+	    	/** Evaluate primitive data with current values */
+			evaluatePrimitive(receivedPrimitive.primitiveString.data);
+	    	/** Activate primitive timeout */
+			if(!timeoutActive && primitiveMap["timeout"] > 0)
+				setTimeout(primitiveMap["timeout"]);
+			/** Activate primitive */
+			PM.docking(
+
+					);
+
+			//oldPosition.north = primitiveMap["north"];
+			//oldPosition.east = primitiveMap["east"];
+			//oldPosition.depth = primitiveMap["depth"];
 	    }
 
 		/*****************************************************************

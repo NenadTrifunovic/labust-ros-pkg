@@ -52,6 +52,7 @@
 #include <misc_msgs/Go2pointPrimitiveService.h>
 #include <misc_msgs/PointerPrimitiveService.h>
 #include <misc_msgs/DynamicPositioningPrimitiveService.h>
+#include <misc_msgs/DockingPrimitiveService.h>
 #include <misc_msgs/LawnmoverService.h>
 #include <misc_msgs/StartParser.h>
 
@@ -78,17 +79,31 @@ namespace labust
 
 			~Commander();
 
-			bool go2pointPrimitiveService(misc_msgs::Go2pointPrimitiveService::Request &req, misc_msgs::Go2pointPrimitiveService::Response &res);
+			/*****************************************************************
+			 ***  Full primitive services
+			 ****************************************************************/
 
-			bool go2pointService(misc_msgs::Go2pointService::Request &req, misc_msgs::Go2pointService::Response &res);
+			bool go2pointPrimitiveService(misc_msgs::Go2pointPrimitiveService::Request &req, misc_msgs::Go2pointPrimitiveService::Response &res);
 
 			bool pointerPrimitiveService(misc_msgs::PointerPrimitiveService::Request &req, misc_msgs::PointerPrimitiveService::Response &res);
 
 			bool dynamicPositioningPrimitiveService(misc_msgs::DynamicPositioningPrimitiveService::Request &req, misc_msgs::DynamicPositioningPrimitiveService::Response &res);
 
+			bool dockingPrimitiveService(misc_msgs::DockingPrimitiveService::Request &req, misc_msgs::DockingPrimitiveService::Response &res);
+
+			/*****************************************************************
+			 ***  Derived services
+			 ****************************************************************/
+
+			bool go2pointService(misc_msgs::Go2pointService::Request &req, misc_msgs::Go2pointService::Response &res);
+
 			bool go2depthService(misc_msgs::Go2depthService::Request &req, misc_msgs::Go2depthService::Response &res);
 
 			bool lawnmoverService(misc_msgs::LawnmoverService::Request &req, misc_msgs::LawnmoverService::Response &res);
+
+			/*****************************************************************
+			 ***  General services
+			 ****************************************************************/
 
 			bool stopService(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res);
 
@@ -123,6 +138,8 @@ namespace labust
 			ros::ServiceServer srvPointerPrimitive;
 			ros::ServiceServer srvDynamicPositioningPrimitive;
 			//ros::ServiceServer srvCourseKeeping;
+			ros::ServiceServer srvDockingPrimitive;
+
 
 			/*** Masked service calls ***/
 			ros::ServiceServer srvGo2point;
@@ -163,6 +180,7 @@ namespace labust
 			srvGo2pointPrimitive = nh.advertiseService("commander/primitive/go2point", &Commander::go2pointPrimitiveService,this);
 			srvPointerPrimitive = nh.advertiseService("commander/primitive/pointer", &Commander::pointerPrimitiveService,this);
 			srvDynamicPositioningPrimitive = nh.advertiseService("commander/primitive/dynamic_positioning", &Commander::dynamicPositioningPrimitiveService,this);
+			srvDockingPrimitive = nh.advertiseService("commander/primitive/docking", &Commander::dockingPrimitiveService,this);
 
 			srvGo2point = nh.advertiseService("commander/go2point", &Commander::go2pointService,this);
 			srvDepth = nh.advertiseService("commander/go2depth", &Commander::go2depthService,this);
@@ -255,7 +273,7 @@ namespace labust
 			return true;
 		}
 
-        /*** Pointer service ***/
+        /*** Dynamic positioning service ***/
         bool Commander::dynamicPositioningPrimitiveService(misc_msgs::DynamicPositioningPrimitiveService::Request &req, misc_msgs::DynamicPositioningPrimitiveService::Response &res)
         {
             /*** Generate mission xml file ***/
@@ -278,6 +296,23 @@ namespace labust
 
             /*** Request mission execution ***/
             saveAndRequestAction("dynamic_positioning");
+
+            res.status = true;
+            return true;
+        }
+
+        /*** Docking service ***/
+        bool Commander::dockingPrimitiveService(misc_msgs::DockingPrimitiveService::Request &req, misc_msgs::DockingPrimitiveService::Response &res)
+        {
+            /*** Generate mission xml file ***/
+            MG.writeXML.addMission();
+            MG.generateDocking(
+                            //req.north,
+                            //req.east,
+  								);
+
+            /*** Request mission execution ***/
+            saveAndRequestAction("docking");
 
             res.status = true;
             return true;

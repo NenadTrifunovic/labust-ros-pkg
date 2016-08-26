@@ -90,6 +90,7 @@ enum {none = 0,
 		pointer,
 		iso,
 		follow,
+		docking,
 		primitiveNum};
 
 const char *PRIMITIVES[] = {"none",
@@ -99,7 +100,8 @@ const char *PRIMITIVES[] = {"none",
 								"course_keeping",
 								"pointer",
 								"iso",
-								"follow"};
+								"follow",
+								"docking"};
 
 enum {u=0, v, w, r, x, y, z, psi, x_var, y_var, z_var, psi_var, alt, stateHatNum}; /* Enumeration used for DataManager */
 const char *stateVarNames[] = {"u", "v", "w", "r", "x", "y", "z", "psi", "x_var", "y_var", "z_var", "psi_var", "alt"};
