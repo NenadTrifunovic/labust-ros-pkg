@@ -107,14 +107,6 @@ namespace labust
 //					aserver->setAborted(Result(), "Forward speed is zero.");
 //				}
 
-//				if ((goal == 0) || (new_goal->T1.point.x != goal->T1.point.x)
-//								|| (new_goal->T1.point.y != goal->T1.point.y)
-//								|| (new_goal->T2.point.x != goal->T2.point.x)
-//								|| (new_goal->T2.point.y != goal->T2.point.y)
-//								|| (new_goal->heading != goal->heading)
-//								|| (new_goal->speed != goal->speed))
-//				{
-
 			    goal = new_goal;
 
 //				if(goal->axis_enable.x && goal->axis_enable.y)
@@ -138,7 +130,7 @@ namespace labust
 //				}
 
 					/*** Update reference ***/
-					stateRef.publish(step(lastState));
+					//stateRef.publish(step(lastState));
 
 					/*** Enable controllers depending on the primitive subtype ***/
 					controllers.state[hdg] = false; //&& goal->axis_enable.x && goal->axis_enable.y;;
@@ -181,27 +173,18 @@ namespace labust
 
 				if(aserver->isActive())
 				{
-					/*** Publish reference for low-level controller ***/
-
-
 					/*** Publish reference for high-level controller ***/
 					//stateRef.publish(step(*estimate));
 
-					/*
-					 *
-					 *  Ovdje treba osnovnu logiku ukljuciti
-					 *
-					 */
+					/*** Publish reference for low-level controller ***/
+					nuRef.publish(step(*estimate));
 
 				    /*** Check if goal (docking) is achieved ***/
 
 					/*** If goal is completed ***/
 					if(false)
 					{
-						//result.position.point.x = estimate->position.north;
-						//result.position.point.y = estimate->position.east;
 						//result.distance = distVictory;
-						//result.bearing = bearing_to_endpoint.gamma();
 						aserver->setSucceeded(result);
 						goal.reset();
 						ROS_INFO("docking: Goal completed. Stopping controllers.");
@@ -212,8 +195,6 @@ namespace labust
 
 					/*** Publish primitive feedback ***/
 					Feedback feedback;
-					//feedback.distance = distVictory;
-					//feedback.bearing = bearing_to_endpoint.gamma();
 					aserver->publishFeedback(feedback);
 				}
 				else if (goal != 0)
@@ -226,57 +207,55 @@ namespace labust
 				lastState = *estimate;
 			}
 
-			auv_msgs::NavStsPtr step(const auv_msgs::NavSts& state)
+			auv_msgs::BodyVelocityReqPtr step(const auv_msgs::NavSts& state)
 			{
-
-				if(docking_state == IDLE)
+				if(docking_state == SEARCH)
 				{
-
-				}
-				else if(docking_state == SEARCH)
-				{
+					return searchState();
 
 				}
 				else if(docking_state == APPROACH)
 				{
-
+					return approachState();
 				}
+				else
+				{
+					return idleState();
+				}
+			}
 
 
-				auv_msgs::NavStsPtr ref(new auv_msgs::NavSts());
-
+			auv_msgs::BodyVelocityReqPtr idleState()
+			{
+				auv_msgs::BodyVelocityReqPtr ref(new auv_msgs::BodyVelocityReq());
+				ref->twist.linear.x = 0;
+				ref->twist.linear.y = 0;
+				ref->twist.angular.z = 0;
+				ref->header.frame_id = tf_prefix + "local";
+				ref->header.stamp = ros::Time::now();
 				return ref;
 			}
 
-
-			void idleState()
-			{
-
-			}
-
-			void searchState()
-			{
-
-				auv_msgs::BodyVelocityReqPtr ref(new auv_msgs::BodyVelocityReq());
-
-				ref->twist.angular.z;// = ;
-
-				ref->header.frame_id = tf_prefix + "local";
-				ref->header.stamp = ros::Time::now();
-				//return ref;
-
-			}
-
-			void approachState()
+			auv_msgs::BodyVelocityReqPtr searchState()
 			{
 				auv_msgs::BodyVelocityReqPtr ref(new auv_msgs::BodyVelocityReq());
-
-				ref->twist.linear.x;// = ;
-				ref->twist.angular.z;// = ;
-
+				ref->twist.linear.x = 0;
+				ref->twist.linear.y = 0;
+				ref->twist.angular.z = 0.1;
 				ref->header.frame_id = tf_prefix + "local";
 				ref->header.stamp = ros::Time::now();
-				//return ref;
+				return ref;
+			}
+
+			auv_msgs::BodyVelocityReqPtr approachState()
+			{
+				auv_msgs::BodyVelocityReqPtr ref(new auv_msgs::BodyVelocityReq());
+				ref->twist.linear.x = 0;
+				ref->twist.linear.y = 0;
+				ref->twist.angular.z = 0.1;
+				ref->header.frame_id = tf_prefix + "local";
+				ref->header.stamp = ros::Time::now();
+				return ref;
 			}
 
 			void onVerticalMeasurement(const std_msgs::Float32::ConstPtr& data)
