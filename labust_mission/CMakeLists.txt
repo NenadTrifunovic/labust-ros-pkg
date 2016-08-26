@@ -56,11 +56,6 @@ include_directories(
 if (TinyXML2_LIBRARY)
 	include_directories(${TinyXML2_INCLUDE_DIR})
 	
-#	add_executable(mission_exec src/mission_exec.cpp)
-#  add_dependencies(mission_exec misc_msgs_gencpp auv_msgs_gencpp)
-#	target_link_libraries(mission_exec ${catkin_LIBRARIES} ${TinyXML2_LIBRARY})
-#  decision_making_parsing(src/mission_exec.cpp)
-	
   add_executable(mission_execution src/mission_execution.cpp)
   add_dependencies(mission_execution misc_msgs_gencpp auv_msgs_gencpp)
 	target_link_libraries(mission_execution ${catkin_LIBRARIES} ${TinyXML2_LIBRARY})
