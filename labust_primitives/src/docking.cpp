@@ -78,7 +78,10 @@ namespace labust
 			Docking():ExecutorBase("docking"),
 						 processNewGoal(false),
 						 new_meas(false),
-						 docking_state(IDLE){}
+						 docking_state(IDLE),
+						 horizontal_meas(0.0),
+						 vertical_meas(0.0){}
+
 
 			void init()
 			{
@@ -109,27 +112,12 @@ namespace labust
 //					aserver->setAborted(Result(), "Forward speed is zero.");
 //				}
 
-			    goal = new_goal;
+				ros::NodeHandle nh;
+				sub_vertical = nh.subscribe<std_msgs::Float32>("docking_vertical",1,&Docking::onVerticalMeasurement,this);
+				sub_horizontal = nh.subscribe<std_msgs::Float32>("docking_horizontal",1,&Docking::onHorizontalMeasurement,this);
 
-//				if(goal->axis_enable.x && goal->axis_enable.y)
-//				{
-//					/*** Calculate new course line ***/
-//					Eigen::Vector3d T1,T2;
-//					T1 << new_goal->T1.point.x, new_goal->T1.point.y, 0;
-//					T2 << new_goal->T2.point.x, new_goal->T2.point.y, 0;
-//					line.setLine(T1,T2);
-//
-//					geometry_msgs::TransformStamped transform;
-//					transform.transform.translation.x = T1(xp);
-//					transform.transform.translation.y = T1(yp);
-//					transform.transform.translation.z = T1(zp);
-//					labust::tools::quaternionFromEulerZYX(0, 0, line.gamma(),
-//							transform.transform.rotation);
-//					transform.child_frame_id = tf_prefix + "course_frame";
-//					transform.header.frame_id = tf_prefix + "local";
-//					transform.header.stamp = ros::Time::now();
-//					broadcaster.sendTransform(transform);
-//				}
+
+			    goal = new_goal;
 
 					/*** Update reference ***/
 					//stateRef.publish(step(lastState));
@@ -277,6 +265,8 @@ namespace labust
 			boost::mutex state_mux;
 			navcon_msgs::ControllerSelectRequest controllers;
 			bool processNewGoal;
+
+			ros::Subscriber sub_vertical, sub_horizontal;
 
 			double vertical_meas, horizontal_meas;
 			bool new_meas;
