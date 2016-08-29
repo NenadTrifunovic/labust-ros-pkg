@@ -176,10 +176,10 @@ namespace labust
 
 					/*** Publish reference for docking arm ***/
 					std_msgs::Float32MultiArray docking_arm_ref;
-					docking_arm_ref.data[0] = 1;
-					docking_arm_ref.data[1] = 0;
-					docking_arm_ref.data[2] = 0;
-					docking_arm_ref.data[3] = 0;
+					docking_arm_ref.data.push_back(1.0);
+					docking_arm_ref.data.push_back(0.0);
+					docking_arm_ref.data.push_back(0.0);
+					docking_arm_ref.data.push_back(0.0);
 					pub_docking_arm.publish(docking_arm_ref);
 
 				    /*** Check if goal (docking) is achieved ***/
