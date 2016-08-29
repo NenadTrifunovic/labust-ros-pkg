@@ -76,7 +76,9 @@ namespace labust
 			enum {IDLE = 0, SEARCH, APPROACH};
 
 			Docking():ExecutorBase("docking"),
-						 processNewGoal(false){}
+						 processNewGoal(false),
+						 new_meas(false),
+						 docking_state(IDLE){}
 
 			void init()
 			{
@@ -209,31 +211,19 @@ namespace labust
 
 			auv_msgs::BodyVelocityReqPtr step(const auv_msgs::NavSts& state)
 			{
-				if(docking_state == SEARCH)
+				if((ros::Time::now()-new_meas_time).toSec() < 3 && new_meas == true)
 				{
-					return searchState();
-
-				}
-				else if(docking_state == APPROACH)
-				{
+					docking_state == APPROACH;
+					ROS_ERROR("Approach state.");
 					return approachState();
 				}
 				else
 				{
-					return idleState();
+					docking_state == SEARCH;
+					ROS_ERROR("Search state.");
+					new_meas = false;
+					return searchState();
 				}
-			}
-
-
-			auv_msgs::BodyVelocityReqPtr idleState()
-			{
-				auv_msgs::BodyVelocityReqPtr ref(new auv_msgs::BodyVelocityReq());
-				ref->twist.linear.x = 0;
-				ref->twist.linear.y = 0;
-				ref->twist.angular.z = 0;
-				ref->header.frame_id = tf_prefix + "local";
-				ref->header.stamp = ros::Time::now();
-				return ref;
 			}
 
 			auv_msgs::BodyVelocityReqPtr searchState()
@@ -241,7 +231,7 @@ namespace labust
 				auv_msgs::BodyVelocityReqPtr ref(new auv_msgs::BodyVelocityReq());
 				ref->twist.linear.x = 0;
 				ref->twist.linear.y = 0;
-				ref->twist.angular.z = 0.1;
+				ref->twist.angular.z = 0.05;
 				ref->header.frame_id = tf_prefix + "local";
 				ref->header.stamp = ros::Time::now();
 				return ref;
@@ -249,10 +239,11 @@ namespace labust
 
 			auv_msgs::BodyVelocityReqPtr approachState()
 			{
+				double gain = 1.0;
 				auv_msgs::BodyVelocityReqPtr ref(new auv_msgs::BodyVelocityReq());
-				ref->twist.linear.x = 0;
+				ref->twist.linear.x = 0.1;
 				ref->twist.linear.y = 0;
-				ref->twist.angular.z = 0.1;
+				ref->twist.angular.z = gain*horizontal_meas;
 				ref->header.frame_id = tf_prefix + "local";
 				ref->header.stamp = ros::Time::now();
 				return ref;
@@ -262,14 +253,17 @@ namespace labust
 			{
 				vertical_meas = data->data;
 				new_meas = true;
+				new_meas_time = ros::Time::now();
+				ROS_ERROR("Received vertical measurement: %f", vertical_meas);
 			}
 
 			void onHorizontalMeasurement(const std_msgs::Float32::ConstPtr& data)
 			{
 				horizontal_meas = data->data;
 				new_meas = true;
+				new_meas_time = ros::Time::now();
+				ROS_ERROR("Received horizontal measurement: %f", horizontal_meas);
 			}
-
 
 			Result result;
 
@@ -286,6 +280,7 @@ namespace labust
 
 			double vertical_meas, horizontal_meas;
 			bool new_meas;
+			ros::Time new_meas_time;
 			int docking_state;
 		};
 	}
