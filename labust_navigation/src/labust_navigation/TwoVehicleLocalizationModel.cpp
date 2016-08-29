@@ -9,7 +9,7 @@
 /*********************************************************************
 * Software License Agreement (BSD License)
 *
-*  Copyright (c) 2010, LABUST, UNIZG-FER
+*  Copyright (c) 2015-2016, LABUST, UNIZG-FER
 *  All rights reserved.
 *
 *  Redistribution and use in source and binary forms, with or without
@@ -59,8 +59,8 @@ TwoVehicleLocalizationModel::TwoVehicleLocalizationModel():
 
 TwoVehicleLocalizationModel::~TwoVehicleLocalizationModel(){};
 
-void TwoVehicleLocalizationModel::initModel(){
-
+void TwoVehicleLocalizationModel::initModel()
+{
   x = vector::Zero(stateNum);
   xdot = 0;
   ydot = 0;
@@ -71,21 +71,21 @@ void TwoVehicleLocalizationModel::initModel(){
   //std::cout<<"R:"<<R<<"\n"<<V<<std::endl;
 }
 
-void TwoVehicleLocalizationModel::calculateXYInovationVariance(const TwoVehicleLocalizationModel::matrix& P, double& xin,double &yin){
-
+void TwoVehicleLocalizationModel::calculateXYInovationVariance(const TwoVehicleLocalizationModel::matrix& P, double& xin,double &yin)
+{
 	xin = sqrt(P(xp,xp)) + sqrt(R0(xp,xp));
 	yin = sqrt(P(yp,yp)) + sqrt(R0(yp,yp));
 }
 
 
-void TwoVehicleLocalizationModel::calculateUVInovationVariance(const TwoVehicleLocalizationModel::matrix& P, double& uin,double &vin){
-
+void TwoVehicleLocalizationModel::calculateUVInovationVariance(const TwoVehicleLocalizationModel::matrix& P, double& uin,double &vin)
+{
 	uin = sqrt(P(u,u)) + sqrt(R0(u,u));
 	//vin = sqrt(P(v,v)) + sqrt(R0(v,v));
 }
 
-void TwoVehicleLocalizationModel::step(const input_type& input){
-
+void TwoVehicleLocalizationModel::step(const input_type& input)
+{
   x(u) += 0;
   x(w) += 0;
   x(r) += 0;
@@ -95,17 +95,21 @@ void TwoVehicleLocalizationModel::step(const input_type& input){
   x(xp) += Ts * xdot;
   x(yp) += Ts * ydot;
   x(zp) += Ts * x(w);
-  x(psi) += Ts * x(r);
+  x(psi) += 0;
 
   x(hdg) += Ts*x(r);
 
+  /*** Limit target surge speed ***/
   x(ub) += 0;
   if(x(ub)>0.5)
 	x(ub)=0.5;
   if(x(ub)<-0.5)
 	x(ub)=-0.5;
-		
-  x(wb) += 0;
+
+  /*** Limit target heave speed ***/
+  x(wb) = 0;
+
+  /*** Limit target yaw speed ***/
   x(rb) = 0;
 
   xdot = x(ub)*cos(x(psib));
@@ -120,39 +124,34 @@ void TwoVehicleLocalizationModel::step(const input_type& input){
   derivativeAW();
 }
 
-void TwoVehicleLocalizationModel::derivativeAW(){
-
+void TwoVehicleLocalizationModel::derivativeAW()
+{
 	A = matrix::Identity(stateNum, stateNum);
 
 	A(xp,u) = Ts*cos(x(psi));
-	//A(xp,v) = -Ts*sin(x(psi));
 	A(xp,psi) = Ts*(-x(u)*sin(x(psi)));
-	//A(xp,xc) = Ts;
 
 	A(yp,u) = Ts*sin(x(psi));
-	//A(yp,v) = Ts*cos(x(psi));
 	A(yp,psi) = Ts*(x(u)*cos(x(psi)));
-	//A(yp,yc) = Ts;
 
 	A(zp,w) = Ts;
 	A(psi,r) = Ts;
+	//A(hdg,r) = Ts;
+
 
 	A(xb,ub) = Ts*cos(x(psib));
-	//A(xp,v) = -Ts*sin(x(psi));
 	A(xb,psib) = Ts*(-x(ub)*sin(x(psib)));
-	//A(xp,xc) = Ts;
 
 	A(yb,ub) = Ts*sin(x(psib));
-	//A(yp,v) = Ts*cos(x(psi));
 	A(yb,psib) = Ts*(x(ub)*cos(x(psib)));
-	//A(yp,yc) = Ts;
 
 	A(zb,wb) = Ts;
 	A(psib,rb) = Ts;
+	A(psib,rb) = Ts;
 }
 
-const TwoVehicleLocalizationModel::output_type& TwoVehicleLocalizationModel::update(vector& measurements, vector& newMeas){
-
+const TwoVehicleLocalizationModel::output_type& TwoVehicleLocalizationModel::update(vector& measurements, vector& newMeas)
+{
 	std::vector<size_t> arrived;
 	std::vector<double> dataVec;
 
@@ -204,12 +203,13 @@ const TwoVehicleLocalizationModel::output_type& TwoVehicleLocalizationModel::upd
 	return measurement;
 }
 
-void TwoVehicleLocalizationModel::estimate_y(output_type& y){
+void TwoVehicleLocalizationModel::estimate_y(output_type& y)
+{
 	y=this->y;
 }
 
-void TwoVehicleLocalizationModel::derivativeH(){
-
+void TwoVehicleLocalizationModel::derivativeH()
+{
 	Hnl = matrix::Zero(measSize,stateNum);
 	Hnl.topLeftCorner(stateNum,stateNum) = matrix::Identity(stateNum,stateNum);
 
@@ -219,26 +219,29 @@ void TwoVehicleLocalizationModel::derivativeH(){
 	double rng  = sqrt(pow((x(xp)-x(xb)),2)+pow((x(yp)-x(yb)),2)+pow((x(zp)-x(zb)),2));
 	double delta_x = (x(xb)-x(xp));
 	double delta_y = (x(yb)-x(yp));
+	double delta_z = (x(zb)-x(zp));
 
 	double eps = 1.0e-25;
 
-	if(rng<eps){
+	if(rng<eps)
+	{
 		rng = eps;
 		delta_x = (delta_x<0)?-0.5*eps:0.5*eps;
 		delta_y = (delta_y<0)?-0.5*eps:0.5*eps;
+		delta_z = 0;
 	}
 
 	ynl(range) = rng;
 	ynl(bearing) = bearing_unwrap(atan2(delta_y,delta_x) -1*x(hdg));
-	ynl(elevation) = asin((x(zp)-x(zb))/rng);
+	//ynl(elevation) = asin((x(zp)-x(zb))/rng);
 
-	Hnl(range, xp)  = -(x(xb)-x(xp))/rng;
-	Hnl(range, yp)  = -(x(yb)-x(yp))/rng;
-	Hnl(range, zp)  = -(x(zb)-x(zp))/rng;
+	Hnl(range, xp)  = -(delta_x)/rng;
+	Hnl(range, yp)  = -(delta_y)/rng;
+	Hnl(range, zp)  = -(delta_z)/rng;
 
-	Hnl(range, xb)  = (x(xb)-x(xp))/rng;
-	Hnl(range, yb)  = (x(yb)-x(yp))/rng;
-	Hnl(range, zb)  = (x(zb)-x(zp))/rng;
+	Hnl(range, xb)  = (delta_x)/rng;
+	Hnl(range, yb)  = (delta_y)/rng;
+	Hnl(range, zb)  = (delta_z)/rng;
 
 	Hnl(bearing, xp) = delta_y/(delta_x*delta_x+delta_y*delta_y);
 	Hnl(bearing, yp) = -delta_x/(delta_x*delta_x+delta_y*delta_y);
@@ -249,15 +252,14 @@ void TwoVehicleLocalizationModel::derivativeH(){
 
 	ynl(sonar_range) = rng;
 	ynl(sonar_bearing) = bearing_unwrap(atan2(delta_y,delta_x) -1*x(hdg));
-	//ROS_ERROR("ynl ber: %f, hdg: %f, delta: %f %f, ",ynl(sonar_bearing)*180/M_PI,x(hdg),delta_x, delta_y);
 
-	Hnl(sonar_range, xp)  = -(x(xb)-x(xp))/rng;
-	Hnl(sonar_range, yp)  = -(x(yb)-x(yp))/rng;
-	Hnl(sonar_range, zp)  = -(x(zb)-x(zp))/rng;
+	Hnl(sonar_range, xp)  = -(delta_x)/rng;
+	Hnl(sonar_range, yp)  = -(delta_y)/rng;
+	Hnl(sonar_range, zp)  = -(delta_z)/rng;
 
-	Hnl(sonar_range, xb)  = (x(xb)-x(xp))/rng;
-	Hnl(sonar_range, yb)  = (x(yb)-x(yp))/rng;
-	Hnl(sonar_range, zb)  = (x(zb)-x(zp))/rng;
+	Hnl(sonar_range, xb)  = (delta_x)/rng;
+	Hnl(sonar_range, yb)  = (delta_y)/rng;
+	Hnl(sonar_range, zb)  = (delta_z)/rng;
 
 	Hnl(sonar_bearing, xp) = delta_y/(delta_x*delta_x+delta_y*delta_y);
 	Hnl(sonar_bearing, yp) = -delta_x/(delta_x*delta_x+delta_y*delta_y);
@@ -265,16 +267,5 @@ void TwoVehicleLocalizationModel::derivativeH(){
 	Hnl(sonar_bearing, yb) = delta_x/(delta_x*delta_x+delta_y*delta_y);
 
 	Hnl(sonar_bearing, hdg) = -1;
-
-	// Nadi gresku u elevationu i sredi singularitete
-//	double part1 = (x(zb) - x(zp))/(sqrt(1 - pow((x(zb) - x(zp)),2)/pow(rng,2))*(pow((rng),3)));
-//	double part2 = (x(xb)*x(xb) - 2*x(xb)*x(xp) + x(xp)*x(xp) + x(yb)*x(yb) - 2*x(yb)*x(yp) + x(yp)*x(yp))/(sqrt(1 - pow((x(zb) - x(zp)),2)/pow(rng,2))*(pow((rng),3)));
-//
-//	Hnl(elevation,xp) = -((x(xb) - x(xp))*part1);
-//	Hnl(elevation,yp) = -((x(yb) - x(yp))*part1);
-//	Hnl(elevation,zp) = part2;
-//	Hnl(elevation,xb) = ((x(xb) - x(xp))*part1);
-//	Hnl(elevation,yb) = ((x(yb) - x(yp))*part1);
-//	Hnl(elevation,zb) = -part2;
 }
 

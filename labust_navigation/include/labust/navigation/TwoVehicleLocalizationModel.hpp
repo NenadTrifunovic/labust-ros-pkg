@@ -12,7 +12,7 @@
 /*********************************************************************
 * Software License Agreement (BSD License)
 *
-*  Copyright (c) 2015, LABUST, UNIZG-FER
+*  Copyright (c) 2015-2016, LABUST, UNIZG-FER
 *  All rights reserved.
 *
 *  Redistribution and use in source and binary forms, with or without
@@ -83,12 +83,8 @@ namespace labust
       };
 
       enum {xp = 0,yp,zp, hdg, psi,u,w,r,xb,yb,zb,psib,ub,wb,rb,stateNum};
-      //enum {X=0,Y,Z,Kroll,M,N,inputSize};
       enum {inputSize = 0};
       enum {range=stateNum,bearing,elevation,sonar_range,sonar_bearing,measSize};
-
-      //const char *VarNames[]  = {"u","v","w","p","q","r","xp","yp","zp","phi","theta","psi","xc","yc","b","buoyancy","roll_restore","pitch_restore","altitude","xb","yb","zb","range","bearing","elevation"};
-
 
       /**
        * The default constructor.
