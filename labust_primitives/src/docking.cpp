@@ -232,6 +232,8 @@ namespace labust
 				ref->twist.linear.x = 0.1;
 				ref->twist.linear.y = 0;
 				ref->twist.angular.z = gain*horizontal_meas;
+				ref->twist.angular.z = gain*std::tanh(horizontal_meas);
+
 				ref->header.frame_id = tf_prefix + "local";
 				ref->header.stamp = ros::Time::now();
 				return ref;
