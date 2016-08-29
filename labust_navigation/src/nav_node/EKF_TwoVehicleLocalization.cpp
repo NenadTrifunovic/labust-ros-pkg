@@ -124,15 +124,8 @@ void Estimator3D::onInit()
   /** Subscribers */
   subLocalStateHat = nh.subscribe<auv_msgs::NavSts>(
       "stateHat", 1, &Estimator3D::onLocalStateHat, this);
-
-  subSecond_heading = nh.subscribe<std_msgs::Float32>(
-      "out_acoustic_heading", 1, &Estimator3D::onSecond_heading, this);
-  subSecond_position = nh.subscribe<geometry_msgs::Point>(
-      "out_acoustic_position", 1, &Estimator3D::onSecond_position, this);
   subSecond_navsts = nh.subscribe<auv_msgs::NavSts>(
         "second_navsts", 1, &Estimator3D::onSecond_navsts, this);
-  subSecond_speed = nh.subscribe<std_msgs::Float32>(
-      "out_acoustic_speed", 1, &Estimator3D::onSecond_speed, this);
   subSecond_usbl_fix = nh.subscribe<underwater_msgs::USBLFix>(
       "usbl_fix", 1, &Estimator3D::onSecond_usbl_fix, this);
   //subSecond_sonar_fix = nh.subscribe<underwater_msgs::SonarFix>(
@@ -216,24 +209,6 @@ void Estimator3D::onLocalStateHat(const auv_msgs::NavSts::ConstPtr& data)
   newMeas(KFNav::r) = 1;
 };
 
-void Estimator3D::onSecond_heading(const std_msgs::Float32::ConstPtr& data)
-{
-  measurements(KFNav::psib) = data->data;
-  newMeas(KFNav::psib) = 1;
-}
-
-void Estimator3D::onSecond_position(const geometry_msgs::Point::ConstPtr& data)
-{
-  /*measurements(KFNav::xb) = data->x;
-  newMeas(KFNav::xb) = 1;
-
-  measurements(KFNav::yb) = data->y;
-  newMeas(KFNav::yb) = 1;*/
-
-  measurements(KFNav::zb) = data->z;
-  newMeas(KFNav::zb) = 1;
-}
-
 void Estimator3D::onSecond_navsts(const auv_msgs::NavSts::ConstPtr& data)
 {
   ROS_ERROR("DEBUG: diver depth received.");
@@ -242,12 +217,6 @@ void Estimator3D::onSecond_navsts(const auv_msgs::NavSts::ConstPtr& data)
 
   measurements(KFNav::psib) = data->orientation.yaw;
   newMeas(KFNav::psib) = 1;
-}
-
-void Estimator3D::onSecond_speed(const std_msgs::Float32::ConstPtr& data)
-{
-  measurements(KFNav::ub) = data->data;
-  newMeas(KFNav::ub) = 1;
 }
 
 void Estimator3D::onSecond_usbl_fix(

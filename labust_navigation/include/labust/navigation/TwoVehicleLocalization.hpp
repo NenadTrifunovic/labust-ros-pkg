@@ -119,21 +119,9 @@ namespace labust
 			 */
 			void onLocalStateHat(const auv_msgs::NavSts::ConstPtr& data);
 			/**
-			 * Handle the second vehicle heading measurement.
-			 */
-			void onSecond_heading(const std_msgs::Float32::ConstPtr& data);
-			/**
-			 * Handle the second vehicle position measurement.
-			 */
-			void onSecond_position(const geometry_msgs::Point::ConstPtr& data);
-			/**
 			 * Handle the second vehicle position measurement.
 			 */
 			void onSecond_navsts(const auv_msgs::NavSts::ConstPtr& data);
-			/**
-			 * Handle the second vehicle speed measurement.
-			 */
-			void onSecond_speed(const std_msgs::Float32::ConstPtr& data);
 			/**
 			 * Handle the USBL measurement.
 			 */
