@@ -57,6 +57,7 @@
 #include <tf2_ros/static_transform_broadcaster.h>
 
 #include <std_msgs/Float32.h>
+#include <std_msgs/Float32MultiArray.h>
 #include <auv_msgs/BodyVelocityReq.h>
 
 namespace labust
@@ -93,6 +94,8 @@ namespace labust
 				controllers.name.resize(numcnt);
 				controllers.state.resize(numcnt, false);
 				controllers.name[hdg] = "HDG_enable";
+
+				pub_docking_arm = nh.advertise<std_msgs::Float32MultiArray>("dock_out",1);
 			}
 
 			void onGoal()
@@ -170,6 +173,14 @@ namespace labust
 
 					/*** Publish reference for low-level controller ***/
 					nuRef.publish(step(*estimate));
+
+					/*** Publish reference for docking arm ***/
+					std_msgs::Float32MultiArray docking_arm_ref;
+					docking_arm_ref.data[0] = 1;
+					docking_arm_ref.data[1] = 0;
+					docking_arm_ref.data[2] = 0;
+					docking_arm_ref.data[3] = 0;
+					pub_docking_arm.publish(docking_arm_ref);
 
 				    /*** Check if goal (docking) is achieved ***/
 
@@ -275,6 +286,7 @@ namespace labust
 			bool processNewGoal;
 
 			ros::Subscriber sub_vertical, sub_horizontal;
+			ros::Publisher pub_docking_arm;
 
 			double vertical_meas, horizontal_meas;
 			bool new_meas;
