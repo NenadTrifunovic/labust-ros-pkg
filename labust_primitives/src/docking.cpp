@@ -46,6 +46,7 @@
 #include <labust/primitive/PrimitiveBase.hpp>
 #include <labust/math/NumberManipulation.hpp>
 #include <labust/math/Line.hpp>
+#include <labust/math/Signum.hpp>
 #include <labust/tools/conversions.hpp>
 
 #include <ros/ros.h>
@@ -80,7 +81,8 @@ namespace labust
 						 new_meas(false),
 						 docking_state(IDLE),
 						 horizontal_meas(0.0),
-						 vertical_meas(0.0){}
+						 vertical_meas(0.0),
+						 last_direction(0){}
 
 
 			void init()
@@ -216,10 +218,11 @@ namespace labust
 
 			auv_msgs::BodyVelocityReqPtr searchState()
 			{
+				double search_yaw_speed = 0.05;
 				auv_msgs::BodyVelocityReqPtr ref(new auv_msgs::BodyVelocityReq());
 				ref->twist.linear.x = 0;
 				ref->twist.linear.y = 0;
-				ref->twist.angular.z = 0.05;
+				ref->twist.angular.z = (last_direction != 0)?last_direction*search_yaw_speed:search_yaw_speed;
 				ref->header.frame_id = tf_prefix + "local";
 				ref->header.stamp = ros::Time::now();
 				return ref;
@@ -227,8 +230,8 @@ namespace labust
 
 			auv_msgs::BodyVelocityReqPtr approachState()
 			{
-				double gain = 1.0;
-				double surge_gain = 1.0;
+				double gain = 0.2;
+				double surge_gain = 0.1;
 				double stdev = 0.1;
 				auv_msgs::BodyVelocityReqPtr ref(new auv_msgs::BodyVelocityReq());
 				ref->twist.linear.x = std::exp(-(std::pow(horizontal_meas,2))/(2*std::pow(stdev,2)));
@@ -254,6 +257,7 @@ namespace labust
 				horizontal_meas = data->data;
 				new_meas = true;
 				new_meas_time = ros::Time::now();
+				last_direction = labust::math::sgn(horizontal_meas);
 				ROS_ERROR("Received horizontal measurement: %f", horizontal_meas);
 			}
 
@@ -275,7 +279,7 @@ namespace labust
 			double vertical_meas, horizontal_meas;
 			bool new_meas;
 			ros::Time new_meas_time;
-			int docking_state;
+			int docking_state, last_direction;
 		};
 	}
 }
