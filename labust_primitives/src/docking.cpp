@@ -231,10 +231,10 @@ namespace labust
 			auv_msgs::BodyVelocityReqPtr approachState()
 			{
 				double gain = 0.2;
-				double surge_gain = 0.1;
+				double surge_gain = 0.2;
 				double stdev = 0.1;
 				auv_msgs::BodyVelocityReqPtr ref(new auv_msgs::BodyVelocityReq());
-				ref->twist.linear.x = std::exp(-(std::pow(horizontal_meas,2))/(2*std::pow(stdev,2)));
+				ref->twist.linear.x = surge_gain*std::exp(-(std::pow(horizontal_meas,2))/(2*std::pow(stdev,2)));
 				ref->twist.linear.y = 0;
 				//ref->twist.angular.z = gain*horizontal_meas;
 				ref->twist.angular.z = gain*std::tanh(horizontal_meas);
