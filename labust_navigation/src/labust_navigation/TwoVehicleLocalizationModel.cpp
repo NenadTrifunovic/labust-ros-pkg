@@ -116,7 +116,13 @@ void TwoVehicleLocalizationModel::step(const input_type& input)
   ydot = x(ub)*sin(x(psib));
   x(xb) += Ts * xdot;
   x(yb) += Ts * ydot;
-  x(zb) += Ts * x(wb);
+ 
+  /*** Limit target depth ***/
+  //x(zb) += Ts * x(wb);
+  x(zb) += 0;
+  if(x(zb)<0.0)
+	x(zb)=0.0;
+ 
   x(psib) += Ts * x(rb);
 
   xk_1 = x;
@@ -135,8 +141,8 @@ void TwoVehicleLocalizationModel::derivativeAW()
 	A(yp,psi) = Ts*(x(u)*cos(x(psi)));
 
 	A(zp,w) = Ts;
-	A(psi,r) = Ts;
-	//A(hdg,r) = Ts;
+	//A(psi,r) = Ts;
+	A(hdg,r) = Ts;
 
 
 	A(xb,ub) = Ts*cos(x(psib));
@@ -145,9 +151,8 @@ void TwoVehicleLocalizationModel::derivativeAW()
 	A(yb,ub) = Ts*sin(x(psib));
 	A(yb,psib) = Ts*(x(ub)*cos(x(psib)));
 
-	A(zb,wb) = Ts;
-	A(psib,rb) = Ts;
-	A(psib,rb) = Ts;
+	//A(zb,wb) = Ts;
+	//A(psib,rb) = Ts;
 }
 
 const TwoVehicleLocalizationModel::output_type& TwoVehicleLocalizationModel::update(vector& measurements, vector& newMeas)
@@ -225,6 +230,7 @@ void TwoVehicleLocalizationModel::derivativeH()
 
 	if(rng<eps)
 	{
+                ROS_ERROR("DEBUG: eps!!!!!!!!!!!!!!!!!!!!!!!!");
 		rng = eps;
 		delta_x = (delta_x<0)?-0.5*eps:0.5*eps;
 		delta_y = (delta_y<0)?-0.5*eps:0.5*eps;

@@ -388,7 +388,7 @@ void Estimator3D::publishState()
 
   rel_pos->range = sqrt(pow(delta_x, 2) + pow(delta_y, 2));
   rel_pos->bearing =
-      labust::math::wrapDeg(atan2(delta_y, delta_x) - estimate(KFNav::hdg));
+      labust::math::wrapRad(atan2(delta_y, delta_x) - estimate(KFNav::hdg));
 
   Eigen::Matrix2d J;
   J << rel_pos->x / rel_pos->range, rel_pos->y / rel_pos->range,
