@@ -534,13 +534,30 @@ void Estimator3D::start()
             		if (j == KFNav::range)
             		{
             			const KFNav::vector& x = tmp_state.state;
-                		double dist=fabs(x(j) - measurements(j));
+            			double rng = sqrt(pow((x(KFNav::xp)-x(KFNav::xb)),2)+pow((x(KFNav::yp)-x(KFNav::yb)),2)+pow((x(KFNav::zp)-x(KFNav::zb)),2));
+                		double dist=fabs(rng - measurements(j));
                 		newMeas(j) = (dist <= sqrt(P_rng_bear_relative(0,0)) + sqrt(nav.R0(j,j)));
+                		if(!newMeas(j)) ROS_ERROR("USBL range outlier!");
             		}
             		if (j == KFNav::bearing)
             		{
             			const KFNav::vector& x = tmp_state.state;
-                		double dist=fabs(x(j) - measurements(j));
+            			double bear = bearing_unwrap(atan2(KFNav::yp-KFNav::yb,KFNav::xp-KFNav::xb) -1*x(KFNav::hdg), false);
+                		double dist=fabs(bear - measurements(j));
+                		newMeas(j) = (dist <= sqrt(P_rng_bear_relative(1,1)) + sqrt(nav.R0(j,j)));
+            		}
+            		if (j == KFNav::sonar_range)
+            		{
+            			const KFNav::vector& x = tmp_state.state;
+            			double rng = sqrt(pow((x(KFNav::xp)-x(KFNav::xb)),2)+pow((x(KFNav::yp)-x(KFNav::yb)),2)+pow((x(KFNav::zp)-x(KFNav::zb)),2));
+                		double dist=fabs(rng - measurements(j));
+                		newMeas(j) = (dist <= sqrt(P_rng_bear_relative(0,0)) + sqrt(nav.R0(j,j)));
+            		}
+            		if (j == KFNav::sonar_bearing)
+            		{
+            			const KFNav::vector& x = tmp_state.state;
+            			double bear = bearing_unwrap(atan2(KFNav::yp-KFNav::yb,KFNav::xp-KFNav::xb) -1*x(KFNav::hdg), false);
+                		double dist=fabs(bear - measurements(j));
                 		newMeas(j) = (dist <= sqrt(P_rng_bear_relative(1,1)) + sqrt(nav.R0(j,j)));
             		}
 
