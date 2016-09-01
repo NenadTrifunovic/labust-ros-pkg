@@ -91,6 +91,7 @@ Estimator3D::Estimator3D()
   , dvl_model(1)
   , OR(3, 0.9)
   , OR_b(2, 0.97)
+  , P_rng_bear_relative(Eigen::Matrix2d::Zero())
 {
   this->onInit();
 };
@@ -308,6 +309,7 @@ void Estimator3D::processMeasurements()
   meas2->header.stamp = ros::Time::now();
   meas2->header.frame_id = "local";
   pubSecondStateMeas.publish(meas2);
+
 }
 
 void Estimator3D::publishState()
@@ -396,6 +398,8 @@ void Estimator3D::publishState()
       rel_pos->x / pow(rel_pos->range, 2);
 
   Pt = J * Pt * J.transpose();
+
+  P_rng_bear_relative = Pt;
 
   rel_pos->range_variance = Pt(0, 0);
   rel_pos->bearing_variance = Pt(1, 1);
@@ -523,6 +527,25 @@ void Estimator3D::start()
                 /////////////////////////////////////////
                 /// Outlier test
                 /////////////////////////////////////////
+
+            	if(true)
+            	{
+
+            		if (j == KFNav::range)
+            		{
+            			const KFNav::vector& x = tmp_state.state;
+                		double dist=fabs(x(j) - measurements(j));
+                		newMeas(j) = (dist <= sqrt(P_rng_bear_relative(0,0)) + sqrt(nav.R0(j,j)));
+            		}
+            		if (j == KFNav::bearing)
+            		{
+            			const KFNav::vector& x = tmp_state.state;
+                		double dist=fabs(x(j) - measurements(j));
+                		newMeas(j) = (dist <= sqrt(P_rng_bear_relative(1,1)) + sqrt(nav.R0(j,j)));
+            		}
+
+
+            	} else {
                 if (j == KFNav::range)
                 {
                   const KFNav::vector& x =
@@ -620,6 +643,7 @@ void Estimator3D::start()
                   // rng_msg.data = range;
                   // pubRange.publish(rng_msg);
                 }
+            	}
               }
 
               //////////////////////////////////////////

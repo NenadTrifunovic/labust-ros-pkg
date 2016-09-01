@@ -214,6 +214,9 @@ namespace labust
 
 			labust::tools::OutlierRejection OR, OR_b;
 
+			Eigen::Matrix2d P_rng_bear_relative;
+
+
 		};
 	}
 }
