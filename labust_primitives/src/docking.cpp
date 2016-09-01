@@ -212,7 +212,7 @@ namespace labust
 
 			auv_msgs::BodyVelocityReqPtr step(const auv_msgs::NavSts& state)
 			{
-				if((ros::Time::now()-new_meas_time).toSec() < 3 && new_meas == true)
+				if((ros::Time::now()-new_meas_time).toSec() < 1  && new_meas == true)
 				{
 					docking_state == APPROACH;
 					ROS_ERROR("Approach state.");
@@ -229,7 +229,7 @@ namespace labust
 
 			auv_msgs::BodyVelocityReqPtr searchState()
 			{
-				double search_yaw_speed = 0.05;
+				double search_yaw_speed = 0.02;
 				auv_msgs::BodyVelocityReqPtr ref(new auv_msgs::BodyVelocityReq());
 				ref->twist.linear.x = 0;
 				ref->twist.linear.y = 0;
@@ -242,7 +242,7 @@ namespace labust
 			auv_msgs::BodyVelocityReqPtr approachState()
 			{
 				double gain = 0.2;
-				double surge_gain = 0.2;
+				double surge_gain = 0.1;
 				double stdev = 0.1;
 				auv_msgs::BodyVelocityReqPtr ref(new auv_msgs::BodyVelocityReq());
 				ref->twist.linear.x = surge_gain*std::exp(-(std::pow(horizontal_meas,2))/(2*std::pow(stdev,2)));
