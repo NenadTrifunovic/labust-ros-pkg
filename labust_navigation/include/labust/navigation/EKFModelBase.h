@@ -18,7 +18,6 @@ namespace labust
 		template <class precission = double>
 		class EKFModelBase : boost::noncopyable
 		{
-
 			/**
 			 * This class implements a generic stochastic state space model for EKF use. When implementing models
 			 * try to inherit from this class. The following naming scheme is used:
@@ -46,22 +45,34 @@ namespace labust
 
 			public:
 				typedef precission numericprecission;
-
 				typedef Eigen::Matrix<precission, Eigen::Dynamic, Eigen::Dynamic> matrix;
 				typedef Eigen::Matrix<precission, Eigen::Dynamic, 1> vector;
 
+				struct ModelParams
+				{
+				  ModelParams():
+					  alpha(1),
+					  beta(1),
+					  betaa(0){};
+
+				  ModelParams(double alpha, double beta, double betaa):
+					  alpha(alpha),
+					  beta(beta),
+					  betaa(betaa){}
+
+				  inline double Beta(double val)
+				  {
+					  return beta + betaa*std::fabs(val);
+				  }
+
+				  double alpha, beta, betaa;
+				};
 
 				EKFModelBase(){}
 
 				virtual ~EKFModelBase(){}
 
-				/**
-				 * Sets the internal state of the model.
-				 */
-				inline void setState(vector x){this->x = x; this->xk_1 = x;}
-
-
-				virtual void processModelStep();
+				virtual void processModelStep(vector x);
 
 				virtual void measurementModelStep();
 
@@ -69,35 +80,57 @@ namespace labust
 
 				virtual void getDerivativeHX();
 
-
-
 				/**
-				 * State transition,
-				 * Input,
-				 * Model noise covariance,
-				 * Model noise transformation
-				 * Measurement noise covariance,
-				 * Measurement noise transformation
-				 */
+				* Set the model parameters.
+				*/
+				void setParameters(const ModelParams& surge,
+					  const ModelParams& sway,
+					  const ModelParams& heave,
+					  const ModelParams& roll,
+					  const ModelParams& pitch,
+					  const ModelParams& yaw)
+				{
+				  this->surge = surge;
+				  this->sway = sway;
+				  this->heave = heave;
+				  this->roll = roll;
+				  this->pitch = pitch;
+				  this->yaw = yaw;
+				}
+
+			    /*** The model parameters. ***/
+			    ModelParams surge,sway,heave,roll,pitch,yaw;
+				/***
+				* State transition,
+				* Input,
+				* Model noise covariance,
+				* Model noise transformation
+				* Measurement noise covariance,
+				* Measurement noise transformation
+				***/
 				matrix A,B,Q,W,H,R,V,H0,R0,V0;
-				/**
-				 * Model sampling time
-				 */
-				precission Ts;
 
-			protected:
-				/**
-				 * State and output vector.
-				 */
-				vector xk_1,x;
+				/*** Model sampling time ***/
+				numericprecission Ts;
 
+				/*** State and output vector. ***/
+				vector xk1_,x_;
 
+				/***
+				* Kalman gain,
+				* Estimate covariance,
+				* Innovation covariance matrix
+				***/
+				matrix Kgain, P, innovationCov;
 
+				/*** The innovation ***/
+				vector innovation;
 
+				/*** Outlier rejection coefficient. ***/
+				numericprecission outlierR;
 		};
 	}
 }
-
 
 #endif /* LABUST_ROS_PKG_LABUST_NAVIGATION_INCLUDE_LABUST_NAVIGATION_EKFMODELBASE_H_ */
 

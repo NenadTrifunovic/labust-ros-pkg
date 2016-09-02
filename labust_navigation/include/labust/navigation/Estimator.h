@@ -8,20 +8,24 @@
 #ifndef LABUST_ROS_PKG_LABUST_NAVIGATION_INCLUDE_LABUST_NAVIGATION_ESTIMATOR_H_
 #define LABUST_ROS_PKG_LABUST_NAVIGATION_INCLUDE_LABUST_NAVIGATION_ESTIMATOR_H_
 
+#include <deque>
+#include <stack>
+#include <boost/thread.hpp>
+
 namespace labust
 {
 	namespace navigation
 	{
 		template <typename Core>
-		class Estimator : public Core
+		class Estimator
 		{
 
-			typedef labust::navigation::KFCore2<Model> Estimator;
-			typedef typename Estimator::vector vector;
-			typedef typename Estimator::matrix matrix;
-			typedef typename Estimator::measurement_vector measurement_vector;
-			typedef typename Estimator::state_vector state_vector;
-			typedef typename Estimator::input_vector input_vector;
+			//typedef labust::navigation::KFCore2<Model> Estimator;
+			typedef typename Core::vector vector;
+			typedef typename Core::matrix matrix;
+			typedef typename Core::measurement_vector measurement_vector;
+			typedef typename Core::state_vector state_vector;
+			typedef typename Core::input_vector input_vector;
 
 			struct FilterState
 			{
@@ -79,6 +83,8 @@ namespace labust
 					bool storeCurrentData();
 
 					void estimation(FilterState state);
+
+					Core core_;
 
 					FilterState _state;
 					std::deque<FilterState> _past_states;

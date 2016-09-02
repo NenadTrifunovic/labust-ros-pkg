@@ -66,6 +66,8 @@ target_link_libraries(tf_publisher_node ${catkin_LIBRARIES})
 ## Filters 
 add_executable(ekf3d_node src/nav_node/EKF3D.cpp)
 target_link_libraries(ekf3d_node ${catkin_LIBRARIES} labust_navigation)
+add_executable(ekf_3d_node src/nav_node/ekf_3d_node.cpp)
+target_link_libraries(ekf_3d_node ${catkin_LIBRARIES} labust_navigation)
 add_executable(ekf_3d_usbl_node src/nav_node/EKF_3D_USBL.cpp)
 target_link_libraries(ekf_3d_usbl_node ${catkin_LIBRARIES} labust_navigation)
 add_executable(ekf_two_vehicle_localization_node src/nav_node/EKF_TwoVehicleLocalization.cpp)

@@ -49,11 +49,11 @@ namespace labust
 		 * This class combines models with different prediction and correction approaches.
 		 */
 		template <class Model>
-		class EKFCore : public Model
+		class EKFCore: public Model
 		{
 		public:
 
-			typedef const typename Model Model;
+			//typedef const typename Model Model;
 
 			typedef const typename Model::matrix& matrixref;
 			typedef const typename Model::vector& vectorref;
@@ -153,7 +153,13 @@ namespace labust
 			 *
 			 * \param u Input vector.
 			 */
-			void predict(typename Base::inputref u = typename Model::input_type());
+			void predict(typename Model::inputref u = typename Model::input_type());
+
+
+			const output_type& update(vector& measurements, vector& newMeas);
+
+
+
 			/**
 			 * State estimate correction based on the available measurements.
 			 * Note that the user has to handle the measurement processing
@@ -161,7 +167,7 @@ namespace labust
 			 *
 			 * \return Corrected state estimate.
 			 */
-			typename Base::vectorref correct(typename Base::outputref y_meas);
+			typename Model::vectorref correct(typename Model::outputref y_meas);
 
 			/**
 			 * Update the matrices V and H to accommodate for available measurements.
@@ -171,24 +177,18 @@ namespace labust
 			 * \return Corrected state estimate
 			 */
 			template <class NewMeasVector>
-			typename Base::vectorref correct(
-					typename Base::outputref measurements,
-					NewMeasVector& newMeas,
+			typename Model::vectorref correct(
+					typename Model::outputref measurements,
+					typename Model::vectorref newMeas,
 					bool reject_outliers = true);
 
+			/**********************
+			 * Variables
+			 **********************/
 
-			/**
-			 * The Kalman gain, estimate covariance and the innovation covariance matrix
-			 */
-			typename Model::matrix K, P, innovationCov;
-			/**
-			 * The innovation
-			 */
-			typename Model::vector innovation;
-			/**
-			 * Outlier rejection coefficient.
-			 */
-			double outlierR;
+			//Model model_;
+
+
 
 		};
 	};
