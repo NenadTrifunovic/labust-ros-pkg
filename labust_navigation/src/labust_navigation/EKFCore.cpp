@@ -171,29 +171,17 @@ const typename Model::output_type& EKFCore<Model>::update(typename Model::vector
 	std::vector<size_t> arrived;
 	std::vector<double> dataVec;
 
-	static double r0u=R0(u,u);
-	static double r0xc=R0(xc,xc);
-
 	for (size_t i=0; i<newMeas.size(); ++i)
 	{
 		if (newMeas(i))
 		{
-			ROS_DEBUG("New meas: %d", i);
-			if (i == u)
-			{
-				ROS_DEBUG("Trust factor:%f",cosh(trustf*x(r)));
-				R0(u,u) = cosh(trustf*x(r))*r0u;
-				R0(v,v) = cosh(trustf*x(r))*r0u;
-				R0(xc,xc) = cosh(trustf*x(r))*r0xc;
-				R0(yc,yc) = cosh(trustf*x(r))*r0xc;
-			}
 			arrived.push_back(i);
 			dataVec.push_back(measurements(i));
 			newMeas(i) = 0;
 		}
 	}
 
-	if (dvlModel != 0) derivativeH();
+	this->derivativeHX(x_,Hnl);
 
 	measurement.resize(arrived.size());
 	H = matrix::Zero(arrived.size(),stateNum);
@@ -205,16 +193,9 @@ const typename Model::output_type& EKFCore<Model>::update(typename Model::vector
 	{
 		measurement(i) = dataVec[i];
 
-		if (dvlModel != 0)
-		{
-			H.row(i)=Hnl.row(arrived[i]);
-			y(i) = ynl(arrived[i]);
-		}
-		else
-		{
-			H(i,arrived[i]) = 1;
-			y(i) = x(arrived[i]);
-		}
+	H.row(i)=Hnl.row(arrived[i]);
+	y(i) = ynl(arrived[i]);
+
 
 		for (size_t j=0; j<arrived.size(); ++j)
 		{

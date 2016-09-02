@@ -114,7 +114,7 @@ namespace labust
 				numericprecission Ts;
 
 				/*** State and output vector. ***/
-				vector xk1_,x_;
+				vector xk1_,x_, y;
 
 				/***
 				* Kalman gain,

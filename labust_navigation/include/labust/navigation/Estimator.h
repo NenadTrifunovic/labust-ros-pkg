@@ -63,11 +63,11 @@ namespace labust
 
 					void setSamplingTime(double ts)
 					{
-						Estimator::setTs(ts);
+						core_.setTs(ts);
 					}
 
 					double getSamplingTime(){
-						return Estimator::Ts;
+						return core_.Ts;
 					}
 
 					void estimatorStep();
@@ -84,12 +84,13 @@ namespace labust
 
 					void estimation(FilterState state);
 
+					void checkOutliers(measurement_vector measurement, measurement_vector new_measuremen);
+
+
 					Core core_;
 
 					FilterState _state;
 					std::deque<FilterState> _past_states;
-
-					//Estimator _filter;
 
 					boost::mutex _filter_mux;
 

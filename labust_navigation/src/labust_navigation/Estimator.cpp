@@ -7,45 +7,43 @@
 #include <labust/navigation/Estimator.h>
 
 
-#include <deque>
-#include <stack>
 
 
 using namespace labust::navigation;
 
-template <class Model>
-EstimatorContainer<Model>::EstimatorContainer():KFCore2<Model>(1,1){}
+template <class Core>
+Estimator<Core>::Estimator(){}
 
-template <class Model>
-EstimatorContainer<Model>::~EstimatorContainer(){}
+template <class Core>
+Estimator<Core>::~Estimator(){}
 
-template <class Model>
-void EstimatorContainer<Model>::resetEstimator()
+template <class Core>
+void Estimator<Core>::resetEstimator()
 {
 
 }
 
-template <class Model>
-void EstimatorContainer<Model>::setMeasurementVector(measurement_vector measurement, measurement_vector new_measurement)
+template <class Core>
+void Estimator<Core>::setMeasurementVector(measurement_vector measurement, measurement_vector new_measurement)
 {
 	_state.measurement = measurement;
 	_state.new_measurement = new_measurement;
 }
 
-template <class Model>
-void EstimatorContainer<Model>::setStateVector(state_vector state)
+template <class Core>
+void Estimator<Core>::setStateVector(state_vector state)
 {
 	_state.state = state;
 }
 
-template <class Model>
-void EstimatorContainer<Model>::setInputVector(input_vector input)
+template <class Core>
+void Estimator<Core>::setInputVector(input_vector input)
 {
 	_state.input = input;
 }
 
-template <class Model>
-typename EstimatorContainer<Model>::measurement_vector EstimatorContainer<Model>::delayToSteps()
+template <class Core>
+typename Estimator<Core>::measurement_vector Estimator<Core>::delayToSteps()
 {
 
 	measurement_vector tmp;
@@ -56,18 +54,18 @@ Eigen::VectorXd tmp2;
 	return tmp;//std::floor((arrival_time-measurement_time)/_ts);
 }
 
-template <class Model>
-typename EstimatorContainer<Model>::state_vector EstimatorContainer<Model>::getStateVector(double delay)
+template <class Core>
+typename Estimator<Core>::state_vector Estimator<Core>::getStateVector(double delay)
 {
 	return;
 }
 
-template <class Model>
-bool Estimator<Model>::storeCurrentData()
+template <class Core>
+bool Estimator<Core>::storeCurrentData()
 {
 	/*** Store x, P, R data ***/
-	_state.state = Estimator::getState();
-	_state.p_covariance = Estimator::getStateCovariance();
+	_state.state = core_.getState();
+	_state.p_covariance = core_.getStateCovariance();
 	//state.Rcov = ; // In case of time-varying measurement covariance
 
 	/*** Check if there are delayed measurements, disable them in current step
@@ -92,10 +90,10 @@ bool Estimator<Model>::storeCurrentData()
 	return new_delayed;
 }
 
-template <class Model>
-void Estimator<Model>::estimation(FilterState state)
+template <class Core>
+void Estimator<Core>::estimation(FilterState state)
 {
-	Estimator::predict(state.input);
+	core_.predict(state.input);
 	bool new_arrived(false);
 	for(size_t i=0; i<state.new_measurement.size(); ++i)
 		if ((new_arrived = (state.new_measurement(i)>=0))) break;
@@ -106,12 +104,16 @@ void Estimator<Model>::estimation(FilterState state)
 				if (state.new_measurement(i)>=0)
 					new_meas(i) = 1;
 
-		Estimator::correct(Estimator::update(state.measurement, new_meas));
+		/*** Check for outliers ***/
+		checkOutliers(state.measurement, new_meas);
+
+		/*** Correction step with valid measurements. ***/
+		core_.correct(core_.update(state.measurement, new_meas));
 	}
 }
 
-template <class Model>
-void Estimator<Model>::estimatorStep()
+template <class Core>
+void Estimator<Core>::estimatorStep()
 {
 	/*** Mutex ***/
 	boost::mutex::scoped_lock l(_filter_mux);
@@ -160,8 +162,8 @@ void Estimator<Model>::estimatorStep()
 		/*** Start recalculation ***/
 		/*** Load past state and covariance for max delay time instant ***/
 		FilterState state_p = tmp_stack.top();
-		Estimator::setStateCovariance(state_p.p_covariance);
-		Estimator::setState(state_p.state);
+		core_.setStateCovariance(state_p.p_covariance);
+		core_.setState(state_p.state);
 
 		/*** Pass through stack data and recalculate filter states ***/
 		while(!tmp_stack.empty()){
