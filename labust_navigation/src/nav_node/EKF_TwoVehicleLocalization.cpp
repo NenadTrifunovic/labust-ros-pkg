@@ -528,7 +528,7 @@ void Estimator3D::start()
                 /// Outlier test
                 /////////////////////////////////////////
 
-            	if(true)
+            	if(false)
             	{
 
             		if (j == KFNav::range)
