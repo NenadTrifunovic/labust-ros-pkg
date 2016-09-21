@@ -133,6 +133,8 @@ void Estimator3D::onInit()
   //    "sonar_fix", 1, &Estimator3D::onSecond_sonar_fix, this);
   subSecond_sonar_fix = nh.subscribe<navcon_msgs::RelativePosition>(
       "sonar_fix", 1, &Estimator3D::onSecond_sonar_fix, this);
+  subSecond_camera_fix = nh.subscribe<navcon_msgs::RelativePosition>(
+      "camera_fix", 1, &Estimator3D::onSecond_camera_fix, this);
 
   resetTopic = nh.subscribe<std_msgs::Bool>("reset_nav_covariance", 1,
                                             &Estimator3D::onReset, this);
@@ -268,6 +270,24 @@ void Estimator3D::onSecond_sonar_fix(
   newMeas(KFNav::sonar_bearing) = 1;
 
   ROS_ERROR("SONAR - RANGE: %f, BEARING: %f deg, TIME: %d %d", data->range,
+            data->bearing * 180 / M_PI, data->header.stamp.sec,
+            data->header.stamp.nsec);
+}
+
+void Estimator3D::onSecond_camera_fix(
+    const navcon_msgs::RelativePosition::ConstPtr& data)
+{
+  /*** Get sonar measurements ***/
+  measurements(KFNav::camera_range) = (data->range > 0.1) ? data->range : 0.1;
+  newMeas(KFNav::camera_range) = 1;
+
+  measurements(KFNav::camera_bearing) = bearing_unwrap(data->bearing);
+  newMeas(KFNav::camera_bearing) = 1;
+
+  //measurements(KFNav::psib) = 0;
+  //newMeas(KFNav::psib) = 1;
+
+  ROS_ERROR("CAMERA - RANGE: %f, BEARING: %f deg, TIME: %d %d", data->range,
             data->bearing * 180 / M_PI, data->header.stamp.sec,
             data->header.stamp.nsec);
 }

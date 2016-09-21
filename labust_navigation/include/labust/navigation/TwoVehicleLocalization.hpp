@@ -131,6 +131,10 @@ namespace labust
 			 */
 			void onSecond_sonar_fix(const navcon_msgs::RelativePosition::ConstPtr& data);
 			/**
+			 * Handle the camera measurement.
+			 */
+			void onSecond_camera_fix(const navcon_msgs::RelativePosition::ConstPtr& data);
+			/**
 			 * Helper method to process measurements.
 			 */
 			void processMeasurements();
@@ -182,7 +186,7 @@ namespace labust
 			 * Sensors and input subscribers.
 			 */
 			ros::Subscriber subLocalStateHat, resetTopic, subSecond_navsts;
-			ros::Subscriber subSecond_heading, subSecond_position, subSecond_speed, subSecond_usbl_fix, subSecond_sonar_fix;
+			ros::Subscriber subSecond_heading, subSecond_position, subSecond_speed, subSecond_usbl_fix, subSecond_sonar_fix, subSecond_camera_fix;
 			/**
 			 * The transform broadcaster.
 			 */
