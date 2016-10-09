@@ -180,18 +180,24 @@ namespace labust
     	 *
     	 * \param angle Angle in radians.
     	 */
-    	double operator()(double angle)
+    	double operator()(double angle, bool update=true)
     	{
     		double u = angle - this->anglek_1;
-    		this->anglek_1=angle;
+    		double index_tmp = index;
 
     		if (u<=-M_PI)
     		{
-    			++index;
+    			++index_tmp;
     		}
-    		else if (u>=M_PI) --index;
+    		else if (u>=M_PI) --index_tmp;
 
-    		return this->index*2*M_PI + angle;
+        	if(update)
+        	{
+        		this->anglek_1=angle;
+        		index = index_tmp;
+        	}
+
+    		return index_tmp*2*M_PI + angle;
     	}
 
     private:

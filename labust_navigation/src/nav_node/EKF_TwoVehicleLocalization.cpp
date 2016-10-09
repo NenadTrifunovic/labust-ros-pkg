@@ -91,6 +91,7 @@ Estimator3D::Estimator3D()
   , dvl_model(1)
   , OR(3, 0.9)
   , OR_b(2, 0.97)
+  , P_rng_bear_relative(Eigen::Matrix2d::Zero())
 {
   this->onInit();
 };
@@ -132,6 +133,8 @@ void Estimator3D::onInit()
   //    "sonar_fix", 1, &Estimator3D::onSecond_sonar_fix, this);
   subSecond_sonar_fix = nh.subscribe<navcon_msgs::RelativePosition>(
       "sonar_fix", 1, &Estimator3D::onSecond_sonar_fix, this);
+  subSecond_camera_fix = nh.subscribe<navcon_msgs::RelativePosition>(
+      "camera_fix", 1, &Estimator3D::onSecond_camera_fix, this);
 
   resetTopic = nh.subscribe<std_msgs::Bool>("reset_nav_covariance", 1,
                                             &Estimator3D::onReset, this);
@@ -271,6 +274,24 @@ void Estimator3D::onSecond_sonar_fix(
             data->header.stamp.nsec);
 }
 
+void Estimator3D::onSecond_camera_fix(
+    const navcon_msgs::RelativePosition::ConstPtr& data)
+{
+  /*** Get sonar measurements ***/
+  measurements(KFNav::camera_range) = (data->range > 0.1) ? data->range : 0.1;
+  newMeas(KFNav::camera_range) = 1;
+
+  measurements(KFNav::camera_bearing) = bearing_unwrap(data->bearing);
+  newMeas(KFNav::camera_bearing) = 1;
+
+  //measurements(KFNav::psib) = 0;
+  //newMeas(KFNav::psib) = 1;
+
+  ROS_ERROR("CAMERA - RANGE: %f, BEARING: %f deg, TIME: %d %d", data->range,
+            data->bearing * 180 / M_PI, data->header.stamp.sec,
+            data->header.stamp.nsec);
+}
+
 /*********************************************************************
  *** Helper functions
  ********************************************************************/
@@ -308,6 +329,7 @@ void Estimator3D::processMeasurements()
   meas2->header.stamp = ros::Time::now();
   meas2->header.frame_id = "local";
   pubSecondStateMeas.publish(meas2);
+
 }
 
 void Estimator3D::publishState()
@@ -388,7 +410,7 @@ void Estimator3D::publishState()
 
   rel_pos->range = sqrt(pow(delta_x, 2) + pow(delta_y, 2));
   rel_pos->bearing =
-      labust::math::wrapDeg(atan2(delta_y, delta_x) - estimate(KFNav::hdg));
+      labust::math::wrapRad(atan2(delta_y, delta_x) - estimate(KFNav::hdg));
 
   Eigen::Matrix2d J;
   J << rel_pos->x / rel_pos->range, rel_pos->y / rel_pos->range,
@@ -396,6 +418,8 @@ void Estimator3D::publishState()
       rel_pos->x / pow(rel_pos->range, 2);
 
   Pt = J * Pt * J.transpose();
+
+  P_rng_bear_relative = Pt;
 
   rel_pos->range_variance = Pt(0, 0);
   rel_pos->bearing_variance = Pt(1, 1);
@@ -523,6 +547,42 @@ void Estimator3D::start()
                 /////////////////////////////////////////
                 /// Outlier test
                 /////////////////////////////////////////
+
+            	if(false)
+            	{
+
+            		if (j == KFNav::range)
+            		{
+            			const KFNav::vector& x = tmp_state.state;
+            			double rng = sqrt(pow((x(KFNav::xp)-x(KFNav::xb)),2)+pow((x(KFNav::yp)-x(KFNav::yb)),2)+pow((x(KFNav::zp)-x(KFNav::zb)),2));
+                		double dist=fabs(rng - measurements(j));
+                		newMeas(j) = (dist <= sqrt(P_rng_bear_relative(0,0)) + sqrt(nav.R0(j,j)));
+                		if(!newMeas(j)) ROS_ERROR("USBL range outlier!");
+            		}
+            		if (j == KFNav::bearing)
+            		{
+            			const KFNav::vector& x = tmp_state.state;
+            			double bear = bearing_unwrap(atan2(KFNav::yp-KFNav::yb,KFNav::xp-KFNav::xb) -1*x(KFNav::hdg), false);
+                		double dist=fabs(bear - measurements(j));
+                		newMeas(j) = (dist <= sqrt(P_rng_bear_relative(1,1)) + sqrt(nav.R0(j,j)));
+            		}
+            		if (j == KFNav::sonar_range)
+            		{
+            			const KFNav::vector& x = tmp_state.state;
+            			double rng = sqrt(pow((x(KFNav::xp)-x(KFNav::xb)),2)+pow((x(KFNav::yp)-x(KFNav::yb)),2)+pow((x(KFNav::zp)-x(KFNav::zb)),2));
+                		double dist=fabs(rng - measurements(j));
+                		newMeas(j) = (dist <= sqrt(P_rng_bear_relative(0,0)) + sqrt(nav.R0(j,j)));
+            		}
+            		if (j == KFNav::sonar_bearing)
+            		{
+            			const KFNav::vector& x = tmp_state.state;
+            			double bear = bearing_unwrap(atan2(KFNav::yp-KFNav::yb,KFNav::xp-KFNav::xb) -1*x(KFNav::hdg), false);
+                		double dist=fabs(bear - measurements(j));
+                		newMeas(j) = (dist <= sqrt(P_rng_bear_relative(1,1)) + sqrt(nav.R0(j,j)));
+            		}
+
+
+            	} else {
                 if (j == KFNav::range)
                 {
                   const KFNav::vector& x =
@@ -620,6 +680,7 @@ void Estimator3D::start()
                   // rng_msg.data = range;
                   // pubRange.publish(rng_msg);
                 }
+            	}
               }
 
               //////////////////////////////////////////

@@ -83,6 +83,7 @@ namespace labust
 						 docking_state(IDLE),
 						 horizontal_meas(0.0),
 						 vertical_meas(0.0),
+						 size_meas(0.0),
 						 last_direction(0){}
 
 
@@ -120,16 +121,18 @@ namespace labust
 				ros::NodeHandle nh;
 				sub_vertical = nh.subscribe<std_msgs::Float32>("docking_vertical",1,&Docking::onVerticalMeasurement,this);
 				sub_horizontal = nh.subscribe<std_msgs::Float32>("docking_horizontal",1,&Docking::onHorizontalMeasurement,this);
+				sub_size = nh.subscribe<std_msgs::Float32>("size",1,&Docking::onSizeMeasurement,this);
+
 
 
 			    goal = new_goal;
 
-					/*** Update reference ***/
-					//stateRef.publish(step(lastState));
+				/*** Update reference ***/
+				//stateRef.publish(step(lastState));
 
-					/*** Enable controllers depending on the primitive subtype ***/
-					controllers.state[hdg] = false; //&& goal->axis_enable.x && goal->axis_enable.y;;
-					this->updateControllers();
+				/*** Enable controllers depending on the primitive subtype ***/
+				controllers.state[hdg] = false; //&& goal->axis_enable.x && goal->axis_enable.y;;
+				this->updateControllers();
 			}
 
 			void onPreempt()
@@ -184,9 +187,18 @@ namespace labust
 
 				    /*** Check if goal (docking) is achieved ***/
 
+
 					/*** If goal is completed ***/
-					if(false)
+					if(size_meas>1200)
 					{
+						/*** Publish reference for docking arm ***/
+						std_msgs::Float32MultiArray docking_arm_ref;
+						docking_arm_ref.data.push_back(0.0);
+						docking_arm_ref.data.push_back(0.0);
+						docking_arm_ref.data.push_back(0.0);
+						docking_arm_ref.data.push_back(0.0);
+						pub_docking_arm.publish(docking_arm_ref);
+
 						//result.distance = distVictory;
 						aserver->setSucceeded(result);
 						goal.reset();
@@ -212,7 +224,7 @@ namespace labust
 
 			auv_msgs::BodyVelocityReqPtr step(const auv_msgs::NavSts& state)
 			{
-				if((ros::Time::now()-new_meas_time).toSec() < 3 && new_meas == true)
+				if((ros::Time::now()-new_meas_time).toSec() < 1  && new_meas == true)
 				{
 					docking_state == APPROACH;
 					ROS_ERROR("Approach state.");
@@ -229,7 +241,7 @@ namespace labust
 
 			auv_msgs::BodyVelocityReqPtr searchState()
 			{
-				double search_yaw_speed = 0.05;
+				double search_yaw_speed = 0.02;
 				auv_msgs::BodyVelocityReqPtr ref(new auv_msgs::BodyVelocityReq());
 				ref->twist.linear.x = 0;
 				ref->twist.linear.y = 0;
@@ -242,7 +254,7 @@ namespace labust
 			auv_msgs::BodyVelocityReqPtr approachState()
 			{
 				double gain = 0.2;
-				double surge_gain = 0.2;
+				double surge_gain = 0.1;
 				double stdev = 0.1;
 				auv_msgs::BodyVelocityReqPtr ref(new auv_msgs::BodyVelocityReq());
 				ref->twist.linear.x = surge_gain*std::exp(-(std::pow(horizontal_meas,2))/(2*std::pow(stdev,2)));
@@ -272,6 +284,15 @@ namespace labust
 				ROS_ERROR("Received horizontal measurement: %f", horizontal_meas);
 			}
 
+			void onSizeMeasurement(const std_msgs::Float32::ConstPtr& data)
+			{
+				size_meas = data->data;
+				//new_meas = true;
+				//new_meas_time = ros::Time::now();
+				//last_direction = labust::math::sgn(horizontal_meas);
+				ROS_ERROR("Received size measurement: %f", size_meas);
+			}
+
 			Result result;
 
 		private:
@@ -285,10 +306,10 @@ namespace labust
 			navcon_msgs::ControllerSelectRequest controllers;
 			bool processNewGoal;
 
-			ros::Subscriber sub_vertical, sub_horizontal;
+			ros::Subscriber sub_vertical, sub_horizontal, sub_size;
 			ros::Publisher pub_docking_arm;
 
-			double vertical_meas, horizontal_meas;
+			double vertical_meas, horizontal_meas, size_meas;
 			bool new_meas;
 			ros::Time new_meas_time;
 			int docking_state, last_direction;
