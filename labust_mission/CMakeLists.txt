@@ -55,19 +55,19 @@ include_directories(
 ## Main mission control nodes
 if (TinyXML2_LIBRARY)
 	include_directories(${TinyXML2_INCLUDE_DIR})
-	
+
   add_executable(mission_execution src/mission_execution.cpp)
   add_dependencies(mission_execution misc_msgs_gencpp auv_msgs_gencpp)
 	target_link_libraries(mission_execution ${catkin_LIBRARIES} ${TinyXML2_LIBRARY})
-	
+
   add_executable(mission_parser src/mission_parser.cpp)
   add_dependencies(mission_parser misc_msgs_gencpp auv_msgs_gencpp)
 	target_link_libraries(mission_parser ${catkin_LIBRARIES} ${TinyXML2_LIBRARY})
-	
+
   add_executable(data_event_manager src/data_event_manager.cpp)
   add_dependencies(data_event_manager misc_msgs_gencpp auv_msgs_gencpp)
 	target_link_libraries(data_event_manager ${catkin_LIBRARIES} ${TinyXML2_LIBRARY})
-	
+
   add_executable(commander src/commander.cpp)
   add_dependencies(commander misc_msgs_gencpp auv_msgs_gencpp)
 	target_link_libraries(commander ${catkin_LIBRARIES} ${TinyXML2_LIBRARY})
