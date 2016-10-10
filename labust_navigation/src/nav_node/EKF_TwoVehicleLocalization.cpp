@@ -214,12 +214,12 @@ void Estimator3D::onLocalStateHat(const auv_msgs::NavSts::ConstPtr& data)
 
 void Estimator3D::onSecond_navsts(const auv_msgs::NavSts::ConstPtr& data)
 {
-  ROS_ERROR("DEBUG: diver depth received.");
   measurements(KFNav::zb) = data->position.depth;
   newMeas(KFNav::zb) = 1;
 
   measurements(KFNav::psib) = data->orientation.yaw;
   newMeas(KFNav::psib) = 1;
+  ROS_ERROR("DIVER - ACOUSTIC - DEPTH: %f, HEADING: %f",data->position.depth, data->orientation.yaw);
 }
 
 void Estimator3D::onSecond_usbl_fix(
@@ -284,12 +284,13 @@ void Estimator3D::onSecond_camera_fix(
   measurements(KFNav::camera_bearing) = bearing_unwrap(data->bearing);
   newMeas(KFNav::camera_bearing) = 1;
 
-  //measurements(KFNav::psib) = 0;
-  //newMeas(KFNav::psib) = 1;
+  measurements(KFNav::camera_psib) = data->heading;
+  newMeas(KFNav::camera_psib) = 1;
 
   ROS_ERROR("CAMERA - RANGE: %f, BEARING: %f deg, TIME: %d %d", data->range,
             data->bearing * 180 / M_PI, data->header.stamp.sec,
             data->header.stamp.nsec);
+  ROS_ERROR("DIVER - CAMERA - HEADING: %f", data->heading);
 }
 
 /*********************************************************************
