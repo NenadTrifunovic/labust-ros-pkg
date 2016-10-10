@@ -210,7 +210,7 @@ namespace labust
 			/**
 			 *  USBL measurements enable flags
 			 */
-			bool enableDelay, enableRange, enableBearing, enableElevation, enableRejection;
+			bool enableDelay, enableRange, enableBearing, enableElevation, enableRejection, alternate_outlier;
 
 			KFNav::matrix Pstart, Rstart;
 

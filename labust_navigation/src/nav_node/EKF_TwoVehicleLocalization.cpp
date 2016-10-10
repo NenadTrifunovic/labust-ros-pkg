@@ -87,6 +87,7 @@ Estimator3D::Estimator3D()
   , enableBearing(true)
   , enableElevation(false)
   , enableRejection(false)
+  , alternate_outlier(false)
   , delay_time(0.0)
   , dvl_model(1)
   , OR(3, 0.9)
@@ -148,6 +149,7 @@ void Estimator3D::onInit()
 
   /** Enable outlier rejection */
   ph.param("meas_outlier_rejection", enableRejection, enableRejection);
+  ph.param("alternate_outlier_rejection", alternate_outlier, alternate_outlier);
 }
 
 void Estimator3D::onReset(const std_msgs::Bool::ConstPtr& reset)
@@ -263,13 +265,13 @@ void Estimator3D::onSecond_sonar_fix(
     const navcon_msgs::RelativePosition::ConstPtr& data)
 {
   /*** Get sonar measurements ***/
-  measurements(KFNav::sonar_range) = (data->range > 0.1) ? data->range : 0.1;
+  measurements(KFNav::sonar_range) = (data->range > 0.1) ? data->range+0.5 : 0.1;
   newMeas(KFNav::sonar_range) = 1;
 
   measurements(KFNav::sonar_bearing) = bearing_unwrap(data->bearing);
   newMeas(KFNav::sonar_bearing) = 1;
 
-  ROS_ERROR("SONAR - RANGE: %f, BEARING: %f deg, TIME: %d %d", data->range,
+  ROS_ERROR("SONAR - RANGE: %f, BEARING: %f deg, TIME: %d %d", data->range+0.5,
             data->bearing * 180 / M_PI, data->header.stamp.sec,
             data->header.stamp.nsec);
 }
@@ -549,7 +551,7 @@ void Estimator3D::start()
                 /// Outlier test
                 /////////////////////////////////////////
 
-            	if(false)
+            	if(alternate_outlier)
             	{
 
             		if (j == KFNav::range)
