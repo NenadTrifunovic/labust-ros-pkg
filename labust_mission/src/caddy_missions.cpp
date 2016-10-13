@@ -115,6 +115,9 @@ void CaddyMissions::onInit()
   guide_me_sub =
       nh.subscribe<std_msgs::Int32>("mission_controller/primitives/guide_me",
                                     1, &CaddyMissions::onGuideMe, this);
+  allow_approach_sub =
+      nh.subscribe<std_msgs::Int32>("mission_controller/primitives/approach",
+                                    1, &CaddyMissions::onMosaic, this);
   take_photo_sub =
       nh.subscribe<std_msgs::Int32>("mission_controller/primitives/take_photo",
                                     1, &CaddyMissions::onTakePhoto, this);
@@ -191,7 +194,7 @@ void CaddyMissions::onTakePhoto(const std_msgs::Int32::ConstPtr& data)
 
 void CaddyMissions::onMosaic(const std_msgs::Int32::ConstPtr& data)
 {
-  if ((data->data == 1) && (mission_state != MOSAIC))
+  if ((data->data == 1) && (mission_state != LAWN_CMD))
   {
     this->stopControllers();
     // Start the primitive
@@ -219,7 +222,7 @@ void CaddyMissions::onMosaic(const std_msgs::Int32::ConstPtr& data)
     if (vertconOK && hdgconOK && velconOK)
     {
       ROS_INFO("Mosaic controller setup complete.");
-      mission_state = MOSAIC;
+      mission_state = LAWN_CMD;
     }
     else
     {
@@ -235,7 +238,7 @@ void CaddyMissions::onEmergency(const std_msgs::Int32::ConstPtr& data)
 
 void CaddyMissions::onGoAndCarry(const std_msgs::Int32::ConstPtr& data)
 {
-  if ((data->data == 1) && (mission_state != GO_AND_CARRY))
+  if ((data->data == 1) && (mission_state != GET_TOOL))
   {
     // Turn off primitives and controllers
     this->stopControllers();
@@ -258,11 +261,43 @@ void CaddyMissions::onGoAndCarry(const std_msgs::Int32::ConstPtr& data)
     if (hdgconOK && velconOK && depthconOK && dpconOK)
     {
       ROS_INFO("Go and carry controller setup complete.");
-      mission_state = GO_AND_CARRY;
+      mission_state = GET_TOOL;
     }
     else
     {
       ROS_ERROR("Go and carry controller setup failed.");
+      this->stopControllers();
+    }
+  }
+}
+
+void CaddyMissions::onAllowApproach(const std_msgs::Int32::ConstPtr& data)
+{
+  if ((data->data == 1) && (mission_state != ALLOW_APPROACH))
+  {
+    // Turn off primitives and controllers
+    this->stopControllers();
+
+    ROS_INFO("Setup controllers for allow approach mission.");
+    navcon_msgs::ConfigureVelocityController srv;
+    for (int i = 0; i < 6; ++i)
+      srv.request.desired_mode[i] = DONT_CARE;
+    srv.request.desired_mode[w] = VELCON;
+    srv.request.desired_mode[r] = VELCON;
+    bool velconOK = velcon.call(srv);
+    navcon_msgs::EnableControl flag;
+    flag.request.enable = true;
+    bool hdgconOK = hdgcon.call(flag);
+    bool depthconOK = depthcon.call(flag);
+
+    if (hdgconOK && velconOK && depthconOK)
+    {
+      ROS_INFO("Allow approach controller setup complete.");
+      mission_state = ALLOW_APPROACH;
+    }
+    else
+    {
+      ROS_ERROR("Allow approach controller setup failed.");
       this->stopControllers();
     }
   }

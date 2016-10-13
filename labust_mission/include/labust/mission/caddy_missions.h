@@ -53,12 +53,14 @@ class CaddyMissions
   enum
   {
     IDLE = 0,
-    MOSAIC,
-    STOP,
-    EMERGENCY,
-    GO_AND_CARRY,
-    GUIDE_ME
-  };  // Ima li dovoljno bita za ovo??
+    LAWN_CMD = 1,
+    GUIDE_ME = 2,
+    GET_TOOL = 3,
+    TAKE_PHOTO = 4,
+    ALLOW_APPROACH = 5,
+    FAILED_CMD = 6,
+    STOP = 7
+  };
   enum
   {
     POSITION_UPDATE = 1,
@@ -113,6 +115,8 @@ private:
 
   void onGoAndCarry(const std_msgs::Int32::ConstPtr& data);
 
+  void onAllowApproach(const std_msgs::Int32::ConstPtr& data);
+
   void onGuideMe(const std_msgs::Int32::ConstPtr& data);
 
   void onTakePhoto(const std_msgs::Int32::ConstPtr& data);
@@ -142,6 +146,7 @@ private:
   /// subscriber
   ros::Subscriber emergency_sub;
   ros::Subscriber go_and_carry_sub;
+  ros::Subscriber allow_approach_sub;
   ros::Subscriber guide_me_sub;
   ros::Subscriber take_photo_sub;
   ros::Subscriber mosaic_sub;
