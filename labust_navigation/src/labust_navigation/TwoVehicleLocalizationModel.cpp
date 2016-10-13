@@ -273,5 +273,25 @@ void TwoVehicleLocalizationModel::derivativeH()
 	Hnl(sonar_bearing, yb) = delta_x/(delta_x*delta_x+delta_y*delta_y);
 
 	Hnl(sonar_bearing, hdg) = -1;
+	
+        ynl(camera_range) = rng;
+	ynl(camera_bearing) = bearing_unwrap(atan2(delta_y,delta_x) -1*x(hdg));
+        ynl(camera_psib) = x(psib);
+
+	Hnl(camera_range, xp)  = -(delta_x)/rng;
+	Hnl(camera_range, yp)  = -(delta_y)/rng;
+	Hnl(camera_range, zp)  = -(delta_z)/rng;
+
+	Hnl(camera_range, xb)  = (delta_x)/rng;
+	Hnl(camera_range, yb)  = (delta_y)/rng;
+	Hnl(camera_range, zb)  = (delta_z)/rng;
+
+	Hnl(camera_bearing, xp) = delta_y/(delta_x*delta_x+delta_y*delta_y);
+	Hnl(camera_bearing, yp) = -delta_x/(delta_x*delta_x+delta_y*delta_y);
+	Hnl(camera_bearing, xb) = -delta_y/(delta_x*delta_x+delta_y*delta_y);
+	Hnl(camera_bearing, yb) = delta_x/(delta_x*delta_x+delta_y*delta_y);
+
+	Hnl(camera_bearing, hdg) = -1;
+        Hnl(camera_psib,psib) = 1; // Check this!!!
 }
 

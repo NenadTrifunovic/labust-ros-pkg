@@ -87,6 +87,7 @@ Estimator3D::Estimator3D()
   , enableBearing(true)
   , enableElevation(false)
   , enableRejection(false)
+  , alternate_outlier(false)
   , delay_time(0.0)
   , dvl_model(1)
   , OR(3, 0.9)
@@ -148,6 +149,7 @@ void Estimator3D::onInit()
 
   /** Enable outlier rejection */
   ph.param("meas_outlier_rejection", enableRejection, enableRejection);
+  ph.param("alternate_outlier_rejection", alternate_outlier, alternate_outlier);
 }
 
 void Estimator3D::onReset(const std_msgs::Bool::ConstPtr& reset)
@@ -214,12 +216,12 @@ void Estimator3D::onLocalStateHat(const auv_msgs::NavSts::ConstPtr& data)
 
 void Estimator3D::onSecond_navsts(const auv_msgs::NavSts::ConstPtr& data)
 {
-  ROS_ERROR("DEBUG: diver depth received.");
   measurements(KFNav::zb) = data->position.depth;
   newMeas(KFNav::zb) = 1;
 
   measurements(KFNav::psib) = data->orientation.yaw;
   newMeas(KFNav::psib) = 1;
+  ROS_ERROR("DIVER - ACOUSTIC - DEPTH: %f, HEADING: %f",data->position.depth, data->orientation.yaw);
 }
 
 void Estimator3D::onSecond_usbl_fix(
@@ -263,13 +265,13 @@ void Estimator3D::onSecond_sonar_fix(
     const navcon_msgs::RelativePosition::ConstPtr& data)
 {
   /*** Get sonar measurements ***/
-  measurements(KFNav::sonar_range) = (data->range > 0.1) ? data->range : 0.1;
+  measurements(KFNav::sonar_range) = (data->range > 0.1) ? data->range+0.5 : 0.1;
   newMeas(KFNav::sonar_range) = 1;
 
   measurements(KFNav::sonar_bearing) = bearing_unwrap(data->bearing);
   newMeas(KFNav::sonar_bearing) = 1;
 
-  ROS_ERROR("SONAR - RANGE: %f, BEARING: %f deg, TIME: %d %d", data->range,
+  ROS_ERROR("SONAR - RANGE: %f, BEARING: %f deg, TIME: %d %d", data->range+0.5,
             data->bearing * 180 / M_PI, data->header.stamp.sec,
             data->header.stamp.nsec);
 }
@@ -284,12 +286,13 @@ void Estimator3D::onSecond_camera_fix(
   measurements(KFNav::camera_bearing) = bearing_unwrap(data->bearing);
   newMeas(KFNav::camera_bearing) = 1;
 
-  //measurements(KFNav::psib) = 0;
-  //newMeas(KFNav::psib) = 1;
+  measurements(KFNav::camera_psib) = data->heading;
+  newMeas(KFNav::camera_psib) = 1;
 
   ROS_ERROR("CAMERA - RANGE: %f, BEARING: %f deg, TIME: %d %d", data->range,
             data->bearing * 180 / M_PI, data->header.stamp.sec,
             data->header.stamp.nsec);
+  ROS_ERROR("DIVER - CAMERA - HEADING: %f", data->heading);
 }
 
 /*********************************************************************
@@ -548,7 +551,7 @@ void Estimator3D::start()
                 /// Outlier test
                 /////////////////////////////////////////
 
-            	if(false)
+            	if(alternate_outlier)
             	{
 
             		if (j == KFNav::range)
