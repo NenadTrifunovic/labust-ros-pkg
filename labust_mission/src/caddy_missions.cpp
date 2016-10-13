@@ -324,10 +324,8 @@ void CaddyMissions::onIdle(const std_msgs::Int32::ConstPtr& data)
   {
     if (mission_state != IDLE)
     {
-      std_srvs::Trigger srv_data;
-      stop_srv.call(srv_data);
-
       mission_state = IDLE;
+      this->stopControllers();
     }
   }
 }
@@ -342,7 +340,6 @@ void CaddyMissions::stopControllers()
   // Stop primitives
   std_srvs::Trigger srv_data;
   stop_srv.call(srv_data);
-  mission_state = IDLE;
   // Stop controllers
   navcon_msgs::ConfigureVelocityController srv;
   for (int i = 0; i < 6; ++i)
@@ -355,6 +352,7 @@ void CaddyMissions::stopControllers()
   altcon.call(flag);
   depthcon.call(flag);
   vtcon.call(flag);
+  mission_state = IDLE;
 }
 
 bool CaddyMissions::testControllers()
