@@ -83,6 +83,7 @@ Estimator3D::Estimator3D()
   , alternate_outlier(false)
   , sonar_offset(0.0)
   , usbl_offset(0.0)
+  , usbl_bearing_offset(0.0)
   , cov_limit(50.0)
   , delay_time(0.0)
   , dvl_model(1)
@@ -135,6 +136,10 @@ void Estimator3D::onInit()
 
   resetTopic = nh.subscribe<std_msgs::Bool>("reset_nav_covariance", 1,
                                             &Estimator3D::onReset, this);
+  sub_usbl_bearing_offset = nh.subscribe<std_msgs::Float32>("usbl_bearing_offset", 1,
+                                            &Estimator3D::onUSBLbearningOffset, this);
+  sub_usbl_range_offset = nh.subscribe<std_msgs::Float32>("usbl_range_offset", 1,
+          &Estimator3D::onUSBLrangeOffset, this);
 
   /** Enable USBL measurements */
   ph.param("delay", enableDelay, enableDelay);
@@ -150,6 +155,8 @@ void Estimator3D::onInit()
   ph.param("sonar_offset", sonar_offset, sonar_offset);
   ph.param("usbl_offset", usbl_offset, usbl_offset);
   ph.param("covariance_limit", cov_limit, cov_limit);
+  ph.param("usbl_bearing_offset", usbl_bearing_offset, usbl_bearing_offset);
+
 }
 
 void Estimator3D::onReset(const std_msgs::Bool::ConstPtr& reset)
@@ -176,6 +183,18 @@ void Estimator3D::configureNav(KFNav& nav, ros::NodeHandle& nh)
 
   nav.initModel();
   labust::navigation::kfModelLoader(nav, nh, "ekfnav_twl");
+}
+
+void Estimator3D::onUSBLbearningOffset(const std_msgs::Float32::ConstPtr& data)
+{
+  usbl_bearing_offset = data->data;
+  ROS_ERROR("USBL bearing offset changed: %f.", usbl_bearing_offset);
+}
+
+void Estimator3D::onUSBLrangeOffset(const std_msgs::Float32::ConstPtr& data)
+{
+  usbl_offset = data->data;
+  ROS_ERROR("USBL range offset changed: %f.", usbl_offset);
 }
 
 /*********************************************************************
@@ -242,7 +261,7 @@ void Estimator3D::onSecond_usbl_fix(
 
   double bear =
       data->bearing -
-      180 * nav.getState()(KFNav::hdg) / M_PI;  // Buddy pings Videoray
+      180 * nav.getState()(KFNav::hdg) / M_PI + usbl_bearing_offset;  // Buddy pings Videoray
   double elev = 180 - data->elevation;
 
   const KFNav::vector& x = nav.getState();
@@ -267,9 +286,9 @@ void Estimator3D::onSecond_usbl_fix(
   const KFNav::matrix& covariance = nav.getStateCovariance();
   if(covariance(KFNav::xb, KFNav::xb) > cov_limit || covariance(KFNav::yb, KFNav::yb) > cov_limit)
   {
-	measurements(KFNav::xb) = measurements(KFNav::xp)+(measurements(KFNav::range)+usbl_offset)*cos(measurements(KFNav::bearing)+measurements(KFNav::hdg));
+	measurements(KFNav::xb) = measurements(KFNav::xp)+(measurements(KFNav::range))*cos(measurements(KFNav::bearing)+measurements(KFNav::hdg));
 	newMeas(KFNav::xb)  = 1;
-	measurements(KFNav::yb) = measurements(KFNav::yp)+(measurements(KFNav::range)+usbl_offset)*sin(measurements(KFNav::bearing)+measurements(KFNav::hdg));
+	measurements(KFNav::yb) = measurements(KFNav::yp)+(measurements(KFNav::range))*sin(measurements(KFNav::bearing)+measurements(KFNav::hdg));
 	newMeas(KFNav::yb)  = 1;
 	ROS_ERROR("Forcing USBL position!!");
   }
