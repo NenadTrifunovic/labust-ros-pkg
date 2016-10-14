@@ -1,18 +1,11 @@
 /*********************************************************************
- *  EKF_3D_USBL.cpp
+ *  EKF_TwoVehicleLocalization.cpp
  *
  *  Created on: Mar 26, 2013
  *      Author: Dula Nad
  *
  *   Modified on: Feb 27, 2015
  *      Author: Filip Mandic
- *
- *   Description:
- *   	6-DOF EKF navigation filter with raw range and bearing measurements
- *
- *   	Relative mode:
- *
- *   	Absolute mode:
  *
  ********************************************************************/
 /*********************************************************************
@@ -88,6 +81,9 @@ Estimator3D::Estimator3D()
   , enableElevation(false)
   , enableRejection(false)
   , alternate_outlier(false)
+  , sonar_offset(0.0)
+  , usbl_offset(0.0)
+  , cov_limit(50.0)
   , delay_time(0.0)
   , dvl_model(1)
   , OR(3, 0.9)
@@ -113,7 +109,7 @@ void Estimator3D::onInit()
 
   pubBearing = nh.advertise<std_msgs::Float32>("bearing_meas", 1);
 
-  pubCondP = nh.advertise<std_msgs::Float32>("condP", 1);
+  pubCondP = nh.advertise<std_msgs::Float32>("P_trace", 1);
   pubCondPxy = nh.advertise<std_msgs::Float32>("condPxy", 1);
   pubCost = nh.advertise<std_msgs::Float32>("cost", 1);
 
@@ -150,13 +146,26 @@ void Estimator3D::onInit()
   /** Enable outlier rejection */
   ph.param("meas_outlier_rejection", enableRejection, enableRejection);
   ph.param("alternate_outlier_rejection", alternate_outlier, alternate_outlier);
+
+  ph.param("sonar_offset", sonar_offset, sonar_offset);
+  ph.param("usbl_offset", usbl_offset, usbl_offset);
+  ph.param("covariance_limit", cov_limit, cov_limit);
 }
 
 void Estimator3D::onReset(const std_msgs::Bool::ConstPtr& reset)
 {
   if (reset->data)
-    nav.setStateCovariance(
-        10000 * KFNav::matrix::Identity(KFNav::stateNum, KFNav::stateNum));
+  {
+	KFNav::matrix covariance = nav.getStateCovariance();
+    covariance(KFNav::xb,KFNav::xb) = 10000;
+    covariance(KFNav::xb,KFNav::yb) = 0;
+    covariance(KFNav::yb,KFNav::yb) = 10000;
+    covariance(KFNav::yb,KFNav::xb) = 0;
+
+    nav.setStateCovariance(covariance);
+    ROS_ERROR("Diver filter reset.");
+  }
+
 }
 
 void Estimator3D::configureNav(KFNav& nav, ros::NodeHandle& nh)
@@ -228,13 +237,9 @@ void Estimator3D::onSecond_usbl_fix(
     const underwater_msgs::USBLFix::ConstPtr& data)
 {
   /*** Calculate measurement delay ***/
-  // double delay = calculateDelaySteps(data->header.stamp.toSec(),
-  // currentTime);
-  // Totalno nepotrebno
   double delay =
-      double(calculateDelaySteps(currentTime - delay_time, currentTime));
+      double(calculateDelaySteps(currentTime - delay_time, currentTime)); // Totalno nepotrebno
 
-  // double bear = 360 - data->bearing;
   double bear =
       data->bearing -
       180 * nav.getState()(KFNav::hdg) / M_PI;  // Buddy pings Videoray
@@ -242,13 +247,11 @@ void Estimator3D::onSecond_usbl_fix(
 
   const KFNav::vector& x = nav.getState();
 
-  // labust::math::wrapRad(measurements(KFNav::psi));
-
   ROS_ERROR("RANGE: %f, BEARING: %f deg, Time %d %d", data->range,
             labust::math::wrapDeg(bear), data->header.stamp.sec,
             data->header.stamp.nsec);
   /*** Get USBL measurements ***/
-  measurements(KFNav::range) = (data->range > 0.1) ? data->range : 0.1;
+  measurements(KFNav::range) = (data->range > 0.1) ? data->range+usbl_offset : 0.1;
   newMeas(KFNav::range) = enableRange;
   measDelay(KFNav::range) = delay;
 
@@ -259,19 +262,30 @@ void Estimator3D::onSecond_usbl_fix(
   measurements(KFNav::elevation) = elev * M_PI / 180;
   newMeas(KFNav::elevation) = enableElevation;
   measDelay(KFNav::elevation) = delay;
+
+  /*** Force USBL position ***/
+  const KFNav::matrix& covariance = nav.getStateCovariance();
+  if(covariance(KFNav::xb, KFNav::xb) > cov_limit || covariance(KFNav::yb, KFNav::yb) > cov_limit)
+  {
+	measurements(KFNav::xb) = measurements(KFNav::xp)+(measurements(KFNav::range)+usbl_offset)*cos(measurements(KFNav::bearing)+measurements(KFNav::hdg));
+	newMeas(KFNav::xb)  = 1;
+	measurements(KFNav::yb) = measurements(KFNav::yp)+(measurements(KFNav::range)+usbl_offset)*sin(measurements(KFNav::bearing)+measurements(KFNav::hdg));
+	newMeas(KFNav::yb)  = 1;
+	ROS_ERROR("Forcing USBL position!!");
+  }
 }
 
 void Estimator3D::onSecond_sonar_fix(
     const navcon_msgs::RelativePosition::ConstPtr& data)
 {
   /*** Get sonar measurements ***/
-  measurements(KFNav::sonar_range) = (data->range > 0.1) ? data->range+0.5 : 0.1;
+  measurements(KFNav::sonar_range) = (data->range > 0.1) ? data->range+sonar_offset : 0.1;
   newMeas(KFNav::sonar_range) = 1;
 
   measurements(KFNav::sonar_bearing) = bearing_unwrap(data->bearing);
   newMeas(KFNav::sonar_bearing) = 1;
 
-  ROS_ERROR("SONAR - RANGE: %f, BEARING: %f deg, TIME: %d %d", data->range+0.5,
+  ROS_ERROR("SONAR - RANGE: %f, BEARING: %f deg, TIME: %d %d", measurements(KFNav::sonar_range),
             data->bearing * 180 / M_PI, data->header.stamp.sec,
             data->header.stamp.nsec);
 }
@@ -320,14 +334,14 @@ void Estimator3D::processMeasurements()
   /*** Publish second vehicle measurements ***/
   auv_msgs::NavSts::Ptr meas2(new auv_msgs::NavSts());
   meas2->body_velocity.x = measurements(KFNav::ub);
-  meas2->body_velocity.z = measurements(KFNav::wb);
+  //meas2->body_velocity.z = measurements(KFNav::wb);
 
   meas2->position.north = measurements(KFNav::xb);
   meas2->position.east = measurements(KFNav::yb);
   meas2->position.depth = measurements(KFNav::zb);
 
   meas2->orientation.yaw = labust::math::wrapRad(measurements(KFNav::psib));
-  meas2->orientation_rate.yaw = measurements(KFNav::rb);
+  //meas2->orientation_rate.yaw = measurements(KFNav::rb);
 
   meas2->header.stamp = ros::Time::now();
   meas2->header.frame_id = "local";
@@ -342,7 +356,7 @@ void Estimator3D::publishState()
   state->gbody_velocity.x = estimate(KFNav::u);
   state->gbody_velocity.z = estimate(KFNav::w);
 
-  state->orientation.yaw = labust::math::wrapRad(estimate(KFNav::psi));
+  state->orientation.yaw = labust::math::wrapRad(estimate(KFNav::hdg));
   state->orientation_rate.yaw = estimate(KFNav::r);
 
   state->position.north = estimate(KFNav::xp);
@@ -362,11 +376,11 @@ void Estimator3D::publishState()
   /*** Publish second vehicle states */
   auv_msgs::NavSts::Ptr state2(new auv_msgs::NavSts());
   state2->gbody_velocity.x = estimate(KFNav::ub);
-  state2->gbody_velocity.z = estimate(KFNav::wb);
+  //state2->gbody_velocity.z = estimate(KFNav::wb);
 
   // state2->orientation.yaw = 0;
   state2->orientation.yaw = labust::math::wrapRad(estimate(KFNav::psib));
-  state2->orientation_rate.yaw = estimate(KFNav::rb);
+  //state2->orientation_rate.yaw = estimate(KFNav::rb);
 
   state2->position.north = estimate(KFNav::xb);
   state2->position.east = estimate(KFNav::yb);
@@ -430,37 +444,13 @@ void Estimator3D::publishState()
   rel_pos->header.stamp = ros::Time::now();
   rel_pos->header.frame_id = "local";
   pubSecondRelativePosition.publish(rel_pos);
-}
 
-void Estimator3D::calculateConditionNumber()
-{
-  KFNav::matrix P = nav.getStateCovariance();
+  /*** Calculate trace ***/
 
-  Eigen::JacobiSVD<Eigen::MatrixXd> svd(P);
-  double cond1 = svd.singularValues()(0) /
-                 svd.singularValues()(svd.singularValues().size() - 1);
-
-  Eigen::Matrix2d Pxy;
-  Pxy << P(KFNav::xp, KFNav::xp), P(KFNav::xp, KFNav::yp),
-      P(KFNav::yp, KFNav::xp), P(KFNav::yp, KFNav::yp);
-
-  Eigen::JacobiSVD<Eigen::MatrixXd> svd2(Pxy);
-  double cond2 = svd2.singularValues()(0) /
-                 svd2.singularValues()(svd2.singularValues().size() - 1);
-
-  double traceP = Pxy.trace();
-  double detP = Pxy.determinant();
-
-  double condCost = std::sqrt(traceP * traceP - 4 * detP);
-
+  double traceP = covariance.trace();
   std_msgs::Float32::Ptr data(new std_msgs::Float32);
-
-  data->data = cond1;
-  //	pubCondP.publish(data);
-  data->data = cond2;
-  //	pubCondPxy.publish(data);
-  data->data = condCost;
-  //	pubCost.publish(data);
+  data->data = traceP;
+  pubCondP.publish(data);
 }
 
 int Estimator3D::calculateDelaySteps(double measTime, double arrivalTime)

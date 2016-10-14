@@ -86,10 +86,6 @@ void TwoVehicleLocalizationModel::calculateUVInovationVariance(const TwoVehicleL
 
 void TwoVehicleLocalizationModel::step(const input_type& input)
 {
-  x(u) += 0;
-  x(w) += 0;
-  x(r) += 0;
-
   xdot = x(u)*cos(x(psi));
   ydot = x(u)*sin(x(psi));
   x(xp) += Ts * xdot;
@@ -99,31 +95,39 @@ void TwoVehicleLocalizationModel::step(const input_type& input)
 
   x(hdg) += Ts*x(r);
 
-  /*** Limit target surge speed ***/
-  x(ub) += 0;
-  if(x(ub)>0.5)
-	x(ub)=0.5;
-  if(x(ub)<-0.5)
-	x(ub)=-0.5;
+  x(u) += 0;
+  x(w) += 0;
+  x(r) += 0;
 
-  /*** Limit target heave speed ***/
-  x(wb) = 0;
-
-  /*** Limit target yaw speed ***/
-  x(rb) = 0;
-
+  /*** Target ***/
   xdot = x(ub)*cos(x(psib));
   ydot = x(ub)*sin(x(psib));
   x(xb) += Ts * xdot;
   x(yb) += Ts * ydot;
- 
+
   /*** Limit target depth ***/
   //x(zb) += Ts * x(wb);
   x(zb) += 0;
   if(x(zb)<0.0)
 	x(zb)=0.0;
- 
-  x(psib) += Ts * x(rb);
+
+  /*** Limit target course ***/
+  //x(psib) += Ts * x(rb);
+  x(psib) += 0;
+
+
+  /*** Limit target surge speed ***/
+  x(ub) += 0;
+  if(x(ub)>0.3)
+	x(ub)=0.3;
+  if(x(ub)<-0.3)
+	x(ub)=-0.3;
+
+  /*** Limit target heave speed ***/
+  //x(wb) = 0;
+
+  /*** Limit target yaw speed ***/
+  //x(rb) = 0;
 
   xk_1 = x;
 
@@ -230,7 +234,7 @@ void TwoVehicleLocalizationModel::derivativeH()
 
 	if(rng<eps)
 	{
-                ROS_ERROR("DEBUG: eps!!!!!!!!!!!!!!!!!!!!!!!!");
+        ROS_ERROR("DEBUG: eps!");
 		rng = eps;
 		delta_x = (delta_x<0)?-0.5*eps:0.5*eps;
 		delta_y = (delta_y<0)?-0.5*eps:0.5*eps;
@@ -274,9 +278,9 @@ void TwoVehicleLocalizationModel::derivativeH()
 
 	Hnl(sonar_bearing, hdg) = -1;
 	
-        ynl(camera_range) = rng;
+    ynl(camera_range) = rng;
 	ynl(camera_bearing) = bearing_unwrap(atan2(delta_y,delta_x) -1*x(hdg));
-        ynl(camera_psib) = x(psib);
+    ynl(camera_psib) = x(psib);
 
 	Hnl(camera_range, xp)  = -(delta_x)/rng;
 	Hnl(camera_range, yp)  = -(delta_y)/rng;
@@ -292,6 +296,6 @@ void TwoVehicleLocalizationModel::derivativeH()
 	Hnl(camera_bearing, yb) = delta_x/(delta_x*delta_x+delta_y*delta_y);
 
 	Hnl(camera_bearing, hdg) = -1;
-        Hnl(camera_psib,psib) = 1; // Check this!!!
+    Hnl(camera_psib,psib) = 1; // Check this!!!
 }
 

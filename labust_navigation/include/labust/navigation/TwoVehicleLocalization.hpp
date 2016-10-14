@@ -214,6 +214,8 @@ namespace labust
 
 			KFNav::matrix Pstart, Rstart;
 
+			double sonar_offset, usbl_offset, cov_limit;
+
 			std::deque<FilterState> pastStates;
 
 			labust::tools::OutlierRejection OR, OR_b;
