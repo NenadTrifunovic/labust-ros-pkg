@@ -228,7 +228,7 @@ namespace labust
 
 			KFNav::matrix Pstart, Rstart;
 
-			double sonar_offset, usbl_offset, cov_limit, usbl_bearing_offset, depth_offset, meas_timeout_limit;
+			double sonar_offset, usbl_offset, cov_limit, usbl_bearing_offset, depth_offset, meas_timeout_limit, camera_offset;
 
 			std::deque<FilterState> pastStates;
 
