@@ -84,6 +84,7 @@ Estimator3D::Estimator3D()
   , sonar_offset(0.0)
   , usbl_offset(0.0)
   , usbl_bearing_offset(0.0)
+  , depth_offset(0.0)
   , cov_limit(50.0)
   , delay_time(0.0)
   , dvl_model(1)
@@ -156,6 +157,8 @@ void Estimator3D::onInit()
   ph.param("usbl_offset", usbl_offset, usbl_offset);
   ph.param("covariance_limit", cov_limit, cov_limit);
   ph.param("usbl_bearing_offset", usbl_bearing_offset, usbl_bearing_offset);
+  ph.param("usbl_bearing_offset", depth_offset, depth_offset);
+
 
 }
 
@@ -244,12 +247,12 @@ void Estimator3D::onLocalStateHat(const auv_msgs::NavSts::ConstPtr& data)
 
 void Estimator3D::onSecond_navsts(const auv_msgs::NavSts::ConstPtr& data)
 {
-  measurements(KFNav::zb) = data->position.depth;
+  measurements(KFNav::zb) = data->position.depth + depth_offset;
   newMeas(KFNav::zb) = 1;
 
   measurements(KFNav::psib) = data->orientation.yaw;
   newMeas(KFNav::psib) = 1;
-  ROS_ERROR("DIVER - ACOUSTIC - DEPTH: %f, HEADING: %f",data->position.depth, data->orientation.yaw);
+  ROS_ERROR("DIVER - ACOUSTIC - DEPTH: %f, HEADING: %f",measurements(KFNav::zb), data->orientation.yaw);
 }
 
 void Estimator3D::onSecond_usbl_fix(
