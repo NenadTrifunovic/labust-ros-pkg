@@ -93,6 +93,7 @@ Estimator3D::Estimator3D()
   , OR(3, 0.9)
   , OR_b(2, 0.97)
   , P_rng_bear_relative(Eigen::Matrix2d::Zero())
+  , display_counter(0)
 {
   this->onInit();
 };
@@ -275,12 +276,9 @@ void Estimator3D::onSecond_usbl_fix(
 
   const KFNav::vector& x = nav.getState();
 
-  ROS_ERROR("RANGE: %f, BEARING: %f deg, Time %d %d", data->range,
-            labust::math::wrapDeg(bear), data->header.stamp.sec,
-            data->header.stamp.nsec);
   /*** Get USBL measurements ***/
-  measurements(KFNav::range) = (data->range > 0.1) ? data->range+usbl_offset : 0.1;
-  newMeas(KFNav::range) = enableRange;
+  measurements(KFNav::range) =  data->range+usbl_offset;
+  newMeas(KFNav::range) = enableRange && (data->range > 0.1);
   measDelay(KFNav::range) = delay;
 
   measurements(KFNav::bearing) = bearing_unwrap(bear * M_PI / 180);
@@ -290,6 +288,10 @@ void Estimator3D::onSecond_usbl_fix(
   measurements(KFNav::elevation) = elev * M_PI / 180;
   newMeas(KFNav::elevation) = enableElevation;
   measDelay(KFNav::elevation) = delay;
+
+  ROS_ERROR("RANGE: %f, BEARING: %f deg, Time %d %d", data->range,
+            labust::math::wrapDeg(bear), data->header.stamp.sec,
+            data->header.stamp.nsec);
 
   /*** Force USBL position ***/
   const KFNav::matrix& covariance = nav.getStateCovariance();
@@ -351,7 +353,7 @@ void Estimator3D::processMeasurements()
   {
 	measurements(KFNav::ub) = 0;
 	newMeas(KFNav::ub) = 1;
-	ROS_ERROR("Measurement timeout");
+	if(display_counter++%50==0) ROS_ERROR("Measurement timeout");
   }
 
   /*** Publish local measurements ***/

@@ -236,6 +236,7 @@ namespace labust
 
 			Eigen::Matrix2d P_rng_bear_relative;
 
+                        int display_counter;
 
 		};
 	}
