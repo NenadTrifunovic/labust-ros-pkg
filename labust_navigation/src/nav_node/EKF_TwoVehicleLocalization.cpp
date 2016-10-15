@@ -323,7 +323,7 @@ void Estimator3D::onSecond_camera_fix(
   newMeas(KFNav::camera_bearing) = 1;
 
   measurements(KFNav::camera_psib) = data->heading;
-  newMeas(KFNav::camera_psib) = 1;
+  newMeas(KFNav::camera_psib) = (std::abs(data->heading) <= M_PI);
 
   ROS_ERROR("CAMERA - RANGE: %f, BEARING: %f deg, TIME: %d %d", data->range,
             data->bearing * 180 / M_PI, data->header.stamp.sec,
