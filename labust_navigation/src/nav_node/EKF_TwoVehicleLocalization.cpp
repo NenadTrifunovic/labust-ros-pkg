@@ -333,13 +333,13 @@ void Estimator3D::onSecond_camera_fix(
   measurements(KFNav::camera_bearing) = bearing_unwrap(data->bearing);
   newMeas(KFNav::camera_bearing) = 1;
 
-  measurements(KFNav::camera_psib) = data->heading;
+  measurements(KFNav::camera_psib) = labust::math::wrapRad(data->heading + 0*nav.getState()(KFNav::hdg));
   newMeas(KFNav::camera_psib) = (std::abs(data->heading) <= M_PI);
 
   ROS_ERROR("CAMERA - RANGE: %f, BEARING: %f deg, TIME: %d %d", data->range,
             data->bearing * 180 / M_PI, data->header.stamp.sec,
             data->header.stamp.nsec);
-  ROS_ERROR("DIVER - CAMERA - HEADING: %f", data->heading);
+  ROS_ERROR("DIVER - CAMERA - HEADING: %f", measurements(KFNav::camera_psib));
 }
 
 /*********************************************************************
