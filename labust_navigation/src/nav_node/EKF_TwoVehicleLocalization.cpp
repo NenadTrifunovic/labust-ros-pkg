@@ -314,8 +314,8 @@ void Estimator3D::onSecond_sonar_fix(
 
   measurement_timeout = ros::Time::now();
   /*** Get sonar measurements ***/
-  measurements(KFNav::sonar_range) = (data->range > 0.1) ? data->range+sonar_offset : 0.1;
-  newMeas(KFNav::sonar_range) = 1;
+  measurements(KFNav::sonar_range) = data->range+sonar_offset;
+  newMeas(KFNav::sonar_range) = data->range > 0.1;
 
   measurements(KFNav::sonar_bearing) = bearing_unwrap(data->bearing);
   newMeas(KFNav::sonar_bearing) = 1;
@@ -330,8 +330,8 @@ void Estimator3D::onSecond_camera_fix(
 {
   measurement_timeout = ros::Time::now();
   /*** Get sonar measurements ***/
-  measurements(KFNav::camera_range) = (data->range > 0.1) ? data->range+camera_offset : 0.1;
-  newMeas(KFNav::camera_range) = 1;
+  measurements(KFNav::camera_range) = data->range + camera_offset;
+  newMeas(KFNav::camera_range) = data->range > 0.1;
 
   measurements(KFNav::camera_bearing) = bearing_unwrap(data->bearing);
   newMeas(KFNav::camera_bearing) = 1;
@@ -342,7 +342,7 @@ void Estimator3D::onSecond_camera_fix(
   ROS_ERROR("CAMERA - RANGE: %f, BEARING: %f deg, TIME: %d %d", measurements(KFNav::camera_range),
             data->bearing * 180 / M_PI, data->header.stamp.sec,
             data->header.stamp.nsec);
-  ROS_ERROR("DIVER - CAMERA - HEADING: %f", measurements(KFNav::camera_psib));
+  ROS_ERROR("DIVER - CAMERA - HEADING: %f", newMeas(KFNav::camera_psib)?measurements(KFNav::camera_psib):-9999.0);
 }
 
 /*********************************************************************
