@@ -75,6 +75,7 @@ Estimator3D::Estimator3D()
   , measurements(KFNav::vector::Zero(KFNav::measSize))
   , newMeas(KFNav::vector::Zero(KFNav::measSize))
   , measDelay(KFNav::vector::Zero(KFNav::measSize))
+  , measurement_timeout(ros::Time::now())
   , enableDelay(false)
   , enableRange(true)
   , enableBearing(true)
@@ -85,6 +86,7 @@ Estimator3D::Estimator3D()
   , usbl_offset(0.0)
   , usbl_bearing_offset(0.0)
   , depth_offset(0.0)
+  , meas_timeout_limit(10.0)
   , cov_limit(50.0)
   , delay_time(0.0)
   , dvl_model(1)
@@ -158,6 +160,8 @@ void Estimator3D::onInit()
   ph.param("covariance_limit", cov_limit, cov_limit);
   ph.param("usbl_bearing_offset", usbl_bearing_offset, usbl_bearing_offset);
   ph.param("usbl_bearing_offset", depth_offset, depth_offset);
+  ph.param("measurement_timeout", meas_timeout_limit, meas_timeout_limit);
+
 
 
 }
@@ -258,6 +262,8 @@ void Estimator3D::onSecond_navsts(const auv_msgs::NavSts::ConstPtr& data)
 void Estimator3D::onSecond_usbl_fix(
     const underwater_msgs::USBLFix::ConstPtr& data)
 {
+
+  measurement_timeout = ros::Time::now();
   /*** Calculate measurement delay ***/
   double delay =
       double(calculateDelaySteps(currentTime - delay_time, currentTime)); // Totalno nepotrebno
@@ -300,6 +306,8 @@ void Estimator3D::onSecond_usbl_fix(
 void Estimator3D::onSecond_sonar_fix(
     const navcon_msgs::RelativePosition::ConstPtr& data)
 {
+
+  measurement_timeout = ros::Time::now();
   /*** Get sonar measurements ***/
   measurements(KFNav::sonar_range) = (data->range > 0.1) ? data->range+sonar_offset : 0.1;
   newMeas(KFNav::sonar_range) = 1;
@@ -315,6 +323,7 @@ void Estimator3D::onSecond_sonar_fix(
 void Estimator3D::onSecond_camera_fix(
     const navcon_msgs::RelativePosition::ConstPtr& data)
 {
+  measurement_timeout = ros::Time::now();
   /*** Get sonar measurements ***/
   measurements(KFNav::camera_range) = (data->range > 0.1) ? data->range : 0.1;
   newMeas(KFNav::camera_range) = 1;
@@ -337,6 +346,14 @@ void Estimator3D::onSecond_camera_fix(
 
 void Estimator3D::processMeasurements()
 {
+
+  if((ros::Time::now() - measurement_timeout) > ros::Duration(meas_timeout_limit))
+  {
+	measurements(KFNav::ub) = 0;
+	newMeas(KFNav::ub) = 1;
+	ROS_ERROR("Measurement timeout");
+  }
+
   /*** Publish local measurements ***/
   auv_msgs::NavSts::Ptr meas(new auv_msgs::NavSts());
   meas->body_velocity.x = measurements(KFNav::u);

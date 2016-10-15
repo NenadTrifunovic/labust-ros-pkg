@@ -206,6 +206,10 @@ namespace labust
 			 */
 			KFNav::ModelParams params[DoF];
 			/**
+			 * Model parameters
+			 */
+			ros::Time measurement_timeout;
+			/**
 			 * The DVL model selector.
 			 */
 			int dvl_model;
@@ -224,7 +228,7 @@ namespace labust
 
 			KFNav::matrix Pstart, Rstart;
 
-			double sonar_offset, usbl_offset, cov_limit, usbl_bearing_offset, depth_offset;
+			double sonar_offset, usbl_offset, cov_limit, usbl_bearing_offset, depth_offset, meas_timeout_limit;
 
 			std::deque<FilterState> pastStates;
 
