@@ -159,7 +159,7 @@ void Estimator3D::onInit()
   ph.param("usbl_offset", usbl_offset, usbl_offset);
   ph.param("covariance_limit", cov_limit, cov_limit);
   ph.param("usbl_bearing_offset", usbl_bearing_offset, usbl_bearing_offset);
-  ph.param("usbl_bearing_offset", depth_offset, depth_offset);
+  ph.param("depth_offset", depth_offset, depth_offset);
   ph.param("measurement_timeout", meas_timeout_limit, meas_timeout_limit);
 
 
