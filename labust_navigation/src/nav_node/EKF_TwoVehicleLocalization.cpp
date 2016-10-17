@@ -151,6 +151,13 @@ void Estimator3D::onInit()
   sub_camera_bearing_offset = nh.subscribe<std_msgs::Float32>("camera_bearing_offset", 1,
                                               &Estimator3D::onCameraBearningOffset, this);
 
+  pub_usbl_range = nh.advertise<std_msgs::Float32>("measurement/usbl/range", 1);
+  pub_usbl_bearing = nh.advertise<std_msgs::Float32>("measurement/usbl/bearing", 1);
+  pub_sonar_range = nh.advertise<std_msgs::Float32>("measurement/sonar/range", 1);
+  pub_sonar_bearing = nh.advertise<std_msgs::Float32>("measurement/sonar/bearing", 1);
+  pub_camera_range = nh.advertise<std_msgs::Float32>("measurement/camera/range", 1);
+  pub_camera_bearing =nh.advertise<std_msgs::Float32>("measurement/camera/bearing", 1);
+
   /** Enable USBL measurements */
   ph.param("delay", enableDelay, enableDelay);
   ph.param("delay_time", delay_time, delay_time);
@@ -409,6 +416,24 @@ void Estimator3D::processMeasurements()
   meas2->header.frame_id = "local";
   pubSecondStateMeas.publish(meas2);
 
+  std_msgs::Float32::Ptr data(new std_msgs::Float32);
+  data->data = measurements(KFNav::range);
+  pub_usbl_range.publish(data);
+
+  data->data = measurements(KFNav::bearing);
+  pub_usbl_bearing.publish(data);
+
+  data->data = measurements(KFNav::sonar_range);
+  pub_sonar_range.publish(data);
+
+  data->data = measurements(KFNav::sonar_bearing);
+  pub_sonar_bearing.publish(data);
+
+  data->data = measurements(KFNav::camera_range);
+  pub_camera_range.publish(data);
+
+  data->data = measurements(KFNav::camera_bearing);
+  pub_camera_bearing.publish(data);
 }
 
 void Estimator3D::publishState()
