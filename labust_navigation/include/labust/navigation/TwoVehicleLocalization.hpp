@@ -143,6 +143,10 @@ namespace labust
 			 */
 			void onUSBLrangeOffset(const std_msgs::Float32::ConstPtr& data);
 			/**
+			 * Handle the camera measurement.
+			 */
+			void onCameraBearningOffset(const std_msgs::Float32::ConstPtr& data);
+			/**
 			 * Helper method to process measurements.
 			 */
 			void processMeasurements();
@@ -195,7 +199,7 @@ namespace labust
 			 */
 			ros::Subscriber subLocalStateHat, resetTopic, subSecond_navsts;
 			ros::Subscriber subSecond_heading, subSecond_position, subSecond_speed, subSecond_usbl_fix, subSecond_sonar_fix, subSecond_camera_fix;
-			ros::Subscriber sub_usbl_bearing_offset, sub_usbl_range_offset, sub_sonar_range_offset;
+			ros::Subscriber sub_usbl_bearing_offset, sub_usbl_range_offset, sub_sonar_range_offset, sub_camera_bearing_offset;
 
 			/**
 			 * The transform broadcaster.
@@ -228,7 +232,7 @@ namespace labust
 
 			KFNav::matrix Pstart, Rstart;
 
-			double sonar_offset, usbl_offset, cov_limit, usbl_bearing_offset, depth_offset, meas_timeout_limit, camera_offset;
+			double sonar_offset, usbl_offset, cov_limit, usbl_bearing_offset, depth_offset, meas_timeout_limit, camera_offset, camera_bearing_offset;
 
 			std::deque<FilterState> pastStates;
 

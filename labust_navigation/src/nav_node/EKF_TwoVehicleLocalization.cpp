@@ -86,6 +86,7 @@ Estimator3D::Estimator3D()
   , usbl_offset(0.0)
   , camera_offset(0.0)
   , usbl_bearing_offset(0.0)
+  , camera_bearing_offset(0.0)
   , depth_offset(0.0)
   , meas_timeout_limit(10.0)
   , cov_limit(50.0)
@@ -145,6 +146,8 @@ void Estimator3D::onInit()
                                             &Estimator3D::onUSBLbearningOffset, this);
   sub_usbl_range_offset = nh.subscribe<std_msgs::Float32>("usbl_range_offset", 1,
           &Estimator3D::onUSBLrangeOffset, this);
+  sub_camera_bearing_offset = nh.subscribe<std_msgs::Float32>("camera_bearing_offset", 1,
+                                              &Estimator3D::onCameraBearningOffset, this);
 
   /** Enable USBL measurements */
   ph.param("delay", enableDelay, enableDelay);
@@ -164,9 +167,7 @@ void Estimator3D::onInit()
   ph.param("depth_offset", depth_offset, depth_offset);
   ph.param("measurement_timeout", meas_timeout_limit, meas_timeout_limit);
   ph.param("camera_offset", camera_offset, camera_offset);
-
-
-
+  ph.param("camera_bearing_offset", camera_bearing_offset, camera_bearing_offset);
 
 }
 
@@ -200,6 +201,12 @@ void Estimator3D::onUSBLbearningOffset(const std_msgs::Float32::ConstPtr& data)
 {
   usbl_bearing_offset = data->data;
   ROS_ERROR("USBL bearing offset changed: %f.", usbl_bearing_offset);
+}
+
+void Estimator3D::onCameraBearningOffset(const std_msgs::Float32::ConstPtr& data)
+{
+  camera_bearing_offset = data->data;
+  ROS_ERROR("Camera bearing offset changed: %f.", camera_bearing_offset);
 }
 
 void Estimator3D::onUSBLrangeOffset(const std_msgs::Float32::ConstPtr& data)
@@ -334,7 +341,7 @@ void Estimator3D::onSecond_camera_fix(
   measurements(KFNav::camera_range) = data->range + camera_offset;
   newMeas(KFNav::camera_range) = data->range > 0.1 && !std::isnan(data->range);
 
-  measurements(KFNav::camera_bearing) = bearing_unwrap(data->bearing);
+  measurements(KFNav::camera_bearing) = bearing_unwrap(data->bearing + camera_bearing_offset*M_PI/180);
   newMeas(KFNav::camera_bearing) = !std::isnan(data->bearing);
 
   measurements(KFNav::camera_psib) = data->heading;
