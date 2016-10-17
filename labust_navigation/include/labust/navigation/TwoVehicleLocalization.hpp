@@ -203,7 +203,7 @@ namespace labust
 			 */
 			ros::Subscriber subLocalStateHat, resetTopic, subSecond_navsts;
 			ros::Subscriber subSecond_heading, subSecond_position, subSecond_speed, subSecond_usbl_fix, subSecond_sonar_fix, subSecond_camera_fix;
-			ros::Subscriber sub_usbl_bearing_offset, sub_usbl_range_offset, sub_sonar_range_offset, sub_camera_bearing_offset;
+			ros::Subscriber sub_usbl_bearing_offset, sub_usbl_range_offset, sub_camera_range_offset, sub_sonar_range_offset, sub_camera_bearing_offset;
 
 			/**
 			 * The transform broadcaster.

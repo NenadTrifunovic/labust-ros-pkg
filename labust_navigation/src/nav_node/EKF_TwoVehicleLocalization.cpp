@@ -146,6 +146,8 @@ void Estimator3D::onInit()
                                             &Estimator3D::onUSBLbearningOffset, this);
   sub_usbl_range_offset = nh.subscribe<std_msgs::Float32>("usbl_range_offset", 1,
           &Estimator3D::onUSBLrangeOffset, this);
+  sub_camera_range_offset = nh.subscribe<std_msgs::Float32>("camera_range_offset", 1,
+            &Estimator3D::onUSBLrangeOffset, this);
   sub_camera_bearing_offset = nh.subscribe<std_msgs::Float32>("camera_bearing_offset", 1,
                                               &Estimator3D::onCameraBearningOffset, this);
 
