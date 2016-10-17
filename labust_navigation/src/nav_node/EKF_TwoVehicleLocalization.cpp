@@ -215,13 +215,14 @@ void Estimator3D::onUSBLrangeOffset(const std_msgs::Float32::ConstPtr& data)
 void Estimator3D::onLocalStateHat(const auv_msgs::NavSts::ConstPtr& data)
 {
   measurements(KFNav::xp) = data->position.north;
-  newMeas(KFNav::xp) = 1;
+  newMeas(KFNav::xp) = !std::isnan(data->position.north);
+;
 
   measurements(KFNav::yp) = data->position.east;
-  newMeas(KFNav::yp) = 1;
+  newMeas(KFNav::yp) = !std::isnan(data->position.east);
 
   measurements(KFNav::zp) = data->position.depth;
-  newMeas(KFNav::zp) = 1;
+  newMeas(KFNav::zp) = !std::isnan(data->position.depth);
 
   bool use_depth_approx(false);
   if(use_depth_approx)
@@ -230,7 +231,7 @@ void Estimator3D::onLocalStateHat(const auv_msgs::NavSts::ConstPtr& data)
     newMeas(KFNav::zb) = 1;
   }
   measurements(KFNav::hdg) = unwrap(data->orientation.yaw);
-  newMeas(KFNav::hdg) = 1;
+  newMeas(KFNav::hdg) = !std::isnan(data->orientation.yaw);;
 
   Eigen::Matrix2d R;
   double yaw = data->orientation.yaw;
@@ -247,10 +248,10 @@ void Estimator3D::onLocalStateHat(const auv_msgs::NavSts::ConstPtr& data)
   newMeas(KFNav::u) = 1;
 
   measurements(KFNav::w) = data->gbody_velocity.z;
-  newMeas(KFNav::w) = 1;
+  newMeas(KFNav::w) = !std::isnan(data->gbody_velocity.z);
 
   measurements(KFNav::r) = data->orientation_rate.yaw;
-  newMeas(KFNav::r) = 1;
+  newMeas(KFNav::r) = !std::isnan(data->orientation_rate.yaw);
 };
 
 void Estimator3D::onSecond_navsts(const auv_msgs::NavSts::ConstPtr& data)
@@ -331,13 +332,13 @@ void Estimator3D::onSecond_camera_fix(
   measurement_timeout = ros::Time::now();
   /*** Get sonar measurements ***/
   measurements(KFNav::camera_range) = data->range + camera_offset;
-  newMeas(KFNav::camera_range) = data->range > 0.1;
+  newMeas(KFNav::camera_range) = data->range > 0.1 && !std::isnan(data->range);
 
   measurements(KFNav::camera_bearing) = bearing_unwrap(data->bearing);
-  newMeas(KFNav::camera_bearing) = 1;
+  newMeas(KFNav::camera_bearing) = !std::isnan(data->bearing);
 
   measurements(KFNav::camera_psib) = data->heading;
-  newMeas(KFNav::camera_psib) = (std::abs(data->heading) <= M_PI);
+  newMeas(KFNav::camera_psib) = (std::abs(data->heading) <= M_PI) && !std::isnan(data->heading);
 
   ROS_ERROR("CAMERA - RANGE: %f, BEARING: %f deg, TIME: %d %d", measurements(KFNav::camera_range),
             data->bearing * 180 / M_PI, data->header.stamp.sec,
