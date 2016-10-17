@@ -274,9 +274,11 @@ void Estimator3D::onSecond_navsts(const auv_msgs::NavSts::ConstPtr& data)
   measurements(KFNav::zb) = data->position.depth + depth_offset;
   newMeas(KFNav::zb) = 1;
 
-  measurements(KFNav::psib) = data->orientation.yaw;
-  newMeas(KFNav::psib) = 1;
-  ROS_ERROR("DIVER - ACOUSTIC - DEPTH: %f, HEADING: %f",measurements(KFNav::zb), data->orientation.yaw);
+  //measurements(KFNav::psib) = data->orientation.yaw;
+  //newMeas(KFNav::psib) = 1;
+  measurements(KFNav::hdgb) = data->orientation.yaw;
+  newMeas(KFNav::hdgb) = 1;
+  ROS_ERROR("DIVER - ACOUSTIC - DEPTH: %f, HEADING: %f",measurements(KFNav::zb), measurements(KFNav::hdgb));
 }
 
 void Estimator3D::onSecond_usbl_fix(
@@ -352,13 +354,13 @@ void Estimator3D::onSecond_camera_fix(
   measurements(KFNav::camera_bearing) = bearing_unwrap(data->bearing + camera_bearing_offset*M_PI/180);
   newMeas(KFNav::camera_bearing) = !std::isnan(data->bearing);
 
-  measurements(KFNav::camera_psib) = data->heading;
-  newMeas(KFNav::camera_psib) = (std::abs(data->heading) <= M_PI) && !std::isnan(data->heading);
+  measurements(KFNav::camera_hdgb) = data->heading;
+  newMeas(KFNav::camera_hdgb) = (std::abs(data->heading) <= M_PI) && !std::isnan(data->heading);
 
   ROS_ERROR("CAMERA - RANGE: %f, BEARING: %f deg, TIME: %d %d", measurements(KFNav::camera_range),
             data->bearing * 180 / M_PI, data->header.stamp.sec,
             data->header.stamp.nsec);
-  ROS_ERROR("DIVER - CAMERA - HEADING: %f", newMeas(KFNav::camera_psib)?measurements(KFNav::camera_psib):-9999.0);
+  ROS_ERROR("DIVER - CAMERA - HEADING: %f", newMeas(KFNav::camera_hdgb)?measurements(KFNav::camera_hdgb):-9999.0);
 }
 
 /*********************************************************************
@@ -439,7 +441,8 @@ void Estimator3D::publishState()
   //state2->gbody_velocity.z = estimate(KFNav::wb);
 
   // state2->orientation.yaw = 0;
-  state2->orientation.yaw = labust::math::wrapRad(estimate(KFNav::psib));
+  state2->orientation.pitch = labust::math::wrapRad(estimate(KFNav::psib));
+  state2->orientation.yaw = labust::math::wrapRad(estimate(KFNav::hdgb));
   //state2->orientation_rate.yaw = estimate(KFNav::rb);
 
   state2->position.north = estimate(KFNav::xb);

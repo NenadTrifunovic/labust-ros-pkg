@@ -86,9 +86,9 @@ namespace labust
       //enum {inputSize = 0};
       //enum {range=stateNum,bearing,elevation,sonar_range,sonar_bearing,camera_range,camera_bearing,camera_psib,measSize};
 
-      enum {xp = 0,yp,zp, hdg, psi,u,w,r,xb,yb,zb,psib,ub,stateNum};
+      enum {xp = 0,yp,zp, hdg, psi,u,w,r,xb,yb,zb,psib,ub,hdgb,stateNum};
       enum {inputSize = 0};
-      enum {range=stateNum,bearing,elevation,sonar_range,sonar_bearing,camera_range,camera_bearing,camera_psib,measSize};
+      enum {range=stateNum,bearing,elevation,sonar_range,sonar_bearing,camera_range,camera_bearing,camera_hdgb,measSize};
 
       /**
        * The default constructor.
