@@ -151,12 +151,12 @@ void Estimator3D::onInit()
   sub_camera_bearing_offset = nh.subscribe<std_msgs::Float32>("camera_bearing_offset", 1,
                                               &Estimator3D::onCameraBearningOffset, this);
 
-  pub_usbl_range = nh.advertise<std_msgs::Float32>("measurement/usbl/range", 1);
-  pub_usbl_bearing = nh.advertise<std_msgs::Float32>("measurement/usbl/bearing", 1);
-  pub_sonar_range = nh.advertise<std_msgs::Float32>("measurement/sonar/range", 1);
-  pub_sonar_bearing = nh.advertise<std_msgs::Float32>("measurement/sonar/bearing", 1);
-  pub_camera_range = nh.advertise<std_msgs::Float32>("measurement/camera/range", 1);
-  pub_camera_bearing =nh.advertise<std_msgs::Float32>("measurement/camera/bearing", 1);
+  pub_usbl_range = nh.advertise<std_msgs::Float32>("measurement_diver/usbl/range", 1);
+  pub_usbl_bearing = nh.advertise<std_msgs::Float32>("measurement_diver/usbl/bearing", 1);
+  pub_sonar_range = nh.advertise<std_msgs::Float32>("measurement_diver/sonar/range", 1);
+  pub_sonar_bearing = nh.advertise<std_msgs::Float32>("measurement_diver/sonar/bearing", 1);
+  pub_camera_range = nh.advertise<std_msgs::Float32>("measurement_diver/camera/range", 1);
+  pub_camera_bearing =nh.advertise<std_msgs::Float32>("measurement_diver/camera/bearing", 1);
 
   /** Enable USBL measurements */
   ph.param("delay", enableDelay, enableDelay);
@@ -362,7 +362,7 @@ void Estimator3D::onSecond_camera_fix(
   newMeas(KFNav::camera_bearing) = !std::isnan(data->bearing);
 
   measurements(KFNav::camera_hdgb) = data->heading;
-  newMeas(KFNav::camera_hdgb) = (std::abs(data->heading) <= M_PI) && !std::isnan(data->heading);
+  newMeas(KFNav::camera_hdgb) = 0;//(std::abs(data->heading) <= M_PI) && !std::isnan(data->heading);
 
   ROS_ERROR("CAMERA - RANGE: %f, BEARING: %f deg, TIME: %d %d", measurements(KFNav::camera_range),
             data->bearing * 180 / M_PI, data->header.stamp.sec,
