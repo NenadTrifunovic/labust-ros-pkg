@@ -209,6 +209,12 @@ void Estimator3D::onCameraBearningOffset(const std_msgs::Float32::ConstPtr& data
   ROS_ERROR("Camera bearing offset changed: %f.", camera_bearing_offset);
 }
 
+void Estimator3D::onCameraRangeOffset(const std_msgs::Float32::ConstPtr& data)
+{
+  camera_offset = data->data;
+  ROS_ERROR("Camera range offset changed: %f.", camera_offset);
+}
+
 void Estimator3D::onUSBLrangeOffset(const std_msgs::Float32::ConstPtr& data)
 {
   usbl_offset = data->data;

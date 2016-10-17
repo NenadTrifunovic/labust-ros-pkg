@@ -147,6 +147,10 @@ namespace labust
 			 */
 			void onCameraBearningOffset(const std_msgs::Float32::ConstPtr& data);
 			/**
+			 * Handle the camera measurement.
+			 */
+			void onCameraRangeOffset(const std_msgs::Float32::ConstPtr& data);
+			/**
 			 * Helper method to process measurements.
 			 */
 			void processMeasurements();
