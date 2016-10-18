@@ -234,13 +234,33 @@ void TwoVehicleLocalizationModel::derivativeH()
 	double delta_y = (x(yb)-x(yp));
 	double delta_z = (x(zb)-x(zp));
 
-	double eps = 1.0e-9;
+	double eps = 1.0e-25;
 
-	rng = (rng<eps)?eps:rng;
-	rng_h = (rng_h<eps)?eps:rng_h;
-	delta_x = (std::abs(delta_x)<eps)?eps:delta_x;
-	delta_y = (std::abs(delta_y)<eps)?eps:delta_y;
-	delta_z = (std::abs(delta_z)<eps)?eps:delta_z;
+    if(rng_h<eps)
+    {
+    	rng_h = eps;
+
+    	if(std::abs(delta_x)<eps)
+    	{
+    		delta_x = delta_x<0?-eps:eps;
+    	}
+
+    	if(std::abs(delta_y)<eps)
+    	{
+    		delta_y = delta_y<0?-eps:eps;
+    	}
+    }
+
+    if(rng<eps)
+    {
+    	rng = eps;
+
+    	if(std::abs(delta_z)<eps)
+    	{
+    		delta_z = delta_z<0?-eps:eps;
+    	}
+    }
+
 
 	ynl(range) = rng;
 	ynl(bearing) = bearing_unwrap(atan2(delta_y,delta_x) -1*x(hdg));
@@ -261,16 +281,16 @@ void TwoVehicleLocalizationModel::derivativeH()
 
 	Hnl(bearing, hdg) = -1;
 
-	ynl(sonar_range) = rng_h;
+	ynl(sonar_range) = rng;
 	ynl(sonar_bearing) = bearing_unwrap(atan2(delta_y,delta_x) -1*x(hdg));
 
-	Hnl(sonar_range, xp)  = -(delta_x)/rng_h;
-	Hnl(sonar_range, yp)  = -(delta_y)/rng_h;
-	//Hnl(sonar_range, zp)  = -(delta_z)/rng;
+	Hnl(sonar_range, xp)  = -(delta_x)/rng;
+	Hnl(sonar_range, yp)  = -(delta_y)/rng;
+	Hnl(sonar_range, zp)  = -(delta_z)/rng;
 
-	Hnl(sonar_range, xb)  = (delta_x)/rng_h;
-	Hnl(sonar_range, yb)  = (delta_y)/rng_h;
-	//Hnl(sonar_range, zb)  = (delta_z)/rng;
+	Hnl(sonar_range, xb)  = (delta_x)/rng;
+	Hnl(sonar_range, yb)  = (delta_y)/rng;
+	Hnl(sonar_range, zb)  = (delta_z)/rng;
 
 	Hnl(sonar_bearing, xp) = delta_y/(delta_x*delta_x+delta_y*delta_y);
 	Hnl(sonar_bearing, yp) = -delta_x/(delta_x*delta_x+delta_y*delta_y);
