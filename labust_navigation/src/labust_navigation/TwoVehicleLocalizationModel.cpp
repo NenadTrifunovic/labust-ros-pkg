@@ -234,17 +234,13 @@ void TwoVehicleLocalizationModel::derivativeH()
 	double delta_y = (x(yb)-x(yp));
 	double delta_z = (x(zb)-x(zp));
 
-	double eps = 1.0e-25;
+	double eps = 1.0e-9;
 
-	if(rng<eps)
-	{
-        ROS_ERROR("DEBUG: eps!");
-		rng = eps;
-		rng_h = eps;
-		delta_x = (delta_x<0)?-0.5*eps:0.5*eps;
-		delta_y = (delta_y<0)?-0.5*eps:0.5*eps;
-		delta_z = 0;
-	}
+	rng = (rng<eps)?eps:rng;
+	rng_h = (rng_h<eps)?eps:rng_h;
+	delta_x = (std::abs(delta_x)<eps)?eps:delta_x;
+	delta_y = (std::abs(delta_y)<eps)?eps:delta_y;
+	delta_z = (std::abs(delta_z)<eps)?eps:delta_z;
 
 	ynl(range) = rng;
 	ynl(bearing) = bearing_unwrap(atan2(delta_y,delta_x) -1*x(hdg));
@@ -284,8 +280,9 @@ void TwoVehicleLocalizationModel::derivativeH()
 	Hnl(sonar_bearing, hdg) = -1;
 	
     ynl(camera_range) = rng;
-	ynl(camera_bearing) = bearing_unwrap(atan2(delta_y,delta_x) -1*x(hdg));
-   // ynl(camera_hdgb) = x(hdgb);
+	//ynl(camera_bearing) = bearing_unwrap(atan2(delta_y,delta_x) -1*x(hdg));
+	ynl(camera_bearing) = camera_bearing_unwrap(atan2(delta_y,delta_x) -1*x(hdg));
+    ynl(camera_hdgb) = x(hdgb);
 
 	Hnl(camera_range, xp)  = -(delta_x)/rng;
 	Hnl(camera_range, yp)  = -(delta_y)/rng;
@@ -301,6 +298,6 @@ void TwoVehicleLocalizationModel::derivativeH()
 	Hnl(camera_bearing, yb) = delta_x/(delta_x*delta_x+delta_y*delta_y);
 
 	Hnl(camera_bearing, hdg) = -1;
-   // Hnl(camera_hdgb,hdgb) = 1; // Check this!!!
+    Hnl(camera_hdgb,hdgb) = 1; // Check this!!!
 }
 
