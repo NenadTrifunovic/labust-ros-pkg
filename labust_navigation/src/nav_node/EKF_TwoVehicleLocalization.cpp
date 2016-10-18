@@ -444,19 +444,19 @@ void Estimator3D::processMeasurements()
   data->data = measurements(KFNav::range);
   pub_usbl_range.publish(data);
 
-  data->data = measurements(KFNav::bearing);
+  data->data = labust::math::wrapRad(measurements(KFNav::bearing));
   pub_usbl_bearing.publish(data);
 
   data->data = measurements(KFNav::sonar_range);
   pub_sonar_range.publish(data);
 
-  data->data = measurements(KFNav::sonar_bearing);
+  data->data = labust::math::wrapRad(measurements(KFNav::sonar_bearing));
   pub_sonar_bearing.publish(data);
 
   data->data = measurements(KFNav::camera_range);
   pub_camera_range.publish(data);
 
-  data->data = measurements(KFNav::camera_bearing);
+  data->data = labust::math::wrapRad(measurements(KFNav::camera_bearing));
   pub_camera_bearing.publish(data);
 }
 
