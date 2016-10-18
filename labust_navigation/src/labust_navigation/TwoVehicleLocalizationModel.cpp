@@ -169,11 +169,15 @@ const TwoVehicleLocalizationModel::output_type& TwoVehicleLocalizationModel::upd
 
 	for (size_t i=0; i<newMeas.size(); ++i)
 	{
-		if (newMeas(i))
+		if (newMeas(i) && !std::isnan(measurements(i)))
 		{
 			arrived.push_back(i);
 			dataVec.push_back(measurements(i));
 			newMeas(i) = 0;
+		} else if(std::isnan(measurements(i)))
+		{
+			newMeas(i) = 0;
+			ROS_ERROR("NaN measurement arrived.");
 		}
 	}
 
@@ -242,12 +246,12 @@ void TwoVehicleLocalizationModel::derivativeH()
 
     	if(std::abs(delta_x)<eps)
     	{
-    		delta_x = delta_x<0?-eps:eps;
+    		delta_x = delta_x<0?-0.5*eps:0.5*eps;
     	}
 
     	if(std::abs(delta_y)<eps)
     	{
-    		delta_y = delta_y<0?-eps:eps;
+    		delta_y = delta_y<0?-0.5*eps:0.5*eps;
     	}
     }
 
@@ -260,7 +264,6 @@ void TwoVehicleLocalizationModel::derivativeH()
     		delta_z = delta_z<0?-eps:eps;
     	}
     }
-
 
 	ynl(range) = rng;
 	ynl(bearing) = bearing_unwrap(atan2(delta_y,delta_x) -1*x(hdg));
@@ -301,7 +304,7 @@ void TwoVehicleLocalizationModel::derivativeH()
 	
     ynl(camera_range) = rng;
 	//ynl(camera_bearing) = bearing_unwrap(atan2(delta_y,delta_x) -1*x(hdg));
-	ynl(camera_bearing) = camera_bearing_unwrap(atan2(delta_y,delta_x) -1*x(hdg));
+    ynl(camera_bearing) = camera_bearing_unwrap(atan2(delta_y,delta_x) -1*x(hdg));
     ynl(camera_hdgb) = x(hdgb);
 
 	Hnl(camera_range, xp)  = -(delta_x)/rng;
@@ -318,6 +321,6 @@ void TwoVehicleLocalizationModel::derivativeH()
 	Hnl(camera_bearing, yb) = delta_x/(delta_x*delta_x+delta_y*delta_y);
 
 	Hnl(camera_bearing, hdg) = -1;
-    Hnl(camera_hdgb,hdgb) = 1; // Check this!!!
+    Hnl(camera_hdgb,hdgb) = 1;
 }
 
