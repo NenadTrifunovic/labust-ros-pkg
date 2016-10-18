@@ -151,6 +151,14 @@ namespace labust
 			 */
 			void onCameraRangeOffset(const std_msgs::Float32::ConstPtr& data);
 			/**
+			 * Handle the camera measurement.
+			 */
+			void onSonarBearningOffset(const std_msgs::Float32::ConstPtr& data);
+			/**
+			 * Handle the camera measurement.
+			 */
+			void onSonarRangeOffset(const std_msgs::Float32::ConstPtr& data);
+			/**
 			 * Helper method to process measurements.
 			 */
 			void processMeasurements();
@@ -191,6 +199,11 @@ namespace labust
 			 */
 			labust::math::unwrap course_unwrap;
 			labust::math::unwrap bearing_unwrap;
+			labust::math::unwrap camera_bearing_unwrap;
+			labust::math::unwrap sonar_bearing_unwrap;
+
+			labust::math::unwrap hdgb_unwrap;
+
 			/**
 			 * Estimated and measured state publisher.
 			 */
@@ -205,7 +218,7 @@ namespace labust
 			 */
 			ros::Subscriber subLocalStateHat, resetTopic, subSecond_navsts;
 			ros::Subscriber subSecond_heading, subSecond_position, subSecond_speed, subSecond_usbl_fix, subSecond_sonar_fix, subSecond_camera_fix;
-			ros::Subscriber sub_usbl_bearing_offset, sub_usbl_range_offset, sub_camera_range_offset, sub_sonar_range_offset, sub_camera_bearing_offset;
+			ros::Subscriber sub_usbl_bearing_offset, sub_usbl_range_offset, sub_camera_range_offset, sub_sonar_range_offset, sub_camera_bearing_offset, sub_sonar_bearing_offset;
 
 			/**
 			 * The transform broadcaster.
@@ -234,11 +247,11 @@ namespace labust
 			/**
 			 *  USBL measurements enable flags
 			 */
-			bool enableDelay, enableRange, enableBearing, enableElevation, enableRejection, alternate_outlier;
+			bool enableDelay, enableRange, enableBearing, enableElevation, enableRejection, alternate_outlier, enable_camera_heading;
 
 			KFNav::matrix Pstart, Rstart;
 
-			double sonar_offset, usbl_offset, cov_limit, usbl_bearing_offset, depth_offset, meas_timeout_limit, camera_offset, camera_bearing_offset;
+			double sonar_offset, usbl_offset, cov_limit, usbl_bearing_offset, depth_offset, meas_timeout_limit, camera_offset, camera_bearing_offset, sonar_bearing_offset;
 
 			std::deque<FilterState> pastStates;
 
@@ -246,7 +259,7 @@ namespace labust
 
 			Eigen::Matrix2d P_rng_bear_relative;
 
-                        int display_counter;
+            int display_counter;
 
 		};
 	}

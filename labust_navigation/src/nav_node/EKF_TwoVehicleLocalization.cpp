@@ -81,12 +81,14 @@ Estimator3D::Estimator3D()
   , enableBearing(true)
   , enableElevation(false)
   , enableRejection(false)
+  , enable_camera_heading(false)
   , alternate_outlier(false)
   , sonar_offset(0.0)
   , usbl_offset(0.0)
   , camera_offset(0.0)
   , usbl_bearing_offset(0.0)
   , camera_bearing_offset(0.0)
+  , sonar_bearing_offset(0.0)
   , depth_offset(0.0)
   , meas_timeout_limit(10.0)
   , cov_limit(50.0)
@@ -147,8 +149,13 @@ void Estimator3D::onInit()
   sub_usbl_range_offset = nh.subscribe<std_msgs::Float32>("usbl_range_offset", 1,
           &Estimator3D::onUSBLrangeOffset, this);
   sub_camera_range_offset = nh.subscribe<std_msgs::Float32>("camera_range_offset", 1,
-            &Estimator3D::onUSBLrangeOffset, this);
+            &Estimator3D::onCameraRangeOffset, this);
   sub_camera_bearing_offset = nh.subscribe<std_msgs::Float32>("camera_bearing_offset", 1,
+                                              &Estimator3D::onCameraBearningOffset, this);
+
+  sub_sonar_range_offset = nh.subscribe<std_msgs::Float32>("sonar_range_offset", 1,
+            &Estimator3D::onCameraRangeOffset, this);
+  sub_sonar_bearing_offset = nh.subscribe<std_msgs::Float32>("sonar_bearing_offset", 1,
                                               &Estimator3D::onCameraBearningOffset, this);
 
   pub_usbl_range = nh.advertise<std_msgs::Float32>("measurement_diver/usbl/range", 1);
@@ -177,6 +184,10 @@ void Estimator3D::onInit()
   ph.param("measurement_timeout", meas_timeout_limit, meas_timeout_limit);
   ph.param("camera_offset", camera_offset, camera_offset);
   ph.param("camera_bearing_offset", camera_bearing_offset, camera_bearing_offset);
+  ph.param("sonar_bearing_offset", sonar_bearing_offset, sonar_bearing_offset);
+
+  ph.param("enable_camera_heading", enable_camera_heading, enable_camera_heading);
+
 
 }
 
@@ -218,6 +229,12 @@ void Estimator3D::onCameraBearningOffset(const std_msgs::Float32::ConstPtr& data
   ROS_ERROR("Camera bearing offset changed: %f.", camera_bearing_offset);
 }
 
+void Estimator3D::onSonarBearningOffset(const std_msgs::Float32::ConstPtr& data)
+{
+  sonar_bearing_offset = data->data;
+  ROS_ERROR("Sonar bearing offset changed: %f.", sonar_bearing_offset);
+}
+
 void Estimator3D::onCameraRangeOffset(const std_msgs::Float32::ConstPtr& data)
 {
   camera_offset = data->data;
@@ -228,6 +245,12 @@ void Estimator3D::onUSBLrangeOffset(const std_msgs::Float32::ConstPtr& data)
 {
   usbl_offset = data->data;
   ROS_ERROR("USBL range offset changed: %f.", usbl_offset);
+}
+
+void Estimator3D::onSonarRangeOffset(const std_msgs::Float32::ConstPtr& data)
+{
+  sonar_offset = data->data;
+  ROS_ERROR("Sonar range offset changed: %f.", sonar_offset);
 }
 
 /*********************************************************************
@@ -283,7 +306,7 @@ void Estimator3D::onSecond_navsts(const auv_msgs::NavSts::ConstPtr& data)
 
   //measurements(KFNav::psib) = data->orientation.yaw;
   //newMeas(KFNav::psib) = 1;
-  measurements(KFNav::hdgb) = data->orientation.yaw;
+  measurements(KFNav::hdgb) = hdgb_unwrap(data->orientation.yaw);
   newMeas(KFNav::hdgb) = 1;
   ROS_ERROR("DIVER - ACOUSTIC - DEPTH: %f, HEADING: %f",measurements(KFNav::zb), measurements(KFNav::hdgb));
 }
@@ -356,13 +379,14 @@ void Estimator3D::onSecond_camera_fix(
   measurement_timeout = ros::Time::now();
   /*** Get sonar measurements ***/
   measurements(KFNav::camera_range) = data->range + camera_offset;
-  newMeas(KFNav::camera_range) = data->range > 0.1 && !std::isnan(data->range);
+  newMeas(KFNav::camera_range) = (data->range > 0.1) && !std::isnan(data->range);
 
-  measurements(KFNav::camera_bearing) = bearing_unwrap(data->bearing + camera_bearing_offset*M_PI/180);
+  //measurements(KFNav::camera_bearing) = bearing_unwrap(data->bearing + camera_bearing_offset*M_PI/180);
+  measurements(KFNav::camera_bearing) = camera_bearing_unwrap(data->bearing + camera_bearing_offset*M_PI/180);
   newMeas(KFNav::camera_bearing) = !std::isnan(data->bearing);
 
-  measurements(KFNav::camera_hdgb) = data->heading;
-  newMeas(KFNav::camera_hdgb) = 0;//(std::abs(data->heading) <= M_PI) && !std::isnan(data->heading);
+  measurements(KFNav::camera_hdgb) = hdgb_unwrap(data->heading);
+  newMeas(KFNav::camera_hdgb) = enable_camera_heading && (std::abs(data->heading) <= M_PI) && !std::isnan(data->heading);
 
   ROS_ERROR("CAMERA - RANGE: %f, BEARING: %f deg, TIME: %d %d", measurements(KFNav::camera_range),
             data->bearing * 180 / M_PI, data->header.stamp.sec,
@@ -466,7 +490,7 @@ void Estimator3D::publishState()
   //state2->gbody_velocity.z = estimate(KFNav::wb);
 
   // state2->orientation.yaw = 0;
-  state2->orientation.pitch = labust::math::wrapRad(estimate(KFNav::psib));
+  state2->orientation.pitch = 0*labust::math::wrapRad(estimate(KFNav::psib));
   state2->orientation.yaw = labust::math::wrapRad(estimate(KFNav::hdgb));
   //state2->orientation_rate.yaw = estimate(KFNav::rb);
 

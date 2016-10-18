@@ -194,7 +194,10 @@ namespace labust
 		/**
 		 *  Bearing unwrapper.
 		 */
+
 		labust::math::unwrap bearing_unwrap;
+		labust::math::unwrap camera_bearing_unwrap;
+		labust::math::unwrap sonar_bearing_unwrap;
     };
   }
 }
