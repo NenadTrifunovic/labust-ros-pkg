@@ -89,6 +89,7 @@ Estimator3D::Estimator3D()
   , usbl_bearing_offset(0.0)
   , camera_bearing_offset(0.0)
   , sonar_bearing_offset(0.0)
+  , diver_camera_heading_offset(0.0)
   , depth_offset(0.0)
   , meas_timeout_limit(10.0)
   , cov_limit(50.0)
@@ -155,8 +156,8 @@ void Estimator3D::onInit()
 
   sub_sonar_range_offset = nh.subscribe<std_msgs::Float32>("sonar_range_offset", 1,
             &Estimator3D::onCameraRangeOffset, this);
-  sub_sonar_bearing_offset = nh.subscribe<std_msgs::Float32>("sonar_bearing_offset", 1,
-                                              &Estimator3D::onCameraBearningOffset, this);
+  sub_depth_offset = nh.subscribe<std_msgs::Float32>("depth_offset", 1,
+                                              &Estimator3D::onDepthOffset, this);
 
   pub_usbl_range = nh.advertise<std_msgs::Float32>("measurement_diver/usbl/range", 1);
   pub_usbl_bearing = nh.advertise<std_msgs::Float32>("measurement_diver/usbl/bearing", 1);
@@ -187,6 +188,8 @@ void Estimator3D::onInit()
   ph.param("sonar_bearing_offset", sonar_bearing_offset, sonar_bearing_offset);
 
   ph.param("enable_camera_heading", enable_camera_heading, enable_camera_heading);
+  ph.param("diver_camera_heading_offset", diver_camera_heading_offset, diver_camera_heading_offset);
+
 
 
 }
@@ -251,6 +254,12 @@ void Estimator3D::onSonarRangeOffset(const std_msgs::Float32::ConstPtr& data)
 {
   sonar_offset = data->data;
   ROS_ERROR("Sonar range offset changed: %f.", sonar_offset);
+}
+
+void Estimator3D::onDepthOffset(const std_msgs::Float32::ConstPtr& data)
+{
+  depth_offset = data->data;
+  ROS_ERROR("Depth offset changed: %f.", depth_offset);
 }
 
 /*********************************************************************
@@ -385,7 +394,7 @@ void Estimator3D::onSecond_camera_fix(
   measurements(KFNav::camera_bearing) = camera_bearing_unwrap(data->bearing + camera_bearing_offset*M_PI/180);
   newMeas(KFNav::camera_bearing) = !std::isnan(data->bearing);
 
-  measurements(KFNav::camera_hdgb) = hdgb_unwrap(data->heading);
+  measurements(KFNav::camera_hdgb) = hdgb_camera_unwrap(data->heading + diver_camera_heading_offset);
   newMeas(KFNav::camera_hdgb) = enable_camera_heading && (std::abs(data->heading) <= M_PI) && !std::isnan(data->heading);
 
   ROS_ERROR("CAMERA - RANGE: %f, BEARING: %f deg, TIME: %d %d", measurements(KFNav::camera_range),
