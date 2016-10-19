@@ -163,6 +163,14 @@ namespace labust
 			 */
 			void onDepthOffset(const std_msgs::Float32::ConstPtr& data);
 			/**
+			 * Handle the camera measurement.
+			 */
+			void onCameraHeadingOffset(const std_msgs::Float32::ConstPtr& data);
+			/**
+			 * Handle the camera measurement.
+			 */
+			void onDivernetHeadingOffset(const std_msgs::Float32::ConstPtr& data);
+			/**
 			 * Helper method to process measurements.
 			 */
 			void processMeasurements();
@@ -225,7 +233,7 @@ namespace labust
 			ros::Subscriber subLocalStateHat, resetTopic, subSecond_navsts;
 			ros::Subscriber subSecond_heading, subSecond_position, subSecond_speed, subSecond_usbl_fix, subSecond_sonar_fix, subSecond_camera_fix;
 			ros::Subscriber sub_usbl_bearing_offset, sub_usbl_range_offset, sub_camera_range_offset, sub_sonar_range_offset, sub_camera_bearing_offset, sub_sonar_bearing_offset;
-			ros::Subscriber sub_depth_offset;
+			ros::Subscriber sub_depth_offset, sub_camera_heading_offset, sub_divernet_heading_offset;
 			/**
 			 * The transform broadcaster.
 			 */
@@ -258,7 +266,7 @@ namespace labust
 			KFNav::matrix Pstart, Rstart;
 
 			double sonar_offset, usbl_offset, cov_limit, usbl_bearing_offset, depth_offset, meas_timeout_limit, camera_offset, camera_bearing_offset, sonar_bearing_offset;
-			double diver_camera_heading_offset;
+			double diver_camera_heading_offset, divernet_heading_offset;
 			std::deque<FilterState> pastStates;
 
 			labust::tools::OutlierRejection OR, OR_b;

@@ -90,6 +90,7 @@ Estimator3D::Estimator3D()
   , camera_bearing_offset(0.0)
   , sonar_bearing_offset(0.0)
   , diver_camera_heading_offset(0.0)
+  , divernet_heading_offset(0.0)
   , depth_offset(0.0)
   , meas_timeout_limit(10.0)
   , cov_limit(50.0)
@@ -159,6 +160,11 @@ void Estimator3D::onInit()
   sub_depth_offset = nh.subscribe<std_msgs::Float32>("depth_offset", 1,
                                               &Estimator3D::onDepthOffset, this);
 
+  sub_camera_heading_offset  = nh.subscribe<std_msgs::Float32>("camera_heading_offset", 1,
+          &Estimator3D::onCameraHeadingOffset, this);
+  sub_divernet_heading_offset  = nh.subscribe<std_msgs::Float32>("divernet_heading_offset", 1,
+          &Estimator3D::onDivernetHeadingOffset, this);
+
   pub_usbl_range = nh.advertise<std_msgs::Float32>("measurement_diver/usbl/range", 1);
   pub_usbl_bearing = nh.advertise<std_msgs::Float32>("measurement_diver/usbl/bearing", 1);
   pub_sonar_range = nh.advertise<std_msgs::Float32>("measurement_diver/sonar/range", 1);
@@ -188,7 +194,10 @@ void Estimator3D::onInit()
   ph.param("sonar_bearing_offset", sonar_bearing_offset, sonar_bearing_offset);
 
   ph.param("enable_camera_heading", enable_camera_heading, enable_camera_heading);
-  ph.param("diver_camera_heading_offset", diver_camera_heading_offset, diver_camera_heading_offset);
+  ph.param("camera_heading_offset", diver_camera_heading_offset, diver_camera_heading_offset);
+  ph.param("divernet_heading_offset", divernet_heading_offset, divernet_heading_offset);
+
+
 
 
 
@@ -262,6 +271,18 @@ void Estimator3D::onDepthOffset(const std_msgs::Float32::ConstPtr& data)
   ROS_ERROR("Depth offset changed: %f.", depth_offset);
 }
 
+void Estimator3D::onDivernetHeadingOffset(const std_msgs::Float32::ConstPtr& data)
+{
+  divernet_heading_offset = data->data;
+  ROS_ERROR("Divernet heading offset changed: %f.", divernet_heading_offset);
+}
+
+void Estimator3D::onCameraHeadingOffset(const std_msgs::Float32::ConstPtr& data)
+{
+  diver_camera_heading_offset = data->data;
+  ROS_ERROR("Camera heading offset changed: %f.", diver_camera_heading_offset);
+}
+
 /*********************************************************************
  *** Measurement callback
  ********************************************************************/
@@ -315,7 +336,7 @@ void Estimator3D::onSecond_navsts(const auv_msgs::NavSts::ConstPtr& data)
 
   //measurements(KFNav::psib) = data->orientation.yaw;
   //newMeas(KFNav::psib) = 1;
-  measurements(KFNav::hdgb) = hdgb_unwrap(data->orientation.yaw);
+  measurements(KFNav::hdgb) = hdgb_unwrap(data->orientation.yaw + divernet_heading_offset);
   newMeas(KFNav::hdgb) = 1;
   ROS_ERROR("DIVER - ACOUSTIC - DEPTH: %f, HEADING: %f",measurements(KFNav::zb), measurements(KFNav::hdgb));
 }
