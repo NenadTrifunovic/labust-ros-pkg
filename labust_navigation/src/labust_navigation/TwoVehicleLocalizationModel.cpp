@@ -266,7 +266,8 @@ void TwoVehicleLocalizationModel::derivativeH()
     }
 
 	ynl(range) = rng;
-	ynl(bearing) = bearing_unwrap(atan2(delta_y,delta_x) -1*x(hdg));
+	//ynl(bearing) = bearing_unwrap(atan2(delta_y,delta_x) -1*x(hdg));
+	ynl(bearing) = atan2(delta_y,delta_x) -1*labust::math::wrapRad(x(hdg));
 	//ynl(elevation) = asin((x(zp)-x(zb))/rng);
 
 	Hnl(range, xp)  = -(delta_x)/rng;
@@ -285,7 +286,9 @@ void TwoVehicleLocalizationModel::derivativeH()
 	Hnl(bearing, hdg) = -1;
 
 	ynl(sonar_range) = rng_h;
-	ynl(sonar_bearing) = sonar_bearing_unwrap(atan2(delta_y,delta_x) -1*x(hdg));
+	//ynl(sonar_bearing) = sonar_bearing_unwrap(atan2(delta_y,delta_x) -1*x(hdg));
+	ynl(sonar_bearing) = atan2(delta_y,delta_x) -1*labust::math::wrapRad(x(hdg));
+
 
 	Hnl(sonar_range, xp)  = -(delta_x)/rng_h;
 	Hnl(sonar_range, yp)  = -(delta_y)/rng_h;
@@ -303,8 +306,8 @@ void TwoVehicleLocalizationModel::derivativeH()
 	Hnl(sonar_bearing, hdg) = -1;
 	
     ynl(camera_range) = rng_h;
-	//ynl(camera_bearing) = bearing_unwrap(atan2(delta_y,delta_x) -1*x(hdg));
-    ynl(camera_bearing) = camera_bearing_unwrap(atan2(delta_y,delta_x) -1*x(hdg));
+    //ynl(camera_bearing) = camera_bearing_unwrap(atan2(delta_y,delta_x) -1*x(hdg));
+    ynl(camera_bearing) = atan2(delta_y,delta_x) -1*labust::math::wrapRad(x(hdg));
     ynl(camera_hdgb) = x(hdgb);
 
 	Hnl(camera_range, xp)  = -(delta_x)/rng_h;

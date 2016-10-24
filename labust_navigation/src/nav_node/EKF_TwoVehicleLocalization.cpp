@@ -115,7 +115,7 @@ void Estimator3D::onInit()
   pubLocalStateHat = nh.advertise<auv_msgs::NavSts>("localStateHat", 1);
   pubSecondStateHat = nh.advertise<auv_msgs::NavSts>("secondStateHat", 1);
 
-  pubLocalStateMeas = nh.advertise<auv_msgs::NavSts>("localMesurement", 1);
+  pubLocalStateMeas = nh.advertise<auv_msgs::NavSts>("localMeasurement", 1);
   pubSecondStateMeas = nh.advertise<auv_msgs::NavSts>("secondMesurement", 1);
 
   pubBearing = nh.advertise<std_msgs::Float32>("bearing_meas", 1);
@@ -171,6 +171,8 @@ void Estimator3D::onInit()
   pub_sonar_bearing = nh.advertise<std_msgs::Float32>("measurement_diver_2/sonar/bearing", 1);
   pub_camera_range = nh.advertise<std_msgs::Float32>("measurement_diver_2/camera/range", 1);
   pub_camera_bearing =nh.advertise<std_msgs::Float32>("measurement_diver_2/camera/bearing", 1);
+  pub_diver_course =nh.advertise<std_msgs::Float32>("estimate_diver_2/diver/course", 1);
+
 
   /** Enable USBL measurements */
   ph.param("delay", enableDelay, enableDelay);
@@ -315,7 +317,8 @@ void Estimator3D::onLocalStateHat(const auv_msgs::NavSts::ConstPtr& data)
   in << data->gbody_velocity.x, data->gbody_velocity.y;
   out = R * in;
 
-  measurements(KFNav::psi) = course_unwrap(std::atan2(out(1), out(0)));
+//  measurements(KFNav::psi) = course_unwrap(std::atan2(out(1), out(0)));
+  measurements(KFNav::psi) = std::atan2(out(1), out(0));
   newMeas(KFNav::psi) = 1;
 
   measurements(KFNav::u) =
@@ -350,9 +353,13 @@ void Estimator3D::onSecond_usbl_fix(
   double delay =
       double(calculateDelaySteps(currentTime - delay_time, currentTime)); // Totalno nepotrebno
 
+//  double bear =
+//      data->bearing -
+//      180 * nav.getState()(KFNav::hdg) / M_PI + usbl_bearing_offset;  // Buddy pings Videoray
+
   double bear =
       data->bearing -
-      180 * nav.getState()(KFNav::hdg) / M_PI + usbl_bearing_offset;  // Buddy pings Videoray
+      180 * labust::math::wrapRad(nav.getState()(KFNav::hdg)) / M_PI + usbl_bearing_offset;  // Buddy pings Videoray
   double elev = 180 - data->elevation;
 
   const KFNav::vector& x = nav.getState();
@@ -362,7 +369,8 @@ void Estimator3D::onSecond_usbl_fix(
   newMeas(KFNav::range) = enableRange && (data->range > 0.1);
   measDelay(KFNav::range) = delay;
 
-  measurements(KFNav::bearing) = bearing_unwrap(bear * M_PI / 180);
+  //measurements(KFNav::bearing) = bearing_unwrap(bear * M_PI / 180);
+  measurements(KFNav::bearing) = bear * M_PI / 180;
   newMeas(KFNav::bearing) = enableBearing;
   measDelay(KFNav::bearing) = delay;
 
@@ -395,7 +403,8 @@ void Estimator3D::onSecond_sonar_fix(
   measurements(KFNav::sonar_range) = data->range+sonar_offset;
   newMeas(KFNav::sonar_range) = data->range > 0.1;
 
-  measurements(KFNav::sonar_bearing) = bearing_unwrap(data->bearing);
+  //measurements(KFNav::sonar_bearing) = bearing_unwrap(data->bearing);
+  measurements(KFNav::sonar_bearing) = data->bearing;
   newMeas(KFNav::sonar_bearing) = 1;
 
   ROS_ERROR("SONAR - RANGE: %f, BEARING: %f deg, TIME: %d %d", measurements(KFNav::sonar_range),
@@ -412,7 +421,8 @@ void Estimator3D::onSecond_camera_fix(
   newMeas(KFNav::camera_range) = (data->range > 0.1) && !std::isnan(data->range);
 
   //measurements(KFNav::camera_bearing) = bearing_unwrap(data->bearing + camera_bearing_offset*M_PI/180);
-  measurements(KFNav::camera_bearing) = camera_bearing_unwrap(data->bearing + camera_bearing_offset*M_PI/180);
+  //measurements(KFNav::camera_bearing) = camera_bearing_unwrap(data->bearing + camera_bearing_offset*M_PI/180);
+  measurements(KFNav::camera_bearing) = data->bearing + camera_bearing_offset*M_PI/180;
   newMeas(KFNav::camera_bearing) = !std::isnan(data->bearing);
 
   measurements(KFNav::camera_hdgb) = hdgb_camera_unwrap(data->heading + diver_camera_heading_offset);
@@ -447,7 +457,7 @@ void Estimator3D::processMeasurements()
   meas->position.east = measurements(KFNav::yp);
   meas->position.depth = measurements(KFNav::zp);
 
-  meas->orientation.yaw = labust::math::wrapRad(measurements(KFNav::psi));
+  meas->orientation.yaw = labust::math::wrapRad(measurements(KFNav::hdg));
   meas->orientation_rate.yaw = measurements(KFNav::r);
 
   meas->header.stamp = ros::Time::now();
@@ -520,7 +530,7 @@ void Estimator3D::publishState()
   //state2->gbody_velocity.z = estimate(KFNav::wb);
 
   // state2->orientation.yaw = 0;
-  state2->orientation.pitch = 0*labust::math::wrapRad(estimate(KFNav::psib));
+  //state2->orientation.pitch = 0;
   state2->orientation.yaw = labust::math::wrapRad(estimate(KFNav::hdgb));
   //state2->orientation_rate.yaw = estimate(KFNav::rb);
 
@@ -593,6 +603,10 @@ void Estimator3D::publishState()
   std_msgs::Float32::Ptr data(new std_msgs::Float32);
   data->data = traceP;
   pubCondP.publish(data);
+
+  data->data = labust::math::wrapRad(estimate(KFNav::psib));
+  pub_diver_course.publish(data);
+
 }
 
 int Estimator3D::calculateDelaySteps(double measTime, double arrivalTime)

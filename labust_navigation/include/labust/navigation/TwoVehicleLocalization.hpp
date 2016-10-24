@@ -225,6 +225,7 @@ namespace labust
 			ros::Publisher pubRange, pubBearing, pubRangeFiltered, pubwk;
 			ros::Publisher pubCondP, pubCondPxy, pubCost;
 			ros::Publisher pub_usbl_range, pub_usbl_bearing, pub_sonar_range, pub_sonar_bearing, pub_camera_range, pub_camera_bearing;
+			ros::Publisher pub_diver_course;
 
 
 			/**
