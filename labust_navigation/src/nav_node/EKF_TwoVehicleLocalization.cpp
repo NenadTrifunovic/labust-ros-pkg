@@ -165,12 +165,12 @@ void Estimator3D::onInit()
   sub_divernet_heading_offset  = nh.subscribe<std_msgs::Float32>("divernet_heading_offset", 1,
           &Estimator3D::onDivernetHeadingOffset, this);
 
-  pub_usbl_range = nh.advertise<std_msgs::Float32>("measurement_diver/usbl/range", 1);
-  pub_usbl_bearing = nh.advertise<std_msgs::Float32>("measurement_diver/usbl/bearing", 1);
-  pub_sonar_range = nh.advertise<std_msgs::Float32>("measurement_diver/sonar/range", 1);
-  pub_sonar_bearing = nh.advertise<std_msgs::Float32>("measurement_diver/sonar/bearing", 1);
-  pub_camera_range = nh.advertise<std_msgs::Float32>("measurement_diver/camera/range", 1);
-  pub_camera_bearing =nh.advertise<std_msgs::Float32>("measurement_diver/camera/bearing", 1);
+  pub_usbl_range = nh.advertise<std_msgs::Float32>("measurement_diver_2/usbl/range", 1);
+  pub_usbl_bearing = nh.advertise<std_msgs::Float32>("measurement_diver_2/usbl/bearing", 1);
+  pub_sonar_range = nh.advertise<std_msgs::Float32>("measurement_diver_2/sonar/range", 1);
+  pub_sonar_bearing = nh.advertise<std_msgs::Float32>("measurement_diver_2/sonar/bearing", 1);
+  pub_camera_range = nh.advertise<std_msgs::Float32>("measurement_diver_2/camera/range", 1);
+  pub_camera_bearing =nh.advertise<std_msgs::Float32>("measurement_diver_2/camera/bearing", 1);
 
   /** Enable USBL measurements */
   ph.param("delay", enableDelay, enableDelay);
@@ -472,22 +472,22 @@ void Estimator3D::processMeasurements()
 
   std_msgs::Float32::Ptr data(new std_msgs::Float32);
   data->data = measurements(KFNav::range);
-  pub_usbl_range.publish(data);
+  if(newMeas(KFNav::range)) pub_usbl_range.publish(data);
 
   data->data = labust::math::wrapRad(measurements(KFNav::bearing));
-  pub_usbl_bearing.publish(data);
+  if(newMeas(KFNav::bearing)) pub_usbl_bearing.publish(data);
 
   data->data = measurements(KFNav::sonar_range);
-  pub_sonar_range.publish(data);
+  if(newMeas(KFNav::sonar_range)) pub_sonar_range.publish(data);
 
   data->data = labust::math::wrapRad(measurements(KFNav::sonar_bearing));
-  pub_sonar_bearing.publish(data);
+  if(newMeas(KFNav::sonar_bearing)) pub_sonar_bearing.publish(data);
 
   data->data = measurements(KFNav::camera_range);
-  pub_camera_range.publish(data);
+  if(newMeas(KFNav::camera_range)) pub_camera_range.publish(data);
 
   data->data = labust::math::wrapRad(measurements(KFNav::camera_bearing));
-  pub_camera_bearing.publish(data);
+  if(newMeas(KFNav::camera_bearing)) pub_camera_bearing.publish(data);
 }
 
 void Estimator3D::publishState()

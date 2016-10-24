@@ -285,7 +285,7 @@ void TwoVehicleLocalizationModel::derivativeH()
 	Hnl(bearing, hdg) = -1;
 
 	ynl(sonar_range) = rng_h;
-	ynl(sonar_bearing) = bearing_unwrap(atan2(delta_y,delta_x) -1*x(hdg));
+	ynl(sonar_bearing) = sonar_bearing_unwrap(atan2(delta_y,delta_x) -1*x(hdg));
 
 	Hnl(sonar_range, xp)  = -(delta_x)/rng_h;
 	Hnl(sonar_range, yp)  = -(delta_y)/rng_h;
