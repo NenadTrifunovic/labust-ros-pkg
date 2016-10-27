@@ -52,7 +52,8 @@ using namespace labust::navigation;
 TwoVehicleLocalizationModel::TwoVehicleLocalizationModel():
 		dvlModel(1),
 		xdot(0),
-		ydot(0){
+		ydot(0),
+		bearing_wrap_index(0){
 
 	this->initModel();
 };
@@ -164,6 +165,10 @@ void TwoVehicleLocalizationModel::derivativeAW()
 
 const TwoVehicleLocalizationModel::output_type& TwoVehicleLocalizationModel::update(vector& measurements, vector& newMeas)
 {
+
+	//if (dvlModel != 0)
+	derivativeH();
+
 	std::vector<size_t> arrived;
 	std::vector<double> dataVec;
 
@@ -181,7 +186,10 @@ const TwoVehicleLocalizationModel::output_type& TwoVehicleLocalizationModel::upd
 		}
 	}
 
-	if (dvlModel != 0) derivativeH();
+
+
+
+
 
 	measurement.resize(arrived.size());
 	H = matrix::Zero(arrived.size(),stateNum);
@@ -193,16 +201,36 @@ const TwoVehicleLocalizationModel::output_type& TwoVehicleLocalizationModel::upd
 	{
 		measurement(i) = dataVec[i];
 
-		if (dvlModel != 0)
-		{
+//		if (dvlModel != 0)
+//		{
 			H.row(i)=Hnl.row(arrived[i]);
 			y(i) = ynl(arrived[i]);
-		}
-		else
-		{
-			H(i,arrived[i]) = 1;
-			y(i) = x(arrived[i]);
-		}
+//		}
+//		else
+//		{
+//			H(i,arrived[i]) = 1;
+//			y(i) = x(arrived[i]);
+//		}
+
+			if(arrived[i] == bearing && std::abs(dataVec.at(i)-ynl(arrived[i]))>M_PI)
+			{
+				ROS_ERROR("DEBUG BEARING RAZLIKA %f",dataVec.at(i)-ynl(arrived[i]));
+
+				if(dataVec.at(i)-ynl(arrived[i])>0)
+				{
+					do
+					{
+						ynl(arrived[i]) += 2*M_PI;
+					} while (std::abs(dataVec.at(i)-ynl(arrived[i]))>M_PI);
+				}
+				else
+				{
+					do
+					{
+						ynl(arrived[i]) -= 2*M_PI;
+					} while (std::abs(dataVec.at(i)-ynl(arrived[i]))>M_PI);
+				}
+			}
 
 		for (size_t j=0; j<arrived.size(); ++j)
 		{
@@ -232,8 +260,8 @@ void TwoVehicleLocalizationModel::derivativeH()
 	ynl = vector::Zero(measSize);
 	ynl.head(stateNum) = matrix::Identity(stateNum,stateNum)*x;
 
-	double rng  = sqrt(pow((x(xp)-x(xb)),2)+pow((x(yp)-x(yb)),2)+pow((x(zp)-x(zb)),2));
-	double rng_h  = sqrt(pow((x(xp)-x(xb)),2)+pow((x(yp)-x(yb)),2));
+	double rng  = sqrt(pow((x(xb)-x(xp)),2)+pow((x(yb)-x(yp)),2)+pow((x(zb)-x(zp)),2));
+	double rng_h  = sqrt(pow((x(xb)-x(xp)),2)+pow((x(yb)-x(yp)),2));
 	double delta_x = (x(xb)-x(xp));
 	double delta_y = (x(yb)-x(yp));
 	double delta_z = (x(zb)-x(zp));
@@ -267,7 +295,16 @@ void TwoVehicleLocalizationModel::derivativeH()
 
 	ynl(range) = rng;
 	//ynl(bearing) = bearing_unwrap(atan2(delta_y,delta_x) -1*x(hdg));
-	ynl(bearing) = atan2(delta_y,delta_x) -1*labust::math::wrapRad(x(hdg));
+	//ynl(bearing) = atan2(delta_y,delta_x) -1*labust::math::wrapRad(x(hdg));
+	//ynl(bearing) = 0*bearing_wrap_index*2*M_PI + labust::math::wrapRad(atan2(delta_y,delta_x) -1*x(hdg));
+	//ynl(bearing) = bearing_unwrap(labust::math::wrapRad(atan2(delta_y,delta_x) -1*x(hdg)));
+	//ynl(bearing) = bearing_unwrap(labust::math::wrapRad(atan2(delta_y,delta_x)));
+	ynl(bearing) = bearing_wrap_index*2*M_PI + atan2(delta_y,delta_x);
+
+
+
+
+
 	//ynl(elevation) = asin((x(zp)-x(zb))/rng);
 
 	Hnl(range, xp)  = -(delta_x)/rng;
@@ -283,11 +320,12 @@ void TwoVehicleLocalizationModel::derivativeH()
 	Hnl(bearing, xb) = -delta_y/(delta_x*delta_x+delta_y*delta_y);
 	Hnl(bearing, yb) = delta_x/(delta_x*delta_x+delta_y*delta_y);
 
-	Hnl(bearing, hdg) = -1;
+	//Hnl(bearing, hdg) = -1;
 
 	ynl(sonar_range) = rng_h;
 	//ynl(sonar_bearing) = sonar_bearing_unwrap(atan2(delta_y,delta_x) -1*x(hdg));
-	ynl(sonar_bearing) = atan2(delta_y,delta_x) -1*labust::math::wrapRad(x(hdg));
+	//ynl(sonar_bearing) = atan2(delta_y,delta_x) -1*labust::math::wrapRad(x(hdg));
+	ynl(sonar_bearing) = labust::math::wrapRad(atan2(delta_y,delta_x) -1*x(hdg));
 
 
 	Hnl(sonar_range, xp)  = -(delta_x)/rng_h;
@@ -307,7 +345,8 @@ void TwoVehicleLocalizationModel::derivativeH()
 	
     ynl(camera_range) = rng_h;
     //ynl(camera_bearing) = camera_bearing_unwrap(atan2(delta_y,delta_x) -1*x(hdg));
-    ynl(camera_bearing) = atan2(delta_y,delta_x) -1*labust::math::wrapRad(x(hdg));
+    //ynl(camera_bearing) = atan2(delta_y,delta_x) -1*labust::math::wrapRad(x(hdg));
+	ynl(camera_bearing) = labust::math::wrapRad(atan2(delta_y,delta_x) -1*x(hdg));
     ynl(camera_hdgb) = x(hdgb);
 
 	Hnl(camera_range, xp)  = -(delta_x)/rng_h;

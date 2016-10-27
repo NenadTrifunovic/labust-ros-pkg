@@ -225,7 +225,7 @@ namespace labust
 			ros::Publisher pubRange, pubBearing, pubRangeFiltered, pubwk;
 			ros::Publisher pubCondP, pubCondPxy, pubCost;
 			ros::Publisher pub_usbl_range, pub_usbl_bearing, pub_sonar_range, pub_sonar_bearing, pub_camera_range, pub_camera_bearing;
-			ros::Publisher pub_diver_course;
+			ros::Publisher pub_diver_course, pub_usbl_relative_bearing;
 
 
 			/**
@@ -269,6 +269,8 @@ namespace labust
 			double sonar_offset, usbl_offset, cov_limit, usbl_bearing_offset, depth_offset, meas_timeout_limit, camera_offset, camera_bearing_offset, sonar_bearing_offset;
 			double diver_camera_heading_offset, divernet_heading_offset;
 			std::deque<FilterState> pastStates;
+
+			double range_estimate, bearing_estimate;
 
 			labust::tools::OutlierRejection OR, OR_b;
 
