@@ -54,7 +54,7 @@ namespace labust
 
 			}
 
-			void measurementModelStep(const ModelBase::vector& x, const ModelBase::vector& input, ModelBase::vector& ynl);
+			void measurementModelStep(const ModelBase::vector& x, ModelBase::vector& ynl);
 
 			void getDerivativeAWX(const ModelBase::vector& x, const ModelBase::vector& input, ModelBase::matrix& A, ModelBase::matrix& W)
 			{

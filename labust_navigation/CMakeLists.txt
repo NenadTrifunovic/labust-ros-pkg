@@ -42,11 +42,7 @@ include_directories(
 add_library(labust_navigation
    src/labust_navigation/KinematicModel.cpp
    src/labust_navigation/XYModel.cpp
-   src/labust_navigation/SensorHandlers.cpp
-   src/labust_navigation/LDTravModelExtended.cpp
-   src/labust_navigation/EKF_3D_USBLModel.cpp 
-   src/labust_navigation/TwoVehicleLocalizationModel.cpp 
-   src/labust_navigation/SimpleRelativeLocalizationModel.cpp   
+   src/labust_navigation/SensorHandlers.cpp  
 )
 add_dependencies(labust_navigation auv_msgs_gencpp navcon_msgs_gencpp underwater_msgs_gencpp)
 target_link_libraries(labust_navigation
@@ -64,16 +60,8 @@ add_dependencies(tf_publisher_node auv_msgs_gencpp)
 target_link_libraries(tf_publisher_node ${catkin_LIBRARIES})
 
 ## Filters 
-add_executable(ekf3d_node src/nav_node/EKF3D.cpp)
-target_link_libraries(ekf3d_node ${catkin_LIBRARIES} labust_navigation)
 add_executable(ekf_3d_node src/nav_node/ekf_3d_node.cpp)
 target_link_libraries(ekf_3d_node ${catkin_LIBRARIES} labust_navigation)
-add_executable(ekf_3d_usbl_node src/nav_node/EKF_3D_USBL.cpp)
-target_link_libraries(ekf_3d_usbl_node ${catkin_LIBRARIES} labust_navigation)
-add_executable(ekf_two_vehicle_localization_node src/nav_node/EKF_TwoVehicleLocalization.cpp)
-target_link_libraries(ekf_two_vehicle_localization_node ${catkin_LIBRARIES} labust_navigation)
-add_executable(ekf_simple_relative_localization_node src/nav_node/EKF_SimpleRelativeLocalization.cpp)
-target_link_libraries(ekf_simple_relative_localization_node ${catkin_LIBRARIES} labust_navigation)
 
 ## Tools
 add_executable(euler_quat src/test/euler_quat.cpp)
