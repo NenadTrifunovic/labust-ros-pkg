@@ -400,18 +400,7 @@ void Estimator3D::onSecond_usbl_fix(
     newMeas(KFNav::range)      = enableRange && (data->range > 0.1);
     measDelay(KFNav::range)    = delay;
 
-    // measurements(KFNav::bearing) = bearing_unwrap(bear * M_PI / 180);
     measurements(KFNav::bearing) = labust::math::wrapRad(bear * M_PI / 180);
-    int tmp_wrap = bearing_unwrap.getWrapIndex();
-
-    // double tmp_meas = bearing_unwrap(labust::math::wrapRad(bear * M_PI /
-    // 180));
-    measurements(KFNav::bearing) = bearing_unwrap(
-      labust::math::wrapRad(bear * M_PI / 180));
-    bool disable_bearing =
-      ((tmp_wrap - bearing_unwrap.getWrapIndex()) == 0) ? true : false;
-    nav.bearing_wrap_index = bearing_unwrap.getWrapIndex();
-
     newMeas(KFNav::bearing)   = enableBearing && (data->range > 0.1);
     measDelay(KFNav::bearing) = delay;
 
@@ -426,8 +415,7 @@ void Estimator3D::onSecond_usbl_fix(
       const KFNav::matrix& covariance = nav.getStateCovariance();
 
       if ((covariance(KFNav::xb, KFNav::xb) > cov_limit)
-          || (covariance(KFNav::yb, KFNav::yb) > cov_limit)
-          || !disable_bearing) {
+          || (covariance(KFNav::yb, KFNav::yb) > cov_limit)) {
           measurements(KFNav::xb) = measurements(KFNav::xp)
                                   + (measurements(KFNav::range))
                                   * cos(
@@ -443,11 +431,12 @@ void Estimator3D::onSecond_usbl_fix(
         ROS_ERROR("Forcing USBL position!!");
       }
     }
-  }
 
-        ROS_ERROR("RANGE: %f, BEARING: %f deg, Time %d %d", data->range,
-            labust::math::wrapDeg(bear), data->header.stamp.sec,
-            data->header.stamp.nsec);
+    ROS_ERROR("RANGE: %f, BEARING: %f deg, Time %d %d", measurements(KFNav::range),
+        labust::math::wrapDeg(bear), data->header.stamp.sec,
+        data->header.stamp.nsec);
+
+  }
 }
 
 void Estimator3D::onSecond_sonar_fix(
@@ -461,7 +450,6 @@ void Estimator3D::onSecond_sonar_fix(
     true : false;
   newMeas(KFNav::sonar_range) = data->range > 0.1 && enable_flag;
 
-  // measurements(KFNav::sonar_bearing) = bearing_unwrap(data->bearing);
   measurements(KFNav::sonar_bearing) = data->bearing;
   newMeas(KFNav::sonar_bearing)      = 1 && enable_flag;
 
@@ -486,10 +474,6 @@ void Estimator3D::onSecond_camera_fix(
   newMeas(KFNav::camera_range) = (data->range > 0.1)
                                  && !std::isnan(data->range) && enable_flag;
 
-  // measurements(KFNav::camera_bearing) = bearing_unwrap(data->bearing +
-  // camera_bearing_offset*M_PI/180);
-  // measurements(KFNav::camera_bearing) = camera_bearing_unwrap(data->bearing +
-  // camera_bearing_offset*M_PI/180);
   measurements(KFNav::camera_bearing) = data->bearing
                                         + camera_bearing_offset * M_PI / 180;
   newMeas(KFNav::camera_bearing) = !std::isnan(data->bearing) && enable_flag;
@@ -638,12 +622,12 @@ void Estimator3D::publishState() {
   //
   //
   //
-  // measurements(KFNav::xp)+measurements(KFNav::sonar_range)*cos(measurements(KFNav::sonar_bearing)+measurements(KFNav::hdg));
+  // measurements(KFNav::xp) + measurements(KFNav::sonar_range)*cos(measurements(KFNav::sonar_bearing)+measurements(KFNav::hdg));
   // state2->position.east =
   //
   //
   //
-  // measurements(KFNav::yp)+measurements(KFNav::sonar_range)*sin(measurements(KFNav::sonar_bearing)+measurements(KFNav::hdg));
+  // measurements(KFNav::yp) + measurements(KFNav::sonar_range)*sin(measurements(KFNav::sonar_bearing)+measurements(KFNav::hdg));
 
   state2->position_variance.north  = covariance(KFNav::xb, KFNav::xb);
   state2->position_variance.east   = covariance(KFNav::yb, KFNav::yb);
