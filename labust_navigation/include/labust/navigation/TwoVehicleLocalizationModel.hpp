@@ -82,9 +82,13 @@ namespace labust
     	  double alpha, beta, betaa;
       };
 
-      enum {xp = 0,yp,zp, hdg, psi,u,w,r,xb,yb,zb,psib,ub,wb,rb,stateNum};
+      //enum {xp = 0,yp,zp, hdg, psi,u,w,r,xb,yb,zb,psib,ub,wb,rb,stateNum};
+      //enum {inputSize = 0};
+      //enum {range=stateNum,bearing,elevation,sonar_range,sonar_bearing,camera_range,camera_bearing,camera_psib,measSize};
+
+      enum {xp = 0,yp,zp, hdg, psi,u,w,r,xb,yb,zb,psib,ub,hdgb,stateNum};
       enum {inputSize = 0};
-      enum {range=stateNum,bearing,elevation,sonar_range,sonar_bearing,camera_range,camera_bearing,camera_psib,measSize};
+      enum {range=stateNum,bearing,elevation,sonar_range,sonar_bearing,camera_range,camera_bearing,camera_hdgb,measSize};
 
       /**
        * The default constructor.
@@ -190,7 +194,12 @@ namespace labust
 		/**
 		 *  Bearing unwrapper.
 		 */
+
 		labust::math::unwrap bearing_unwrap;
+		labust::math::unwrap camera_bearing_unwrap;
+		labust::math::unwrap sonar_bearing_unwrap;
+public:
+		int bearing_wrap_index;
     };
   }
 }

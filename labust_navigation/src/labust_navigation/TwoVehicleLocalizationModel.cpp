@@ -41,6 +41,8 @@
 *********************************************************************/
 #include <labust/navigation/TwoVehicleLocalizationModel.hpp>
 #include <labust/math/NumberManipulation.hpp>
+#include <labust/math/Signum.hpp>
+
 
 
 using namespace labust::navigation;
@@ -52,7 +54,8 @@ using namespace labust::navigation;
 TwoVehicleLocalizationModel::TwoVehicleLocalizationModel():
 		dvlModel(1),
 		xdot(0),
-		ydot(0){
+		ydot(0),
+		bearing_wrap_index(0){
 
 	this->initModel();
 };
@@ -86,10 +89,6 @@ void TwoVehicleLocalizationModel::calculateUVInovationVariance(const TwoVehicleL
 
 void TwoVehicleLocalizationModel::step(const input_type& input)
 {
-  x(u) += 0;
-  x(w) += 0;
-  x(r) += 0;
-
   xdot = x(u)*cos(x(psi));
   ydot = x(u)*sin(x(psi));
   x(xp) += Ts * xdot;
@@ -99,31 +98,42 @@ void TwoVehicleLocalizationModel::step(const input_type& input)
 
   x(hdg) += Ts*x(r);
 
-  /*** Limit target surge speed ***/
-  x(ub) += 0;
-  if(x(ub)>0.5)
-	x(ub)=0.5;
-  if(x(ub)<-0.5)
-	x(ub)=-0.5;
+  x(u) += 0;
+  x(w) += 0;
+  x(r) += 0;
 
-  /*** Limit target heave speed ***/
-  x(wb) = 0;
-
-  /*** Limit target yaw speed ***/
-  x(rb) = 0;
-
+  /*** Target ***/
   xdot = x(ub)*cos(x(psib));
   ydot = x(ub)*sin(x(psib));
   x(xb) += Ts * xdot;
   x(yb) += Ts * ydot;
- 
+
   /*** Limit target depth ***/
   //x(zb) += Ts * x(wb);
   x(zb) += 0;
   if(x(zb)<0.0)
 	x(zb)=0.0;
- 
-  x(psib) += Ts * x(rb);
+
+  /*** Limit target course ***/
+  //x(psib) += Ts * x(rb);
+  x(psib) += 0;
+
+
+  /*** Limit target surge speed ***/
+  x(ub) += 0;
+  if(x(ub)>0.3)
+	x(ub)=0.3;
+  if(x(ub)<-0.3)
+	x(ub)=-0.3;
+
+  /*** ***/
+  x(hdgb) += 0;
+
+  /*** Limit target heave speed ***/
+  //x(wb) = 0;
+
+  /*** Limit target yaw speed ***/
+  //x(rb) = 0;
 
   xk_1 = x;
 
@@ -157,20 +167,31 @@ void TwoVehicleLocalizationModel::derivativeAW()
 
 const TwoVehicleLocalizationModel::output_type& TwoVehicleLocalizationModel::update(vector& measurements, vector& newMeas)
 {
+
+	//if (dvlModel != 0)
+	derivativeH();
+
 	std::vector<size_t> arrived;
 	std::vector<double> dataVec;
 
 	for (size_t i=0; i<newMeas.size(); ++i)
 	{
-		if (newMeas(i))
+		if (newMeas(i) && !std::isnan(measurements(i)))
 		{
 			arrived.push_back(i);
 			dataVec.push_back(measurements(i));
 			newMeas(i) = 0;
+		} else if(std::isnan(measurements(i)))
+		{
+			newMeas(i) = 0;
+			ROS_ERROR("NaN measurement arrived.");
 		}
 	}
 
-	if (dvlModel != 0) derivativeH();
+
+
+
+
 
 	measurement.resize(arrived.size());
 	H = matrix::Zero(arrived.size(),stateNum);
@@ -180,18 +201,32 @@ const TwoVehicleLocalizationModel::output_type& TwoVehicleLocalizationModel::upd
 
 	for (size_t i=0; i<arrived.size();++i)
 	{
+
+		/*** Check for angle wrapping ***/
+		if(arrived[i] == bearing && std::abs(dataVec.at(i)-ynl(arrived[i]))>M_PI)
+		{
+			ROS_ERROR("DEBUG BEARING RAZLIKA %f - %f = %f",dataVec.at(i),ynl(arrived[i]),dataVec.at(i)-ynl(arrived[i]));
+
+			double Delta = 2*M_PI - std::abs(dataVec.at(i)) - std::abs(ynl(arrived[i]));
+			dataVec.at(i) = 0;
+			ynl(arrived[i]) = -1*labust::math::sgn<double>(ynl(arrived[i]))*Delta;
+
+			ROS_ERROR("DELTA: %f, ynl: %f", Delta, ynl(arrived[i]));
+		}
+
 		measurement(i) = dataVec[i];
 
-		if (dvlModel != 0)
-		{
+//		if (dvlModel != 0)
+//		{
 			H.row(i)=Hnl.row(arrived[i]);
 			y(i) = ynl(arrived[i]);
-		}
-		else
-		{
-			H(i,arrived[i]) = 1;
-			y(i) = x(arrived[i]);
-		}
+//		}
+//		else
+//		{
+//			H(i,arrived[i]) = 1;
+//			y(i) = x(arrived[i]);
+//		}
+
 
 		for (size_t j=0; j<arrived.size(); ++j)
 		{
@@ -221,24 +256,41 @@ void TwoVehicleLocalizationModel::derivativeH()
 	ynl = vector::Zero(measSize);
 	ynl.head(stateNum) = matrix::Identity(stateNum,stateNum)*x;
 
-	double rng  = sqrt(pow((x(xp)-x(xb)),2)+pow((x(yp)-x(yb)),2)+pow((x(zp)-x(zb)),2));
+	double rng  = sqrt(pow((x(xb)-x(xp)),2)+pow((x(yb)-x(yp)),2)+pow((x(zb)-x(zp)),2));
+	double rng_h  = sqrt(pow((x(xb)-x(xp)),2)+pow((x(yb)-x(yp)),2));
 	double delta_x = (x(xb)-x(xp));
 	double delta_y = (x(yb)-x(yp));
 	double delta_z = (x(zb)-x(zp));
 
 	double eps = 1.0e-25;
 
-	if(rng<eps)
-	{
-                ROS_ERROR("DEBUG: eps!!!!!!!!!!!!!!!!!!!!!!!!");
-		rng = eps;
-		delta_x = (delta_x<0)?-0.5*eps:0.5*eps;
-		delta_y = (delta_y<0)?-0.5*eps:0.5*eps;
-		delta_z = 0;
-	}
+    if(rng_h<eps)
+    {
+    	rng_h = eps;
+
+    	if(std::abs(delta_x)<eps)
+    	{
+    		delta_x = delta_x<0?-0.5*eps:0.5*eps;
+    	}
+
+    	if(std::abs(delta_y)<eps)
+    	{
+    		delta_y = delta_y<0?-0.5*eps:0.5*eps;
+    	}
+    }
+
+    if(rng<eps)
+    {
+    	rng = eps;
+
+    	if(std::abs(delta_z)<eps)
+    	{
+    		delta_z = delta_z<0?-eps:eps;
+    	}
+    }
 
 	ynl(range) = rng;
-	ynl(bearing) = bearing_unwrap(atan2(delta_y,delta_x) -1*x(hdg));
+	ynl(bearing) = atan2(delta_y,delta_x);
 	//ynl(elevation) = asin((x(zp)-x(zb))/rng);
 
 	Hnl(range, xp)  = -(delta_x)/rng;
@@ -254,18 +306,19 @@ void TwoVehicleLocalizationModel::derivativeH()
 	Hnl(bearing, xb) = -delta_y/(delta_x*delta_x+delta_y*delta_y);
 	Hnl(bearing, yb) = delta_x/(delta_x*delta_x+delta_y*delta_y);
 
-	Hnl(bearing, hdg) = -1;
+	//Hnl(bearing, hdg) = -1;
 
-	ynl(sonar_range) = rng;
-	ynl(sonar_bearing) = bearing_unwrap(atan2(delta_y,delta_x) -1*x(hdg));
+	ynl(sonar_range) = rng_h;
+	ynl(sonar_bearing) = labust::math::wrapRad(atan2(delta_y,delta_x) -1*x(hdg));
 
-	Hnl(sonar_range, xp)  = -(delta_x)/rng;
-	Hnl(sonar_range, yp)  = -(delta_y)/rng;
-	Hnl(sonar_range, zp)  = -(delta_z)/rng;
 
-	Hnl(sonar_range, xb)  = (delta_x)/rng;
-	Hnl(sonar_range, yb)  = (delta_y)/rng;
-	Hnl(sonar_range, zb)  = (delta_z)/rng;
+	Hnl(sonar_range, xp)  = -(delta_x)/rng_h;
+	Hnl(sonar_range, yp)  = -(delta_y)/rng_h;
+	//Hnl(sonar_range, zp)  = -(delta_z)/rng;
+
+	Hnl(sonar_range, xb)  = (delta_x)/rng_h;
+	Hnl(sonar_range, yb)  = (delta_y)/rng_h;
+	//Hnl(sonar_range, zb)  = (delta_z)/rng;
 
 	Hnl(sonar_bearing, xp) = delta_y/(delta_x*delta_x+delta_y*delta_y);
 	Hnl(sonar_bearing, yp) = -delta_x/(delta_x*delta_x+delta_y*delta_y);
@@ -274,17 +327,17 @@ void TwoVehicleLocalizationModel::derivativeH()
 
 	Hnl(sonar_bearing, hdg) = -1;
 	
-        ynl(camera_range) = rng;
-	ynl(camera_bearing) = bearing_unwrap(atan2(delta_y,delta_x) -1*x(hdg));
-        ynl(camera_psib) = x(psib);
+    ynl(camera_range) = rng_h;
+	ynl(camera_bearing) = labust::math::wrapRad(atan2(delta_y,delta_x) -1*x(hdg));
+    ynl(camera_hdgb) = x(hdgb);
 
-	Hnl(camera_range, xp)  = -(delta_x)/rng;
-	Hnl(camera_range, yp)  = -(delta_y)/rng;
-	Hnl(camera_range, zp)  = -(delta_z)/rng;
+	Hnl(camera_range, xp)  = -(delta_x)/rng_h;
+	Hnl(camera_range, yp)  = -(delta_y)/rng_h;
+	//Hnl(camera_range, zp)  = -(delta_z)/rng;
 
-	Hnl(camera_range, xb)  = (delta_x)/rng;
-	Hnl(camera_range, yb)  = (delta_y)/rng;
-	Hnl(camera_range, zb)  = (delta_z)/rng;
+	Hnl(camera_range, xb)  = (delta_x)/rng_h;
+	Hnl(camera_range, yb)  = (delta_y)/rng_h;
+	//Hnl(camera_range, zb)  = (delta_z)/rng;
 
 	Hnl(camera_bearing, xp) = delta_y/(delta_x*delta_x+delta_y*delta_y);
 	Hnl(camera_bearing, yp) = -delta_x/(delta_x*delta_x+delta_y*delta_y);
@@ -292,6 +345,6 @@ void TwoVehicleLocalizationModel::derivativeH()
 	Hnl(camera_bearing, yb) = delta_x/(delta_x*delta_x+delta_y*delta_y);
 
 	Hnl(camera_bearing, hdg) = -1;
-        Hnl(camera_psib,psib) = 1; // Check this!!!
+    Hnl(camera_hdgb,hdgb) = 1;
 }
 

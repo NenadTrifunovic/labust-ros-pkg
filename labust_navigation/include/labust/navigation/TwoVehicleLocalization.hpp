@@ -135,6 +135,42 @@ namespace labust
 			 */
 			void onSecond_camera_fix(const navcon_msgs::RelativePosition::ConstPtr& data);
 			/**
+			 * Handle the camera measurement.
+			 */
+			void onUSBLbearningOffset(const std_msgs::Float32::ConstPtr& data);
+			/**
+			 * Handle the camera measurement.
+			 */
+			void onUSBLrangeOffset(const std_msgs::Float32::ConstPtr& data);
+			/**
+			 * Handle the camera measurement.
+			 */
+			void onCameraBearningOffset(const std_msgs::Float32::ConstPtr& data);
+			/**
+			 * Handle the camera measurement.
+			 */
+			void onCameraRangeOffset(const std_msgs::Float32::ConstPtr& data);
+			/**
+			 * Handle the camera measurement.
+			 */
+			void onSonarBearningOffset(const std_msgs::Float32::ConstPtr& data);
+			/**
+			 * Handle the camera measurement.
+			 */
+			void onSonarRangeOffset(const std_msgs::Float32::ConstPtr& data);
+			/**
+			 * Handle the camera measurement.
+			 */
+			void onDepthOffset(const std_msgs::Float32::ConstPtr& data);
+			/**
+			 * Handle the camera measurement.
+			 */
+			void onCameraHeadingOffset(const std_msgs::Float32::ConstPtr& data);
+			/**
+			 * Handle the camera measurement.
+			 */
+			void onDivernetHeadingOffset(const std_msgs::Float32::ConstPtr& data);
+			/**
 			 * Helper method to process measurements.
 			 */
 			void processMeasurements();
@@ -175,18 +211,30 @@ namespace labust
 			 */
 			labust::math::unwrap course_unwrap;
 			labust::math::unwrap bearing_unwrap;
+			labust::math::unwrap camera_bearing_unwrap;
+			labust::math::unwrap sonar_bearing_unwrap;
+
+			labust::math::unwrap hdgb_unwrap;
+			labust::math::unwrap hdgb_camera_unwrap;
+
+
 			/**
 			 * Estimated and measured state publisher.
 			 */
 			ros::Publisher pubLocalStateHat, pubSecondStateHat, pubLocalStateMeas, pubSecondStateMeas, pubSecondRelativePosition;
 			ros::Publisher pubRange, pubBearing, pubRangeFiltered, pubwk;
 			ros::Publisher pubCondP, pubCondPxy, pubCost;
+			ros::Publisher pub_usbl_range, pub_usbl_bearing, pub_sonar_range, pub_sonar_bearing, pub_camera_range, pub_camera_bearing;
+			ros::Publisher pub_diver_course, pub_usbl_relative_bearing;
+
 
 			/**
 			 * Sensors and input subscribers.
 			 */
 			ros::Subscriber subLocalStateHat, resetTopic, subSecond_navsts;
 			ros::Subscriber subSecond_heading, subSecond_position, subSecond_speed, subSecond_usbl_fix, subSecond_sonar_fix, subSecond_camera_fix;
+			ros::Subscriber sub_usbl_bearing_offset, sub_usbl_range_offset, sub_camera_range_offset, sub_sonar_range_offset, sub_camera_bearing_offset, sub_sonar_bearing_offset;
+			ros::Subscriber sub_depth_offset, sub_camera_heading_offset, sub_divernet_heading_offset;
 			/**
 			 * The transform broadcaster.
 			 */
@@ -195,6 +243,10 @@ namespace labust
 			 * Model parameters
 			 */
 			KFNav::ModelParams params[DoF];
+			/**
+			 * Model parameters
+			 */
+			ros::Time measurement_timeout;
 			/**
 			 * The DVL model selector.
 			 */
@@ -210,16 +262,21 @@ namespace labust
 			/**
 			 *  USBL measurements enable flags
 			 */
-			bool enableDelay, enableRange, enableBearing, enableElevation, enableRejection, alternate_outlier;
+			bool enableDelay, enableRange, enableBearing, enableElevation, enableRejection, alternate_outlier, enable_camera_heading;
 
 			KFNav::matrix Pstart, Rstart;
 
+			double sonar_offset, usbl_offset, cov_limit, usbl_bearing_offset, depth_offset, meas_timeout_limit, camera_offset, camera_bearing_offset, sonar_bearing_offset;
+			double diver_camera_heading_offset, divernet_heading_offset;
 			std::deque<FilterState> pastStates;
+
+			double range_estimate, bearing_estimate;
 
 			labust::tools::OutlierRejection OR, OR_b;
 
 			Eigen::Matrix2d P_rng_bear_relative;
 
+            int display_counter;
 
 		};
 	}

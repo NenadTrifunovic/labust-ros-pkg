@@ -199,6 +199,11 @@ namespace labust
 
     		return index_tmp*2*M_PI + angle;
     	}
+    public:
+    	int getWrapIndex()
+    	{
+    		return index;
+    	}
 
     private:
     	/**
