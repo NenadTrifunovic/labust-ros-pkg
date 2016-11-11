@@ -17,7 +17,7 @@ services:
   - docker
 
 before_install:
-  - docker pull labust/docker-ci
+  - docker pull labust/docker-ci:indigo
 
 script:
   - export REPONAME=`basename \`pwd\``
