@@ -21,4 +21,5 @@ before_install:
 
 script:
   - export REPONAME=`basename \`pwd\``
-  - docker run -e "REPONAME=$REPONAME" -v `pwd`:/root/catkin_ws/src/$REPONAME:ro labust/docker-ci:indigo "~/ros_ci_test.sh"
+  # The gitconfig is removed to allow https pull without ssh keys
+  - docker run -e "REPONAME=$REPONAME" -v `pwd`:/root/catkin_ws/src/$REPONAME:ro labust/docker-ci:indigo bash -c "rm ~/.gitconfig; ~/ros_ci_test.sh"
