@@ -46,6 +46,7 @@
 #include <labust/mission/missionParser.h>
 #include <labust_mission/primitiveManager.hpp>
 #include <labust/primitive/PrimitiveMapGenerator.h>
+#include <misc_msgs/MissionStatus.h>
 
 #include <exprtk/exprtk.hpp>
 
@@ -137,7 +138,7 @@ namespace labust
 			ros::Timer timer;
 
 			/** Publishers */
-			ros::Publisher  pubEventString;
+			ros::Publisher  pubEventString, pubMissionStatus;
 
 			/** Subscribers */
 			ros::Subscriber subDataEventsContainer, subEventString, subReceivePrimitive, subStateHat;
@@ -203,6 +204,8 @@ namespace labust
 
 			/** Publishers */
 			pubEventString = nh.advertise<std_msgs::String>("eventString",1);
+			pubMissionStatus = nh.advertise<misc_msgs::MissionStatus>("mission_status",1);
+
 
 			/** Services */
 			srvExprEval = nh.serviceClient<misc_msgs::EvaluateExpression>("evaluate_expression");
@@ -427,6 +430,13 @@ namespace labust
 		void MissionExecution::onStateHat(const auv_msgs::NavSts::ConstPtr& data)
 		{
 			state = *data;
+
+			/*** Publish mission status ***/
+			misc_msgs::MissionStatus msg;
+			msg.mission_active = missionActive;
+			std::string primitive_name = (receivedPrimitive.primitiveID != none)?PRIMITIVES[receivedPrimitive.primitiveID]:"None";
+			msg.active_primitive = missionActive?primitive_name:"None";
+			pubMissionStatus.publish(msg);
 		}
 
 		/*********************************************************************
