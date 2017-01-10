@@ -21,4 +21,4 @@ before_install:
 
 script:
   - export REPONAME=`basename \`pwd\``
-  - docker run -e "REPONAME=$REPONAME" -v `pwd`:/root/catkin_ws/src/$REPONAME:ro labust/docker-ci:indigo "~/ros_ci_test.sh"
+  - docker run -e "REPONAME=$REPONAME" -v `pwd`:/root/catkin_ws/src/$REPONAME:r labust/docker-ci:indigo "~/ros_ci_test.sh"
