@@ -98,6 +98,7 @@ MainEventQueue(){ mainEventQueue = new RosEventQueue(); }
 				ROS_INFO("Mission execution: Mission execution ready.");
 				ME->onPrimitiveEndReset();
 				ME->nextPrimitive = 1;
+				ME->missionExecutionReady = true;
 
 				FSM_ON_STATE_EXIT_BGN{
 

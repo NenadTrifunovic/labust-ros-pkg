@@ -179,6 +179,9 @@ namespace labust
 			/** Mission state flag */
 			bool missionActive;
 
+			/** Mission execution initialized flag */
+			bool missionExecutionReady;
+
 			/*** ***/
 			labust::primitive::PrimitiveMapGenerator PrimitiveMapGenerator;
 
@@ -194,6 +197,7 @@ namespace labust
 																	nextPrimitive(1),
 																	timeoutActive(false),
 																	missionActive(false),
+																	missionExecutionReady(false),
 																	PrimitiveMapGenerator(xml_path),
 																	MP(xml_path)
 		{
@@ -436,6 +440,7 @@ namespace labust
 			msg.mission_active = missionActive;
 			std::string primitive_name = (receivedPrimitive.primitiveID != none)?PRIMITIVES[receivedPrimitive.primitiveID]:"None";
 			msg.active_primitive = missionActive?primitive_name:"None";
+			msg.mission_execution_ready = missionExecutionReady;
 			pubMissionStatus.publish(msg);
 		}
 
