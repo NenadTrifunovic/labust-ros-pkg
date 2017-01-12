@@ -121,10 +121,10 @@ void TwoVehicleLocalizationModel::step(const input_type& input)
 
   /*** Limit target surge speed ***/
   x(ub) += 0;
-  if(x(ub)>0.3)
-	x(ub)=0.3;
-  if(x(ub)<-0.3)
-	x(ub)=-0.3;
+  if(x(ub)>0.4)
+	x(ub)=0.4;
+  if(x(ub)<-0.4)
+	x(ub)=-0.4;
 
   /*** ***/
   x(hdgb) += 0;
@@ -289,17 +289,18 @@ void TwoVehicleLocalizationModel::derivativeH()
     	}
     }
 
-	ynl(range) = rng;
-	ynl(bearing) = atan2(delta_y,delta_x);
+	ynl(range) = rng_h;
+	ynl(bearing) = atan2(delta_y,delta_x); /*** Absolute bearing ***/
+	//ynl(bearing) = labust::math::wrapRad(atan2(delta_y,delta_x) -1*x(hdg)); /*** Relative bearing ***/
 	//ynl(elevation) = asin((x(zp)-x(zb))/rng);
 
-	Hnl(range, xp)  = -(delta_x)/rng;
-	Hnl(range, yp)  = -(delta_y)/rng;
-	Hnl(range, zp)  = -(delta_z)/rng;
+	Hnl(range, xp)  = -(delta_x)/rng_h;
+	Hnl(range, yp)  = -(delta_y)/rng_h;
+	//Hnl(range, zp)  = -(delta_z)/rng;
 
-	Hnl(range, xb)  = (delta_x)/rng;
-	Hnl(range, yb)  = (delta_y)/rng;
-	Hnl(range, zb)  = (delta_z)/rng;
+	Hnl(range, xb)  = (delta_x)/rng_h;
+	Hnl(range, yb)  = (delta_y)/rng_h;
+	//Hnl(range, zb)  = (delta_z)/rng;
 
 	Hnl(bearing, xp) = delta_y/(delta_x*delta_x+delta_y*delta_y);
 	Hnl(bearing, yp) = -delta_x/(delta_x*delta_x+delta_y*delta_y);
@@ -346,5 +347,9 @@ void TwoVehicleLocalizationModel::derivativeH()
 
 	Hnl(camera_bearing, hdg) = -1;
     Hnl(camera_hdgb,hdgb) = 1;
+
+    //ynl(psib) = x(hdgb);
+    //Hnl(psib,hdgb) = 1;
+
 }
 

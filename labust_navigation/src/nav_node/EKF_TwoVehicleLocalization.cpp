@@ -367,6 +367,9 @@ void Estimator3D::onSecond_navsts(const auv_msgs::NavSts::ConstPtr& data) {
   newMeas(KFNav::hdgb) = 1;
   ROS_ERROR("DIVER - ACOUSTIC - DEPTH: %f, HEADING: %f",
             measurements(KFNav::zb), measurements(KFNav::hdgb));
+
+  //measurements(KFNav::psib) = data->orientation.yaw + divernet_heading_offset;
+  //newMeas(KFNav::psib) = 1;
 }
 
 void Estimator3D::onSecond_usbl_fix(
