@@ -322,7 +322,7 @@ void CaddyMissions::onGuideMe(const std_msgs::Int32::ConstPtr& data)
     srv_data.request.guidance_target.z = 0;
     srv_data.request.guidance_topic = "guide_target";
     srv_data.request.streamline_orientation = false;
-    srv_data.request.wrapping_enable = false;
+    srv_data.request.wrapping_enable = true;
 
     pointer_srv.call(srv_data);
 
