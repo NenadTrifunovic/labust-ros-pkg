@@ -194,6 +194,7 @@ struct VTControl : DisableAxis
     nu->twist.angular.z =
         -labust::math::wrapRad(state.orientation.yaw - psi_r);
     nu->twist.linear.x = nur(u);  //+ nur(v)*nu->twist.angular.z;
+    // nu->twist.linear.x = labust::math::coerce(nur(u), -0.8, 0.3); //+ nur(v)*nu->twist.angular.z;
     nu->twist.linear.y = nur(v);  //- nur(u)*nu->twist.angular.z;
     nu->twist.linear.z = nur(w);
 
