@@ -38,10 +38,10 @@
 #define LABUST_SIM_DIVERSIM_H
 #include <labust/simulation/kinematic_model.h>
 
-#include <sensor_msgs/JointState.h>
 #include <auv_msgs/BodyVelocityReq.h>
 #include <auv_msgs/NavSts.h>
 #include <ros/ros.h>
+#include <sensor_msgs/JointState.h>
 
 #include <boost/thread.hpp>
 
@@ -50,84 +50,110 @@
 
 namespace labust
 {
-	namespace simulation
-	{
-		/**
-		 *  This class implements the diver simulator. The class implements joint-state publishing
-		 *  for diver movement emulation and uses the kinematic model for diver movement.
-		 */
-		class DiverSim
-		{
-		public:
-			///The generic constructor.
-			DiverSim();
+namespace simulation
+{
+/**
+ *  This class implements the diver simulator. The class implements joint-state
+ * publishing
+ *  for diver movement emulation and uses the kinematic model for diver
+ * movement.
+ */
+class DiverSim
+{
+public:
+  /// The generic constructor.
+  DiverSim();
 
-			///Initializes the ROS node and configures the model from the ROS parameters.
-			void onInit();
+  /// Initializes the ROS node and configures the model from the ROS
+  /// parameters.
+  void onInit();
 
-			///Start the simulator
-			void start();
+  /// Start the simulator
+  void start();
 
-		private:
-			///Single simulation step
-			void step();
-			///Step joints
-			void stepJoints(double w, double hpan=0, double htilt=0);
-			///Handle incoming speed request
-			void onNu(const auv_msgs::BodyVelocityReq::ConstPtr& nu)
-			{
-				boost::mutex::scoped_lock l(nu_mux);
-				labust::tools::pointToVector(nu->twist.linear, this->nu);
-				labust::tools::pointToVector(nu->twist.angular, this->nu,3);
-			}
-			///Handle incoming init request
-			void onDiverInit(const auv_msgs::NavSts::ConstPtr& pos)
-			{
-				boost::mutex::scoped_lock l(nu_mux);
-				vector3 vpos, vrpy;
-				vpos<<pos->position.north, pos->position.east, pos->position.depth;
-				vrpy<<pos->orientation.roll, pos->orientation.pitch, pos->orientation.yaw;
-				model.setPosition(vpos, vrpy);
-			}
+private:
+  /// Single simulation step
+  void step();
+  /// Step joints
+  void stepJoints(double w, double hpan = 0, double htilt = 0);
+  /// Handle incoming speed request
+  void onNu(const auv_msgs::BodyVelocityReq::ConstPtr& nu)
+  {
+    if (!use_nu)
+      return;
+    boost::mutex::scoped_lock l(nu_mux);
+    labust::tools::pointToVector(nu->twist.linear, this->nu);
+    labust::tools::pointToVector(nu->twist.angular, this->nu, 3);
+  }
+  /// Handle incoming init request
+  void onDiverInit(const auv_msgs::NavSts::ConstPtr& pos)
+  {
+    boost::mutex::scoped_lock l(nu_mux);
+    vector3 vpos, vrpy;
+    vpos << pos->position.north, pos->position.east, pos->position.depth;
+    vrpy << pos->orientation.roll, pos->orientation.pitch,
+        pos->orientation.yaw;
+    model.setPosition(vpos, vrpy);
+  }
 
-			///Navigation state publisher
-			ros::Publisher navsts;
-            ///Navigation odometry publisher
-            ros::Publisher odom_pub;
-			///Joint state publisher
-			ros::Publisher joints;
-			///Subscriber to commanded speeds
-			ros::Subscriber nusub;
-			///Subscriber for initial position
-			ros::Subscriber initsub;
-			///The incoming speed vector
-			labust::simulation::vector nu;
-			///The incoming speed mutex
-			boost::mutex nu_mux;
+  /// Handle incoming position request
+  void onPose(const auv_msgs::NavSts::ConstPtr& state)
+  {
+    if (use_nu)
+      return;
+    boost::mutex::scoped_lock l(nu_mux);
+    labust::tools::nedToVector(state->position, this->pose);
+    labust::tools::rpyToVector(state->orientation, this->pose, 3);
+  }
 
-			///Joint names
-			std::vector<std::string> jnames;
-			///Joint defaults
-			std::vector<double> jdefaults;
-			///Current joint state
-			sensor_msgs::JointState jstate;
-			/**
-			 * Flag to use roll/pitch rate for moving the head
-			 * instead of the body directly.
-			 */
-			bool move_head;
+  /// Navigation state publisher
+  ros::Publisher navsts;
+  /// Navigation odometry publisher
+  ros::Publisher odom_pub;
+  /// Joint state publisher
+  ros::Publisher joints;
+  /// Subscriber to commanded speeds
+  ros::Subscriber nusub;
+  /// Subscriber to commanded speeds
+  ros::Subscriber posesub;
+  /// Subscriber for initial position
+  ros::Subscriber initsub;
+  /// The incoming speed vector
+  labust::simulation::vector nu;
+  /// The incoming pose request
+  labust::simulation::vector pose;
+  /// The incoming speed mutex
+  boost::mutex nu_mux;
 
-			///Sim sampling time
-			double Ts;
-			///Simulated kinematics
-			labust::simulation::KinematicModel model;
+  /// Joint names
+  std::vector<std::string> jnames;
+  /// Joint defaults
+  std::vector<double> jdefaults;
+  /// Current joint state
+  sensor_msgs::JointState jstate;
+  /**
+   * Flag to use roll/pitch rate for moving the head
+   * instead of the body directly.
+   */
+  bool move_head;
+  /// Indicator to use speed or position input.
+  bool use_nu;
 
-			///Runner thread for the simulator
-			boost::thread runner;
-			///Run flag
-			bool runSim;
-		};
-	}
+  /// Sim sampling time
+  double Ts;
+  /// Maximum forward speed
+  double max_speed;
+  /// Maximum rate
+  double max_rate;
+  /// Simulated kinematics
+  labust::simulation::KinematicModel model;
+
+  /// Runner thread for the simulator
+  boost::thread runner;
+  /// Run flag
+  bool runSim;
+};
+}
 }
 
 /* LABUST_SIM_DIVERSIM_H */

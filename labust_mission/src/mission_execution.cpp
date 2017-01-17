@@ -46,7 +46,6 @@
 #include <labust/mission/mission_execution.h>
 #include <labust/mission/labustMission.hpp>
 
-//#include <labust_mission/missionExecution.hpp>
 #include <decision_making/SynchCout.h>
 #include <decision_making/BT.h>
 #include <decision_making/FSM.h>
@@ -99,6 +98,7 @@ MainEventQueue(){ mainEventQueue = new RosEventQueue(); }
 				ROS_INFO("Mission execution: Mission execution ready.");
 				ME->onPrimitiveEndReset();
 				ME->nextPrimitive = 1;
+				ME->missionExecutionReady = true;
 
 				FSM_ON_STATE_EXIT_BGN{
 

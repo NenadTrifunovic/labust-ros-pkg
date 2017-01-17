@@ -68,7 +68,11 @@ struct GPSSim
     , gps_z(0)
     , tf_prefix("")
     , sigma(0)
+    , lambda(0)
+    , Ts(0.1)
     , max_walk(0)
+    , noisex(0)
+    , noisey(0)
   {
     ros::NodeHandle nh, ph("~");
     ph.param("gps_pub", rate, rate);
@@ -77,6 +81,8 @@ struct GPSSim
     ph.param("orot", orot, orot);
     ph.param("sigma", sigma, sigma);
     ph.param("max_walk", max_walk, max_walk);
+    ph.param("lambda", lambda, lambda);
+    ph.param("sampling_time", Ts, Ts);
     gen.addNew(0, sigma);
     gen.addNew(0, sigma);
 
@@ -162,20 +168,8 @@ struct GPSSim
 
   void updateNoise()
   {
-    double nx = gen(0);
-    double ny = gen(1);
-    if ((noisex * noisex + noisey * noisey) > max_walk * max_walk)
-    {
-      if (fabs(noisex) >= fabs(noisey))
-        noisex = nx;
-      if (fabs(noisey) >= fabs(noisex))
-        noisey = ny;
-    }
-    else
-    {
-      noisex += nx;
-      noisey += ny;
-    }
+    noisex = (1 - lambda * Ts) * noisex + Ts * gen(0);
+    noisey = (1 - lambda * Ts) * noisey + Ts * gen(1);
   }
 
 private:
@@ -197,6 +191,8 @@ private:
   NoiseGenerators gen;
   double sigma;
   double max_walk;
+  double lambda;
+  double Ts;
 };
 
 int main(int argc, char* argv[])
