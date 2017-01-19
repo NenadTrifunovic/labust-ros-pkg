@@ -126,11 +126,20 @@ struct VTControl : DisableAxis
                                   tf_prefix + "base_link", ros::Time(0));
       d << td.transform.translation.x, td.transform.translation.y,
           td.transform.translation.z;
-      Rpb = Eigen::Quaternion<double>(
-                td.transform.rotation.w, td.transform.rotation.x,
-                td.transform.rotation.y, td.transform.rotation.z)
-                .toRotationMatrix()
-                .transpose();
+      // Isolate horizontal plane
+      double rool, pitch, yaw;
+      Eigen::Quaternion<double> q(
+          td.transform.rotation.w, td.transform.rotation.x,
+          td.transform.rotation.y, td.transform.rotation.z);
+
+      labust::tools::eulerZYXFromQuaternion(q, rool, pitch, yaw);
+      labust::tools::quaternionFromEulerZYX(0, 0, yaw, q);
+      Rpb = q.toRotationMatrix().transpose();
+      // Rpb = Eigen::Quaternion<double>(
+      // td.transform.rotation.w, td.transform.rotation.x,
+      // td.transform.rotation.y, td.transform.rotation.z)
+      //.toRotationMatrix()
+      //.transpose();
     }
     catch (tf2::TransformException& ex)
     {
@@ -154,7 +163,7 @@ struct VTControl : DisableAxis
       con[e].state = d(e);
       Eigen::Vector3d out, in;
       in << state.gbody_velocity.x, state.gbody_velocity.y,
-          state.gbody_velocity.z;
+          0;  // state.gbody_velocity.z;
       out = Rpb.transpose() * in;
       con[s].track = out(s);
       con[e].track = out(e);

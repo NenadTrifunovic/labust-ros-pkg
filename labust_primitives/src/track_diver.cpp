@@ -325,12 +325,12 @@ void TrackDiver::updateFS()
   // Calcuate the feedforward
   Eigen::Quaternion<double> q;
   labust::tools::quaternionFromEulerZYX(
-      path.orientation.roll - diver_pos.orientation.roll,
-      path.orientation.pitch - diver_pos.orientation.pitch,
+      0,  // path.orientation.roll - diver_pos.orientation.roll,
+      0,  // path.orientation.pitch - diver_pos.orientation.pitch,
       path.orientation.pitch - diver_pos.orientation.yaw, q);
   Eigen::Vector3d speed;
   speed << diver_pos.gbody_velocity.x, diver_pos.gbody_velocity.y,
-      diver_pos.gbody_velocity.z;
+      0;  // diver_pos.gbody_velocity.z;
   speed = q.toRotationMatrix() * speed;
   path.dr_p.x = speed(0);
   path.dr_p.y = speed(1);
