@@ -79,6 +79,7 @@ class CaddyMissions
   {
     DONT_CARE = -1,
     DISABLED = 0,
+    MANUAL = 1,
     VELCON = 2
   };
   enum

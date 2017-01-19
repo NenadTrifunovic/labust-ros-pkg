@@ -116,8 +116,8 @@ void CaddyMissions::onInit()
       nh.subscribe<std_msgs::Int32>("mission_controller/primitives/guide_me",
                                     1, &CaddyMissions::onGuideMe, this);
   allow_approach_sub =
-      nh.subscribe<std_msgs::Int32>("mission_controller/primitives/approach",
-                                    1, &CaddyMissions::onMosaic, this);
+      nh.subscribe<std_msgs::Int32>("mission_controller/primitives/stay",
+                                    1, &CaddyMissions::onAllowApproach, this);
   take_photo_sub =
       nh.subscribe<std_msgs::Int32>("mission_controller/primitives/take_photo",
                                     1, &CaddyMissions::onTakePhoto, this);
@@ -198,35 +198,29 @@ void CaddyMissions::onMosaic(const std_msgs::Int32::ConstPtr& data)
   {
     this->stopControllers();
     // Start the primitive
-    ROS_INFO("Setup controllers for Mosaicing mission.");
+    ROS_INFO("Setup controllers for GoTo point mission.");
     navcon_msgs::ConfigureVelocityController srv;
     for (int i = 0; i < 6; ++i)
       srv.request.desired_mode[i] = DONT_CARE;
     srv.request.desired_mode[u] = VELCON;
-    srv.request.desired_mode[v] = DISABLED;
+    srv.request.desired_mode[v] = VELCON;
     srv.request.desired_mode[w] = VELCON;
     srv.request.desired_mode[r] = VELCON;
     bool velconOK = velcon.call(srv);
     navcon_msgs::EnableControl flag;
     flag.request.enable = true;
     bool hdgconOK = hdgcon.call(flag);
-    bool vertconOK(false);
-    if (mosaic_altitude)
+    bool depthconOK = depthcon.call(flag);
+    bool dpconOK = dpcon.call(flag);
+
+    if (depthconOK && hdgconOK && dpconOK)
     {
-      vertconOK = altcon.call(flag);
-    }
-    else
-    {
-      vertconOK = depthcon.call(flag);
-    }
-    if (vertconOK && hdgconOK && velconOK)
-    {
-      ROS_INFO("Mosaic controller setup complete.");
+      ROS_INFO("GoTo controller setup complete.");
       mission_state = LAWN_CMD;
     }
     else
     {
-      ROS_ERROR("Mosaic controller setup failed.");
+      ROS_ERROR("GoTo controller setup failed.");
       this->stopControllers();
     }
   }
@@ -282,6 +276,8 @@ void CaddyMissions::onAllowApproach(const std_msgs::Int32::ConstPtr& data)
     navcon_msgs::ConfigureVelocityController srv;
     for (int i = 0; i < 6; ++i)
       srv.request.desired_mode[i] = DONT_CARE;
+    srv.request.desired_mode[u] = MANUAL;
+    srv.request.desired_mode[v] = MANUAL;
     srv.request.desired_mode[w] = VELCON;
     srv.request.desired_mode[r] = VELCON;
     bool velconOK = velcon.call(srv);
