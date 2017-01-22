@@ -65,6 +65,7 @@ struct SonarSim
     , sigma_bearing(0)
     , sigma_range(0)
     , frame_id("sonar_frame")
+    , sim_frame_id("base_link_sim")
   {
     ros::NodeHandle nh, ph("~");
 
@@ -80,6 +81,7 @@ struct SonarSim
     ph.param("sigma_bearing", sigma_bearing, sigma_bearing);
     ph.param("sigma_range", sigma_range, sigma_range);
     ph.param("frame_id", frame_id, frame_id);
+    ph.param("sim_frame_id", sim_frame_id, sim_frame_id);
 
     gen.addNew(0, sigma_range);
     gen.addNew(0, sigma_bearing);
@@ -189,6 +191,7 @@ private:
   double min_range;
   std::string tf_prefix;
   std::string frame_id;
+  std::string sim_frame_id;
   NoiseGenerators gen;
   double sigma_bearing;
   double sigma_range;
