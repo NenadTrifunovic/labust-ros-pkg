@@ -45,7 +45,14 @@
 using namespace labust::simulation;
 
 DiverSim::DiverSim()
-  : jnames(20, ""), jdefaults(60, 0), move_head(false), runSim(false), Ts(0.1)
+  : jnames(20, "")
+  , jdefaults(60, 0)
+  , move_head(false)
+  , runSim(false)
+  , Ts(0.1)
+  , use_nu(true)
+  , max_speed(0.5)
+  , max_rate(0.25)
 {
   this->onInit();
 }
@@ -58,6 +65,9 @@ void DiverSim::onInit()
   nh.param("simulation/sampling_time", Ts, Ts);
   // Look in the private namespace for override
   ph.param("sampling_time", Ts, Ts);
+  ph.param("use_nu", use_nu, use_nu);
+  ph.param("max_speed", max_speed, max_speed);
+  ph.param("max_rate", max_rate, max_rate);
   // Configure model
   model.setTs(Ts);
 
@@ -97,6 +107,8 @@ void DiverSim::onInit()
   joints = nh.advertise<sensor_msgs::JointState>("joint_states", 1);
   nusub = nh.subscribe<auv_msgs::BodyVelocityReq>("diver_nu", 1,
                                                   &DiverSim::onNu, this);
+  posesub =
+      nh.subscribe<auv_msgs::NavSts>("diver_pose", 1, &DiverSim::onPose, this);
   initsub = nh.subscribe<auv_msgs::NavSts>("diver_init", 1,
                                            &DiverSim::onDiverInit, this);
 
@@ -120,6 +132,27 @@ void DiverSim::step()
   auv_msgs::NavSts::Ptr nav(new auv_msgs::NavSts());
   {
     boost::mutex::scoped_lock l(nu_mux);
+    if (!use_nu)
+    {
+      double Kpp = 0.5;
+      double Kpo = 0.1;
+      // Do the internal proportional position control.
+      vector current_state;
+      current_state << model.position(), model.orientation();
+      vector current_error = pose - current_state;
+      for (int i = 0; i < 6; ++i)
+      {
+        if (i < 3)
+        {
+          nu(i) = labust::math::coerce(Kpp * current_error(i), 0, max_speed);
+        }
+        else
+        {
+          nu(i) = labust::math::coerce(Kpo * current_error(i), -max_rate,
+                                       max_rate);
+        }
+      }
+    }
     labust::tools::vectorToPoint(nu, nav->body_velocity);
     labust::tools::vectorToRPY(nu, nav->orientation_rate, 3);
     if (move_head)

@@ -1,18 +1,18 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(labust_sim)
 
-find_package(catkin REQUIRED COMPONENTS 
+find_package(catkin REQUIRED COMPONENTS
     cmake_modules
-    auv_msgs 
+    auv_msgs
     nav_msgs
     underwater_msgs
     navcon_msgs
-    roscpp 
-    rospy 
-    tf2_ros 
+    roscpp
+    rospy
+    tf2_ros
     snippets)
 
-## System dependencies 
+## System dependencies
 find_package(Boost REQUIRED COMPONENTS random)
 find_package(Eigen REQUIRED)
 
@@ -39,20 +39,20 @@ include_directories(include
 
 ## Main simulation library
 file(GLOB SRC src/labust_sim/*.cpp)
-file(GLOB HPP include/labust/simulation/*.hpp include/labust/simulation/*.h) 
+file(GLOB HPP include/labust/simulation/*.hpp include/labust/simulation/*.h)
 add_library(labust_sim ${SRC} ${HPP})
 add_dependencies(labust_sim auv_msgs_gencpp)
 target_link_libraries(labust_sim ${Boost_RANDOM_LIBRARY})
 
 ## Main simulator node
 file(GLOB SRC src/uvsim/*.cpp)
-file(GLOB HPP include/labust/ros/*.hpp) 
+file(GLOB HPP include/labust/ros/*.hpp)
 add_executable(uvsim ${SRC} ${HPP})
 target_link_libraries(uvsim ${catkin_LIBRARIES} labust_sim ${Boost_RANDOM_LIBRARY})
 
 ## Simulated sensors
 add_executable(imu_sim src/sim_sensors/ImuSim.cpp)
-target_link_libraries(imu_sim ${catkin_LIBRARIES})
+target_link_libraries(imu_sim ${catkin_LIBRARIES} ${Boost_RANDOM_LIBRARY})
 
 add_executable(dvl_sim src/sim_sensors/DvlSim.cpp)
 target_link_libraries(dvl_sim ${catkin_LIBRARIES} ${Boost_RANDOM_LIBRARY})
@@ -76,6 +76,10 @@ target_link_libraries(diver_sim labust_sim ${catkin_LIBRARIES})
 add_executable(virtual_diver src/diver_sim/virtual_diver.cpp)
 add_dependencies(virtual_diver auv_msgs_gencpp)
 target_link_libraries(virtual_diver ${catkin_LIBRARIES})
+
+add_executable(transect_experiment src/diver_sim/transect_experiment.cpp)
+add_dependencies(transect_experiment auv_msgs_gencpp)
+target_link_libraries(transect_experiment ${catkin_LIBRARIES})
 
 ## Tools
 add_executable(navsts2odom src/navsts2odom/navsts2odom.cpp)
