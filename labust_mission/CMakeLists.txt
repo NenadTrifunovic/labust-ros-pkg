@@ -14,6 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
   misc_msgs
   cmake_modules
   labust_primitives
+  labust_diagnostics
   std_srvs
 )
 

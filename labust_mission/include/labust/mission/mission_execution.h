@@ -43,9 +43,13 @@
 #define LABUST_ROS_PKG_LABUST_MISSION_INCLUDE_LABUST_MISSION_MISSION_EXECUTION_H_
 
 #include <ros/ros.h>
+
+#include <labust/mission/labustMission.hpp>
 #include <labust/mission/missionParser.h>
 #include <labust_mission/primitiveManager.hpp>
 #include <labust/primitive/PrimitiveMapGenerator.h>
+#include <labust/diagnostics/StatusHandler.h>
+
 #include <misc_msgs/MissionStatus.h>
 
 #include <exprtk/exprtk.hpp>
@@ -58,7 +62,8 @@
 
 #include <boost/function.hpp>
 #include <boost/algorithm/string.hpp>
-#include <labust/mission/labustMission.hpp>
+#include <boost/lexical_cast.hpp>
+
 
 extern decision_making::EventQueue* mainEventQueue;
 
@@ -187,6 +192,9 @@ namespace labust
 
 			/*** ***/
 			labust::mission::MissionParser MP;
+
+			/*** Mission execution status handler ***/
+			labust::diagnostic::StatusHandler status_handler_;
 		};
 
 		/*****************************************************************
@@ -199,7 +207,8 @@ namespace labust
 																	missionActive(false),
 																	missionExecutionReady(false),
 																	PrimitiveMapGenerator(xml_path),
-																	MP(xml_path)
+																	MP(xml_path),
+status_handler_("Mission execution","mission_execution")
 		{
 			/** Subscribers */
 			subEventString = nh.subscribe<std_msgs::String>("eventString",3, &MissionExecution::onEventString, this);
@@ -218,6 +227,14 @@ namespace labust
 			primitiveMap = PrimitiveMapGenerator.getPrimitiveDoubleMap();
 			primitiveStringMap = PrimitiveMapGenerator.getPrimitiveStringMap();
 			primitiveBoolMap = PrimitiveMapGenerator.getPrimitiveBoolMap();
+
+                        /*** Status handler intialization ***/
+	                status_handler_.addKeyValue("Active primitive");
+	                status_handler_.addKeyValue("Primitive status");
+	                status_handler_.addKeyValue("Manual");
+                	status_handler_.setEntityStatus(diagnostic_msgs::DiagnosticStatus::WARN);
+                	status_handler_.setEntityMessage("Status handler initialized.");
+                	status_handler_.publishStatus();
 		}
 
 	    void MissionExecution::evaluatePrimitive(string primitiveString)
@@ -420,6 +437,7 @@ namespace labust
 
 						onPrimitiveEndReset();
 						mainEventQueue->riseEvent("/PRIMITIVE_FINISHED");
+                                                status_handler_.updateKeyValue("Primitive status","Finished");
 					}
 
 					/** First true event has priority */
@@ -442,6 +460,10 @@ namespace labust
 			msg.active_primitive = missionActive?primitive_name:"None";
 			msg.mission_execution_ready = missionExecutionReady;
 			pubMissionStatus.publish(msg);
+			
+			/*** ***/
+	                status_handler_.setEntityStatus(diagnostic_msgs::DiagnosticStatus::OK);
+	                status_handler_.publishStatus();
 		}
 
 		/*********************************************************************
@@ -451,25 +473,30 @@ namespace labust
 		/** EventString topic callback */
 		void MissionExecution::onEventString(const std_msgs::String::ConstPtr& msg){
 
-			if(strcmp(msg->data.c_str(),"/START_DISPATCHER") == 0 && missionActive)
+			if(strcmp(msg->data.c_str(),"/START_DISPATCHER") == 0)
 			{
-				mainEventQueue->riseEvent("/STOP");
+	                        status_handler_.updateKeyValue("Primitive status","Running");
+				if(missionActive) mainEventQueue->riseEvent("/STOP");
 			}
 			else if(strcmp(msg->data.c_str(),"/STOP") == 0)
 			{
+		                status_handler_.updateKeyValue("Primitive status","Stopped");
 
 			}
 			else if(strcmp(msg->data.c_str(),"/PAUSE") == 0)
 			{
+		                status_handler_.updateKeyValue("Primitive status","Paused");
 
 			}
 			else if(strcmp(msg->data.c_str(),"/MANUAL_ENABLE") == 0 && !missionActive)
 			{
 				PM.enableManual(true);
+		                status_handler_.updateKeyValue("Manual","Enabled");
 			}
 			else if(strcmp(msg->data.c_str(),"/MANUAL_DISABLE") == 0 && !missionActive)
 			{
 				PM.enableManual(false);
+		                status_handler_.updateKeyValue("Manual","Disabled");
 			}
 
 			mainEventQueue->riseEvent(msg->data.c_str());
@@ -494,6 +521,7 @@ namespace labust
 				string id_string(PRIMITIVES[receivedPrimitive.primitiveID]);
 				id_string = "/" + boost::to_upper_copy(id_string);
 				mainEventQueue->riseEvent(id_string.c_str());
+		                status_handler_.updateKeyValue("Active primitive",id_string.c_str());
 			}
 			else
 			{
