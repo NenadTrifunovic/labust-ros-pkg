@@ -61,8 +61,8 @@ struct LatLon2NED
     , use_mag(false)
   {
     ros::NodeHandle nh, ph("~");
-    nh.param("LocalOriginLat", originLat, originLat);
-    nh.param("LocalOriginLon", originLon, originLon);
+    ph.param("LocalOriginLat", originLat, originLat);
+    ph.param("LocalOriginLon", originLon, originLon);
 
     // Get magnetic data
     std::string magnetic_model("wmm2015");
@@ -86,7 +86,7 @@ struct LatLon2NED
 
 
     sub_pos_latlon = nh.subscribe<auv_msgs::NavSts>("position_in", 1, &LatLon2NED::onPosIn, this);
-    pub_pos_ned =  nh.advertise<auv_msgs::NavSts>("positon_out", 1);
+    pub_pos_ned =  nh.advertise<auv_msgs::NavSts>("position_out", 1);
   }
 
   ~LatLon2NED()
@@ -100,6 +100,16 @@ struct LatLon2NED
       auv_msgs::NavSts pos_out;
       pos_out.header.frame_id = "local";
       pos_out.header.stamp = pos_in->header.stamp;
+      pos_out.origin.latitude = originLat;
+      pos_out.origin.longitude = originLon;
+      pos_out.origin.altitude = originH;
+
+      pos_out.global_position.latitude = pos_in->global_position.latitude;
+      pos_out.global_position.longitude = pos_in->global_position.longitude;
+      pos_out.global_position.altitude = pos_in->global_position.altitude;
+
+      pos_out.orientation = pos_in->orientation;
+
       Eigen::Quaternion<double> q;
 		labust::tools::quaternionFromEulerZYX(M_PI, 0, M_PI / 2, q);
 		double x, y, z;
