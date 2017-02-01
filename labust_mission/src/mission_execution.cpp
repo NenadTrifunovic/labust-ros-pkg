@@ -47,7 +47,7 @@
 #include <labust/mission/labustMission.hpp>
 
 #include <decision_making/SynchCout.h>
-#include <decision_making/BT.h>
+//#include <decision_making/BT.h>
 #include <decision_making/FSM.h>
 #include <decision_making/ROSTask.h>
 #include <decision_making/DecisionMaking.h>
