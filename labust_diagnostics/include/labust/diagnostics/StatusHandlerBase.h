@@ -94,6 +94,7 @@ namespace labust
 			for(std::vector<diagnostic_msgs::KeyValue>::iterator it = entity_status_.values.begin();
 					it != entity_status_.values.end(); ++it)
 			{
+				ROS_ERROR("%s",it->key.c_str());
 				if(key_value_name.compare(it->key.c_str()) == 0)
 				{
 					it->value = value;

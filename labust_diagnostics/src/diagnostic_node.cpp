@@ -41,9 +41,13 @@
 
   	//std::cout << "pocetak " << exec("rostopic list") << " kraj" << std::endl;
 
+  	// Wait for  system intitalization.
+  	ros::Duration(10.0).sleep();
+
+
   	DH.subscribeTopics();
 
-  	double Td = 2.0;
+  	double Td = 5.0;
   	ros::Rate rate(1/Td);
 
   	while(ros::ok())

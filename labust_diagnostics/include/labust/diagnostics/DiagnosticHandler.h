@@ -1,3 +1,5 @@
+// TODO Add diagnostic topics updating
+
 /*
  * DiagnosticHandler.h
  *
@@ -101,21 +103,30 @@ namespace labust
 
 			ros::Publisher pub_diagnostic_array_;
 
+			ros::Publisher pub_diagnostic_merged_array_;
+
 			std::vector<ros::Subscriber> sub_diagnostic_topic_;
 
-			std::vector<diagnostic_msgs::DiagnosticArray> diagnostic_array_;
+			diagnostic_msgs::DiagnosticArray diagnostic_merged_array_;
+
+			std::vector<diagnostic_msgs::DiagnosticStatus> diagnostic_merged_status_array_;
+
 
 		};
 
 		DiagnosticHandler::DiagnosticHandler()
 		{
 			ros::NodeHandle nh;
-			pub_diagnostic_array_ = nh.advertise<diagnostic_msgs::DiagnosticArray>("/diagnostics/",1);
+			pub_diagnostic_array_ = nh.advertise<diagnostic_msgs::DiagnosticArray>("/diagnostics_serial",1);
+			pub_diagnostic_merged_array_ = nh.advertise<diagnostic_msgs::DiagnosticArray>("/diagnostics_merged",1);
+
 
 		}
 
+		/*** Subscribe to diagnostic topics ***/
 		void DiagnosticHandler::subscribeTopics()
 		{
+			/*** Find all diagnostic topics ***/
 			std::vector<std::string> diagnostic_topics(split(exec("rostopic list"),'\n'));
 
 			for(std::vector<std::string>::iterator it  = diagnostic_topics.begin(); it != diagnostic_topics.end(); ++it)
@@ -123,6 +134,7 @@ namespace labust
 				std::string diagnostic_ns("/diagnostics/");
 				if((*it).find(diagnostic_ns) == std::string::npos)
 				{
+					/*** Delete non diagnostic topics ***/
 					diagnostic_topics.erase(it--);
 				}
 			}
@@ -134,40 +146,49 @@ namespace labust
 				std::cout << "Subscribing to topic " << (*it) << std::endl;
 				sub_diagnostic_topic_.push_back(nh.subscribe<diagnostic_msgs::DiagnosticArray>((*it).c_str(),1,&DiagnosticHandler::onDiagnosticData,this));
 			}
+
+			diagnostic_merged_status_array_.resize(sub_diagnostic_topic_.size());
 		}
 
+		/***
+		 *
+		 *  IMPORTANT! Diagnostic topic name must be the same as the status.name|hardware_id field.
+		 *
+		 * ***/
 		void DiagnosticHandler::onDiagnosticData(const diagnostic_msgs::DiagnosticArray::ConstPtr& data)
 		{
-
-			for(std::vector<diagnostic_msgs::DiagnosticArray>::iterator it  = diagnostic_array_.begin(); it != diagnostic_array_.end(); ++it)
+			int count = 0;
+			for(std::vector<ros::Subscriber>::iterator it  = sub_diagnostic_topic_.begin(); it != sub_diagnostic_topic_.end(); ++it)
 			{
-				std::string entitity_name((*it).status[0].name);
-				if(entitity_name.compare(data->status[0].name))
+				std::string topic_name((*it).getTopic());
+
+				if(topic_name.find(data->status[0].hardware_id) != std::string::npos)
 				{
-					(*it).header = data->header;
-					(*it).status = data->status;
-
-					pub_diagnostic_array_.publish(*it);
-
+					diagnostic_merged_status_array_.at(count) = data->status[0];
 					break;
 				}
+				count++;
 			}
+			diagnostic_merged_array_.header.stamp = ros::Time::now();
+			diagnostic_merged_array_.status = diagnostic_merged_status_array_;
+			pub_diagnostic_merged_array_.publish(diagnostic_merged_array_);
 		}
 
 		void DiagnosticHandler::checkStatus()
 		{
-			for(std::vector<diagnostic_msgs::DiagnosticArray>::iterator it  = diagnostic_array_.begin(); it != diagnostic_array_.end(); ++it)
+			/// OVO NEMA SMISLA
+			for(std::vector<ros::Subscriber>::iterator it  = sub_diagnostic_topic_.begin(); it != sub_diagnostic_topic_.end(); ++it)
 			{
-				if(ros::Time::now().toSec() - (*it).header.stamp.toSec()>4.0)
-				{
-					signed char* status = &(it->status[0].level);
-
-					if(*status == diagnostic_msgs::DiagnosticStatus::OK || *status == diagnostic_msgs::DiagnosticStatus::WARN)
-					{
-						*status = diagnostic_msgs::DiagnosticStatus::STALE;
-					}
-					pub_diagnostic_array_.publish(*it);
-				}
+//				if(ros::Time::now().toSec() - (*it).header.stamp.toSec()>4.0)
+//				{
+//					signed char* status = &(it->status[0].level);
+//
+//					if(*status == diagnostic_msgs::DiagnosticStatus::OK || *status == diagnostic_msgs::DiagnosticStatus::WARN)
+//					{
+//						*status = diagnostic_msgs::DiagnosticStatus::STALE;
+//					}
+//					pub_diagnostic_array_.publish(*it);
+//				}
 			}
 		}
 	}
