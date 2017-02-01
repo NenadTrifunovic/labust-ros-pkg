@@ -57,6 +57,8 @@ target_link_libraries(labust_navigation
 ## Navframe nodes
 add_executable(llnode src/latlon_node/LLNode.cpp)
 target_link_libraries(llnode ${catkin_LIBRARIES} ${GeographicLib_LIBRARIES})
+add_executable(latlon2ned src/latlon_node/latlon2ned.cpp)
+target_link_libraries(latlon2ned ${catkin_LIBRARIES} ${GeographicLib_LIBRARIES})
 add_executable(ltp_node src/latlon_node/ltp_node.cpp)
 target_link_libraries(ltp_node ${catkin_LIBRARIES})
 add_executable(tf_publisher_node src/nav_node/tf_publisher_node.cpp)
