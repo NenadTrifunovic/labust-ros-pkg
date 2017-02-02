@@ -1,8 +1,4 @@
 - git: 
-    local-name: decision_making
-    uri: 'https://github.com/labust/decision_making'
-    version: develop
-- git: 
     local-name: labust-common-msgs
     uri: 'https://github.com/labust/labust-common-msgs'
     version: develop
