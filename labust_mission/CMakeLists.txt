@@ -15,6 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
   cmake_modules
   labust_primitives
   labust_diagnostics
+  diagnostic_updater
   std_srvs
   actionlib
   actionlib_msgs
@@ -77,6 +78,7 @@ include_directories(
 
 add_library(decision_making_ros src/decision_making/ROSTask.cpp)
 add_dependencies(decision_making_ros labust_mission_generate_messages_cpp)
+target_link_libraries(decision_making_ros ${catkin_LIBRARIES} )
 ## Main mission control nodes
 if (TinyXML2_LIBRARY)
 	include_directories(${TinyXML2_INCLUDE_DIR})
