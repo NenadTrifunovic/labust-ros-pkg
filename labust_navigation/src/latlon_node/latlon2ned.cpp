@@ -106,7 +106,7 @@ struct LatLon2NED
 
       pos_out.global_position.latitude = pos_in->global_position.latitude;
       pos_out.global_position.longitude = pos_in->global_position.longitude;
-      pos_out.global_position.altitude = pos_in->global_position.altitude;
+      pos_out.global_position.altitude = 0*pos_in->global_position.altitude;
 
       pos_out.orientation = pos_in->orientation;
 
@@ -118,6 +118,7 @@ struct LatLon2NED
 		enu << x, y, z;
 		Eigen::Vector3d ned = q.toRotationMatrix() * enu;
 		labust::tools::vectorToNED(ned, pos_out.position);
+                pos_out.position.depth = pos_in->global_position.altitude;
 		pub_pos_ned.publish(pos_out);
 
       // Magnetic declination
