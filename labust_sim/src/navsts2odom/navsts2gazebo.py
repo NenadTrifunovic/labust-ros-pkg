@@ -67,33 +67,23 @@ class MessageTransformer:
         req = SetModelStateRequest()
         req.model_state.model_name = self.model_name
 
-
-	# DEBUG
-
-	#data.position.north = 10;
-	#data.position.east = 5;
-	#data.position.depth = -2;
-
-	#data.orientation.roll  =0 ;
-	#data.orientation.pitch = 0;
-	#data.orientation.yaw = -3.14/4;
-
-
-
         try:
+
+            data.header.frame_id="ned"
             req.model_state.reference_frame = "world"
             ''' Set desired frame for coversion '''
-            #child_frame= "gazebo_world"
-            child_frame= "gazebo_world"
+            end_frame= "world"
             ''' Set initial frame pose '''
             pose = PoseStamped()
             pose.header.frame_id = data.header.frame_id
-            #pose.header.frame_id = 'local'
-            pose.header.stamp = self.listener.getLatestCommonTime(child_frame,pose.header.frame_id)
+            pose.header.stamp = self.listener.getLatestCommonTime(end_frame,pose.header.frame_id)
             pose.pose.position.x = data.position.north
             pose.pose.position.y = data.position.east
             pose.pose.position.z = data.position.depth
             
+            '''Set pitch to zero (fix surface behavior)'''
+            data.orientation.pitch = 0
+
             quat = tf.transformations.quaternion_from_euler(data.orientation.roll,data.orientation.pitch,data.orientation.yaw)
     
             pose.pose.orientation.x = quat[0]
@@ -101,7 +91,7 @@ class MessageTransformer:
             pose.pose.orientation.z = quat[2]
             pose.pose.orientation.w = quat[3]
             ''' Get desired frame pose '''
-            pose2 = self.listener.transformPose(child_frame, pose)
+            pose2 = self.listener.transformPose(end_frame, pose)
             req.model_state.pose.position = pose2.pose.position
             req.model_state.pose.orientation = pose2.pose.orientation
             ''' Set model state service call '''
@@ -112,7 +102,6 @@ class MessageTransformer:
             #req.model_state.twist.angular = pose2.pose.orientation
             ''' Set model state service call '''
             #self.setState(req)
-	    #rospy.logerr("DEBUG.")
                
         except (tf.Exception, tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
             rospy.logerr("Error on frame conversion.")
