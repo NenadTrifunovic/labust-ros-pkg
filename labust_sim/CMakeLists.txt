@@ -41,7 +41,7 @@ include_directories(include
 file(GLOB SRC src/labust_sim/*.cpp)
 file(GLOB HPP include/labust/simulation/*.hpp include/labust/simulation/*.h)
 add_library(labust_sim ${SRC} ${HPP})
-add_dependencies(labust_sim auv_msgs_gencpp)
+add_dependencies(labust_sim auv_msgs_gencpp underwater_msgs_gencpp)
 target_link_libraries(labust_sim ${Boost_RANDOM_LIBRARY})
 
 ## Main simulator node
