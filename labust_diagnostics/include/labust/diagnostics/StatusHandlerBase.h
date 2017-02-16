@@ -13,7 +13,6 @@
 #include <diagnostic_msgs/DiagnosticStatus.h>
 #include <diagnostic_msgs/KeyValue.h>
 
-
 namespace labust
 {
 	namespace diagnostic
@@ -21,8 +20,6 @@ namespace labust
 		class StatusHandlerBase
 		{
 		public:
-
-			enum {OK=0, WARN=1, ERROR=2, STALE=3};
 
 			StatusHandlerBase()
 			{
@@ -36,8 +33,6 @@ namespace labust
 			{
 
 			}
-
-			//virtual void initialize() = 0;
 
 			inline void setEntityName(const std::string& entity_name);
 
@@ -54,8 +49,6 @@ namespace labust
 			void deleteKeyValue(const std::string& key_value_name);
 
 			diagnostic_msgs::DiagnosticStatus entity_status_;
-
-
 		};
 
 		inline void StatusHandlerBase::setEntityName(const std::string& entity_name)
@@ -63,17 +56,17 @@ namespace labust
 			entity_status_.name.assign(entity_name);
 		}
 
-		void StatusHandlerBase::setEntityMessage(const std::string& entity_message)
+		inline void StatusHandlerBase::setEntityMessage(const std::string& entity_message)
 		{
 			entity_status_.message.assign(entity_message);
 		}
 
-		void StatusHandlerBase::setEntityId(const std::string& entity_id)
+		inline void StatusHandlerBase::setEntityId(const std::string& entity_id)
 		{
 			entity_status_.hardware_id.assign(entity_id);
 		}
 
-		void StatusHandlerBase::setEntityStatus(const signed char& status)
+		inline void StatusHandlerBase::setEntityStatus(const signed char& status)
 		{
 			entity_status_.level = status;
 		}
@@ -94,15 +87,15 @@ namespace labust
 			for(std::vector<diagnostic_msgs::KeyValue>::iterator it = entity_status_.values.begin();
 					it != entity_status_.values.end(); ++it)
 			{
-				ROS_ERROR("%s",it->key.c_str());
+				//ROS_ERROR("%s",it->key.c_str());
 				if(key_value_name.compare(it->key.c_str()) == 0)
 				{
 					it->value = value;
 					ROS_INFO("Key value %s updated.", key_value_name.c_str());
-					break;
+					return;
 				}
 			}
-			ROS_INFO("No key value %s found.", key_value_name.c_str());
+			ROS_ERROR("No key value %s found.", key_value_name.c_str());
 		}
 
 		void StatusHandlerBase::deleteKeyValue(const std::string& key_value_name)
@@ -115,13 +108,12 @@ namespace labust
 				{
 					entity_status_.values.erase(it--); //TODO Check this
 					ROS_INFO("Key value %s deleted.", key_value_name.c_str());
-					break;
+					return;
 				}
 			}
-			ROS_INFO("No key value %s found.", key_value_name.c_str());
+			ROS_ERROR("No key value %s found.", key_value_name.c_str());
 		}
 	}
 }
-
 
 #endif /* LABUST_ROS_PKG_LABUST_DIAGNOSTICS_INCLUDE_LABUST_DIAGNOSTICS_STATUSHANDLERBASE_H_ */
