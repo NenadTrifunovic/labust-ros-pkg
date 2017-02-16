@@ -219,7 +219,6 @@ status_handler_("Mission execution","mission_execution")
 			pubEventString = nh.advertise<std_msgs::String>("eventString",1);
 			pubMissionStatus = nh.advertise<misc_msgs::MissionStatus>("mission_status",1);
 
-
 			/** Services */
 			srvExprEval = nh.serviceClient<misc_msgs::EvaluateExpression>("evaluate_expression");
 
@@ -228,13 +227,13 @@ status_handler_("Mission execution","mission_execution")
 			primitiveStringMap = PrimitiveMapGenerator.getPrimitiveStringMap();
 			primitiveBoolMap = PrimitiveMapGenerator.getPrimitiveBoolMap();
 
-                        /*** Status handler intialization ***/
-	                status_handler_.addKeyValue("Active primitive");
-	                status_handler_.addKeyValue("Primitive status");
-	                status_handler_.addKeyValue("Manual");
-                	status_handler_.setEntityStatus(diagnostic_msgs::DiagnosticStatus::WARN);
-                	status_handler_.setEntityMessage("Status handler initialized.");
-                	status_handler_.publishStatus();
+			/*** Status handler intialization ***/
+			status_handler_.addKeyValue("Active primitive");
+			status_handler_.addKeyValue("Primitive status");
+			status_handler_.addKeyValue("Manual");
+			status_handler_.setEntityStatus(diagnostic_msgs::DiagnosticStatus::OK);
+			status_handler_.setEntityMessage("Status handler initialized.");
+			status_handler_.publishStatus();
 		}
 
 	    void MissionExecution::evaluatePrimitive(string primitiveString)
@@ -460,10 +459,9 @@ status_handler_("Mission execution","mission_execution")
 			msg.active_primitive = missionActive?primitive_name:"None";
 			msg.mission_execution_ready = missionExecutionReady;
 			pubMissionStatus.publish(msg);
-			
-			/*** ***/
-	                status_handler_.setEntityStatus(diagnostic_msgs::DiagnosticStatus::OK);
-	                status_handler_.publishStatus();
+
+			/*** Publish diagnostic status ***/
+			status_handler_.publishStatus();
 		}
 
 		/*********************************************************************
@@ -473,30 +471,36 @@ status_handler_("Mission execution","mission_execution")
 		/** EventString topic callback */
 		void MissionExecution::onEventString(const std_msgs::String::ConstPtr& msg){
 
+			status_handler_.setEntityStatus(diagnostic_msgs::DiagnosticStatus::OK);
+			status_handler_.setEntityMessage("Normal operation.");
+
+
 			if(strcmp(msg->data.c_str(),"/START_DISPATCHER") == 0)
 			{
-	                        status_handler_.updateKeyValue("Primitive status","Running");
+	            status_handler_.updateKeyValue("Primitive status","Running");
 				if(missionActive) mainEventQueue->riseEvent("/STOP");
 			}
 			else if(strcmp(msg->data.c_str(),"/STOP") == 0)
 			{
-		                status_handler_.updateKeyValue("Primitive status","Stopped");
-
+		        status_handler_.updateKeyValue("Primitive status","Stopped");
+		        status_handler_.updateKeyValue("Active primitive","None");
 			}
 			else if(strcmp(msg->data.c_str(),"/PAUSE") == 0)
 			{
-		                status_handler_.updateKeyValue("Primitive status","Paused");
+				status_handler_.setEntityStatus(diagnostic_msgs::DiagnosticStatus::WARN);
+				status_handler_.setEntityMessage("Mission paused.");
+		        status_handler_.updateKeyValue("Primitive status","Paused");
 
 			}
 			else if(strcmp(msg->data.c_str(),"/MANUAL_ENABLE") == 0 && !missionActive)
 			{
 				PM.enableManual(true);
-		                status_handler_.updateKeyValue("Manual","Enabled");
+		        status_handler_.updateKeyValue("Manual","Enabled");
 			}
 			else if(strcmp(msg->data.c_str(),"/MANUAL_DISABLE") == 0 && !missionActive)
 			{
 				PM.enableManual(false);
-		                status_handler_.updateKeyValue("Manual","Disabled");
+		        status_handler_.updateKeyValue("Manual","Disabled");
 			}
 
 			mainEventQueue->riseEvent(msg->data.c_str());
@@ -521,7 +525,8 @@ status_handler_("Mission execution","mission_execution")
 				string id_string(PRIMITIVES[receivedPrimitive.primitiveID]);
 				id_string = "/" + boost::to_upper_copy(id_string);
 				mainEventQueue->riseEvent(id_string.c_str());
-		                status_handler_.updateKeyValue("Active primitive",id_string.c_str());
+		        status_handler_.updateKeyValue("Active primitive",id_string.c_str());
+				status_handler_.setEntityStatus(diagnostic_msgs::DiagnosticStatus::OK);
 			}
 			else
 			{
@@ -548,6 +553,8 @@ status_handler_("Mission execution","mission_execution")
 			ROS_WARN("Timeout");
 			onPrimitiveEndReset();
 			mainEventQueue->riseEvent("/TIMEOUT");
+			status_handler_.setEntityStatus(diagnostic_msgs::DiagnosticStatus::WARN);
+			status_handler_.setEntityMessage("Primitive timeout.");
 		}
 
 		/** Reset timers and flags */
