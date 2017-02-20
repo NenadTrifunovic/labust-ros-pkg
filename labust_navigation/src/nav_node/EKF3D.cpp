@@ -42,6 +42,7 @@
 #include <labust/math/NumberManipulation.hpp>
 #include <labust/simulation/DynamicsParams.hpp>
 #include <labust/navigation/KFModelLoader.hpp>
+#include <labust/diagnostics/StatusHandler.h>
 
 
 #include <auv_msgs/NavSts.h>
@@ -79,7 +80,10 @@ Estimator3D::Estimator3D():
 		dvl_fp(0.1),
 		tf_prefix(""),
 		enable_base_pose_tf(true),
-		enable_base_link_tf(true){this->onInit();};
+		enable_base_link_tf(true),
+		status_handler_("Navigation","navigation"),
+		diagnostic_time_gps_(ros::Time::now()),
+		diagnostic_time_imu_(ros::Time::now()){this->onInit();};
 
 void Estimator3D::onInit()
 {
@@ -153,6 +157,14 @@ void Estimator3D::onInit()
   //Rstart = nav.R;
   //ROS_ERROR("NAVIGATION");
   ph.param("dvl_fp",dvl_fp, dvl_fp);
+
+  	/*** Diagnostic handler initialization ***/
+	status_handler_.addKeyValue("GPS");
+	status_handler_.addKeyValue("IMU");
+	status_handler_.addKeyValue("Filter state");
+	status_handler_.setEntityStatus(diagnostic_msgs::DiagnosticStatus::OK);
+	status_handler_.setEntityMessage("Status handler initialized.");
+	status_handler_.publishStatus();
 }
 
 void Estimator3D::onReset(const std_msgs::Bool::ConstPtr& reset)
@@ -354,6 +366,17 @@ void Estimator3D::KFmodeCallback(const std_msgs::Bool::ConstPtr& msg){
 void Estimator3D::processMeasurements()
 {
 	boost::mutex::scoped_lock l(meas_mux);
+
+	status_handler_.setEntityMessage("OK.");
+	status_handler_.setEntityStatus(diagnostic_msgs::DiagnosticStatus::OK);
+
+	if((ros::Time::now()-diagnostic_time_gps_).toSec()>5)
+	{
+		status_handler_.setEntityStatus(diagnostic_msgs::DiagnosticStatus::WARN);
+		status_handler_.setEntityMessage("Measurements missing.");
+		status_handler_.updateKeyValue("GPS","No measurement");
+	}
+
 	if(KFmode == true && absoluteEKF == false)
 		{
 			if ((newMeas(KFNav::xp) = newMeas(KFNav::yp) = quadMeasAvailable)){
@@ -369,6 +392,9 @@ void Estimator3D::processMeasurements()
 			{
 				measurements(KFNav::xp) = gps.position().first;
 				measurements(KFNav::yp) = gps.position().second;
+
+				diagnostic_time_gps_ = ros::Time::now();
+				status_handler_.updateKeyValue("GPS","OK.");
 			}
 		}
 
@@ -384,6 +410,13 @@ void Estimator3D::processMeasurements()
 	}
 
 	//ROS_ERROR("xp: %4.2f, yp: %4.2f, MODE: %d",measurements(KFNav::xp),measurements(KFNav::yp),KFmode );
+
+	if((ros::Time::now()-diagnostic_time_imu_).toSec()>5)
+	{
+		status_handler_.setEntityStatus(diagnostic_msgs::DiagnosticStatus::WARN);
+		status_handler_.setEntityMessage("Measurements missing.");
+		status_handler_.updateKeyValue("IMU","No measurement");
+	}
 
 	//Imu measurements
 	if ((newMeas(KFNav::phi) = newMeas(KFNav::theta) = newMeas(KFNav::psi) = imu.newArrived()))
@@ -403,6 +436,9 @@ void Estimator3D::processMeasurements()
 			//Combine measurement with DVL
 			dvl.current_r(measurements(KFNav::r));
 		}
+
+		diagnostic_time_imu_ = ros::Time::now();
+		status_handler_.updateKeyValue("IMU","OK.");
 	}
 	//DVL measurements
 	if ((newMeas(KFNav::u) = newMeas(KFNav::v) = newMeas(KFNav::w) = dvl.newArrived()))
@@ -576,6 +612,18 @@ void Estimator3D::publishState()
 	state->header.frame_id = "local";
 	stateHat.publish(state);
 
+	if(covariance(KFNav::xp, KFNav::xp) > 10 || covariance(KFNav::xp, KFNav::xp) > 10)
+	{
+		status_handler_.setEntityMessage("Large position covarinace");
+		status_handler_.updateKeyValue("Filter state","Large position covariance.");
+		status_handler_.setEntityStatus(diagnostic_msgs::DiagnosticStatus::WARN);
+	}
+	else
+	{
+		status_handler_.updateKeyValue("Filter state","OK.");
+	}
+
+
 	geometry_msgs::TwistStamped::Ptr current(new geometry_msgs::TwistStamped());
 	current->twist.linear.x = estimate(KFNav::xc);
 	current->twist.linear.y = estimate(KFNav::yc);
@@ -670,6 +718,8 @@ void Estimator3D::start()
 		    broadcaster.sendTransform(transform);
 		}
 
+		/*** Publish diagnostic status ***/
+		status_handler_.publishStatus();
 
 		rate.sleep();
 		ros::spinOnce();
