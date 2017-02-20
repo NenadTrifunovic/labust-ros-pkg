@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-#
 # Software License Agreement (BSD License)
 #
-# Copyright (c) 2010, Willow Garage, Inc.
+# Copyright (c) 2017, LABUST.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -32,123 +31,59 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-##\author Kevin Watts
-##\brief Republishes the data from ddwrt/accesspoint onto diagnostics
-
-from __future__ import with_statement
-
-PKG = 'pr2_computer_monitor'
-import roslib
-roslib.load_manifest(PKG)
-
 import rospy
-
-import threading
-import sys
-
+import roslib
 from diagnostic_msgs.msg import DiagnosticArray, DiagnosticStatus, KeyValue
-from pr2_msgs.msg import AccessPoint
+from labust_diagnostics.StatusHandler import StatusHandler
 
-DIAG_NAME = 'Wifi Status (ddwrt)'
-WARN_TIME = 30
-ERROR_TIME = 60
+import sys
+import subprocess
 
-
-def wifi_to_diag(msg):
-    stat = DiagnosticStatus()
-
-    stat.name = DIAG_NAME
-    stat.level = DiagnosticStatus.OK
-    stat.message = 'OK'
-
-    stat.values.append(KeyValue(key='ESSID',       value=msg.essid))
-    stat.values.append(KeyValue(key='Mac Address', value=msg.macaddr))
-    stat.values.append(KeyValue(key='Signal',      value=str(msg.signal)))
-    stat.values.append(KeyValue(key='Noise',       value=str(msg.noise)))
-    stat.values.append(KeyValue(key='Sig/Noise',   value=str(msg.snr)))
-    stat.values.append(KeyValue(key='Channel',     value=str(msg.channel)))
-    stat.values.append(KeyValue(key='Rate',        value=msg.rate))
-    stat.values.append(KeyValue(key='TX Power',    value=msg.tx_power))
-    stat.values.append(KeyValue(key='Quality',     value=str(msg.quality)))
-
-    return stat
-
-def mark_diag_stale(diag_stat = None, error = False):
-    if not diag_stat:
-        diag_stat = DiagnosticStatus()
-        diag_stat.message = 'No Updates'
-        diag_stat.name    = DIAG_NAME
-    else:
-        diag_stat.message = 'Updates Stale'
-
-    diag_stat.level = DiagnosticStatus.WARN
-    if error:
-        diag_stat.level = DiagnosticStatus.ERROR
-
-    return diag_stat
-
-class WifiMonitor(object):
+class WiFiMonitor:
     def __init__(self):
-        self._mutex = threading.Lock()
+        ''' Status handler intialization '''
+        self.status_handler_= StatusHandler("WiFi monitor","wifi_monitor")
+        self.status_handler_.addKeyValue("Link quality");
+        self.status_handler_.setEntityStatus(DiagnosticStatus.OK);
+        self.status_handler_.setEntityMessage("Status handler initialized.");
+        self.status_handler_.publishStatus();
         
-        self._last_msg = None
-        self._last_update_time = None
-        self._start_time = rospy.get_time()
+        self.wifi_low_threshold = rospy.get_param('~battery_low_threshold', 20)
 
-        self._diag_pub = rospy.Publisher('/diagnostics', DiagnosticArray)
+    def checkWiFiStatus(self):
+        p = subprocess.Popen('awk \'NR==3 {print $3 0}\'\'\' /proc/net/wireless',
+                             stdout = subprocess.PIPE,
+                             stderr = subprocess.PIPE, shell = True)
+        stdout, stderr = p.communicate()
+        retcode = p.returncode
 
-        self._ddwrt_sub = rospy.Subscriber('ddwrt/accesspoint', AccessPoint, self._cb)
-
-    def _cb(self, msg):
-        with self._mutex:
-            self._last_msg = msg
-            self._last_update_time = rospy.get_time()
-
-    def publish_stats(self):
-        with self._mutex:
-            if self._last_msg:
-                ddwrt_stat = wifi_to_diag(self._last_msg)
-
-                update_diff = rospy.get_time() - self._last_update_time
-                if update_diff > WARN_TIME:
-                    ddwrt_stat = mark_diag_stale(ddwrt_stat)
-                if (rospy.get_time() - self._last_update_time) > ERROR_TIME:
-                    ddwrt_stat = mark_diag_stale(ddwrt_stat, True)
-
-                ddwrt_stat.values.append(KeyValue(key='Time Since Update', value=str(update_diff)))
+        if stdout != '':
+            if stdout>self.wifi_low_threshold:
+                self.status_handler_.setEntityStatus(DiagnosticStatus.OK)
+                self.status_handler_.setEntityMessage("Status normal.")
             else:
-                error_state = (rospy.get_time() - self._start_time) > ERROR_TIME
-                ddwrt_stat = mark_diag_stale(None, error_state)
-                ddwrt_stat.values.append(KeyValue(key='Time Since Update', value="N/A"))
+                self.status_handler_.setEntityStatus(DiagnosticStatus.WARN)
+                self.status_handler_.setEntityMessage("Low signal quality.")
+            self.status_handler_.updateKeyValue("Link quality",str(stdout))
 
-        msg = DiagnosticArray()
-        msg.header.stamp = rospy.get_rostime()
-        msg.status.append(ddwrt_stat)
-        
-        self._diag_pub.publish(msg)
-
-
-if __name__ == '__main__':
+        else:
+            self.status_handler_.setEntityStatus(DiagnosticStatus.ERROR)
+            self.status_handler_.setEntityMessage("No WiFi connection.")
+            self.status_handler_.updateKeyValue("Link quality",str(0))
+  
+        self.status_handler_.publishStatus();
+    
+if __name__ == "__main__":
     try:
-        rospy.init_node('ddwrt_diag')
-    except rospy.exceptions.ROSInitException:
-        print 'Wifi monitor is unable to initialize node. Master may not be running.'
-        sys.exit(2)
-        
-    wifi_monitor = WifiMonitor()
-    rate = rospy.Rate(1.0)
-
-    try:
+        rospy.init_node('wifi_monitor_node', anonymous=True)
+        update_rate = rospy.get_param('~update_rate', 1)
+        dm = WiFiMonitor()
+        rate = rospy.Rate(update_rate) # In Hz
         while not rospy.is_shutdown():
+            dm.checkWiFiStatus()
             rate.sleep()
-            wifi_monitor.publish_stats()
-    except KeyboardInterrupt:
-        pass
-    except Exception, e:
+    except KeyboardInterrupt: pass
+    except SystemExit: pass
+    except:
         import traceback
         traceback.print_exc()
-
-    sys.exit(0)
-    
-
-            

@@ -33,7 +33,6 @@
 
 import rospy
 import roslib
-#roslib.load_manifest('labust_diagnostics')
 from diagnostic_msgs.msg import DiagnosticArray, DiagnosticStatus, KeyValue
 from labust_diagnostics.StatusHandler import StatusHandler
 
