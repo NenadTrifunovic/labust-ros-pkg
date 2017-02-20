@@ -1,0 +1,9 @@
+<launch>
+  <arg name="battery_low_threshold" default="30" />
+  <arg name="update_rate" default="1" />
+  
+  <node name="battery_monitor" pkg="labust_diagnostics" type="battery_monitor.py">
+    <param name="battery_low_threshold" value="$(arg battery_low_threshold)" /><!-- In percentage -->
+    <param name="update_rate" value="$(arg update_rate)" /><!-- In Hz -->
+  </node>
+</launch>
