@@ -10,13 +10,13 @@
 import rospy
 from diagnostic_msgs.msg import DiagnosticStatus, KeyValue, DiagnosticArray
 
-class StatusHandlerBase:
+class StatusHandlerBase(object):
     def __init__(self):
-        self.entity_status_ = DiagnoticStatus()
-        self.entity_status_setEntityName("No name");
-        self.entity_status_setEntityId("No ID");
-        self.entity_status_setEntityStatus(DiagnosticStatus.STALE);
-        self.entity_status_setEntityMessage("No message.");
+        self.entity_status_ = DiagnosticStatus()
+        self.setEntityName("No name");
+        self.setEntityId("No ID");
+        self.setEntityStatus(DiagnosticStatus.STALE);
+        self.setEntityMessage("No message.");
         pass
     
     def setEntityName(self, entity_name):
@@ -59,13 +59,14 @@ class StatusHandlerBase:
                 rospy.loginfo("Key value %s deleted.", key_value_name)
                 return
         rospy.logerr("No key value %s found.", key_value_name)
+
         
 class StatusHandler(StatusHandlerBase):
-    def __init_(self,entity_name,entity_id):
-        super().__init__()
+    def __init__(self, entity_name, entity_id):
+        super(StatusHandler, self).__init__()
         self.setEntityName(entity_name)
         self.setEntityId(entity_id)
-        self.publish_status_ = rospy.Publisher('/diagnostics/'+entity_id,1)
+        self.pub_status_ = rospy.Publisher('/diagnostics/'+entity_id,DiagnosticArray,queue_size=1)
         
     def publishStatus(self):
         diagnostic_array = DiagnosticArray()
