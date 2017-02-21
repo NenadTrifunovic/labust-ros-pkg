@@ -352,9 +352,9 @@ void Estimator3D::onSecond_navsts(const auv_msgs::NavSts::ConstPtr& data)
 
   // measurements(KFNav::psib) = data->orientation.yaw;
   // newMeas(KFNav::psib) = 1;
-  measurements(KFNav::hdgb) =
+  measurements(KFNav::psib) = measurements(KFNav::hdgb) =
       hdgb_unwrap(data->orientation.yaw + divernet_heading_offset);
-  newMeas(KFNav::hdgb) = 1;
+  newMeas(KFNav::psib) = newMeas(KFNav::hdgb) = 1;
   ROS_ERROR("DIVER - ACOUSTIC - DEPTH: %f, HEADING: %f",
             measurements(KFNav::zb), measurements(KFNav::hdgb));
 
@@ -620,6 +620,7 @@ void Estimator3D::publishState()
   // state2->orientation.yaw = 0;
   // state2->orientation.pitch = 0;
   state2->orientation.yaw = labust::math::wrapRad(estimate(KFNav::hdgb));
+  state2->orientation.yaw = labust::math::wrapRad(estimate(KFNav::psib));
 
   // state2->orientation_rate.yaw = estimate(KFNav::rb);
 
