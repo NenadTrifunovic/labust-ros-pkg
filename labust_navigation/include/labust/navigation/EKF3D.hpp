@@ -248,6 +248,14 @@ namespace labust
 
 			//The transform frame prefix for multi-vehicle scenarios
 			std::string tf_prefix;
+
+			/*** Diagnostic status handler ***/
+			labust::diagnostic::StatusHandler status_handler_;
+			/*** Diagnostic timeout ***/
+			ros::Time diagnostic_time_gps_;
+			ros::Time diagnostic_time_imu_;
+
+
 		};
 	}
 }

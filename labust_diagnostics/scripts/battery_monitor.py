@@ -37,50 +37,47 @@ from diagnostic_msgs.msg import DiagnosticArray, DiagnosticStatus, KeyValue
 from labust_diagnostics.StatusHandler import StatusHandler
 
 import sys
-import subprocess
+from subprocess import Popen, PIPE
 
-class WiFiMonitor:
+class BatteryMonitor:
     def __init__(self):
         ''' Status handler intialization '''
-        self.status_handler_= StatusHandler("WiFi monitor","wifi_monitor")
-        self.status_handler_.addKeyValue("Link quality");
+        self.status_handler_= StatusHandler("Battery monitor","battery_monitor")
+        self.status_handler_.addKeyValue("Percentage");
+        self.status_handler_.addKeyValue("Voltage");
+        self.status_handler_.addKeyValue("Current");
         self.status_handler_.setEntityStatus(DiagnosticStatus.OK);
         self.status_handler_.setEntityMessage("Status handler initialized.");
         self.status_handler_.publishStatus();
         
-        self.wifi_low_threshold = rospy.get_param('~battery_low_threshold', 20)
+        self.battery_low_threshold = rospy.get_param('~battery_low_threshold', 30)
 
-    def checkWiFiStatus(self):
-        p = subprocess.Popen('awk \'NR==3 {print $3 0}\'\'\' /proc/net/wireless',
-                             stdout = subprocess.PIPE,
-                             stderr = subprocess.PIPE, shell = True)
-        stdout, stderr = p.communicate()
-        retcode = p.returncode
-
-        if stdout != '':
-            if stdout>self.wifi_low_threshold:
-                self.status_handler_.setEntityStatus(DiagnosticStatus.OK)
-                self.status_handler_.setEntityMessage("Status normal.")
-            else:
-                self.status_handler_.setEntityStatus(DiagnosticStatus.WARN)
-                self.status_handler_.setEntityMessage("Low signal quality.")
-            self.status_handler_.updateKeyValue("Link quality",str(stdout))
-
+    def checkBatteryStatus(self):
+        battery_status  = 57;
+        battery_voltage = 11.67;
+        battery_current = 6.78;
+        
+        self.status_handler_.updateKeyValue("Percentage",str(battery_status))
+        self.status_handler_.updateKeyValue("Voltage",str(battery_voltage))
+        self.status_handler_.updateKeyValue("Current",str(battery_current))
+        
+        if battery_status > self.battery_low_threshold:
+            self.status_handler_.setEntityStatus(DiagnosticStatus.OK);
+            self.status_handler_.setEntityMessage("Status normal.");
         else:
-            self.status_handler_.setEntityStatus(DiagnosticStatus.ERROR)
-            self.status_handler_.setEntityMessage("No WiFi connection.")
-            self.status_handler_.updateKeyValue("Link quality",str(0))
-  
+            self.status_handler_.setEntityStatus(DiagnosticStatus.WARN);
+            self.status_handler_.setEntityMessage("Battery low.");
+            
         self.status_handler_.publishStatus();
     
 if __name__ == "__main__":
     try:
-        rospy.init_node('wifi_monitor_node', anonymous=True)
+        rospy.init_node('battery_monitor_node', anonymous=True)
         update_rate = rospy.get_param('~update_rate', 1)
-        dm = WiFiMonitor()
+        bm = BatteryMonitor()
         rate = rospy.Rate(update_rate) # In Hz
         while not rospy.is_shutdown():
-            dm.checkWiFiStatus()
+            bm.checkBatteryStatus()
             rate.sleep()
     except KeyboardInterrupt: pass
     except SystemExit: pass

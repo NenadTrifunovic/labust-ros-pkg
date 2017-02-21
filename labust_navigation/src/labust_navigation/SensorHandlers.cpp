@@ -51,7 +51,7 @@ void GPSHandler::configure(ros::NodeHandle& nh)
 			&GPSHandler::onGps, this);
 
 	//status_handler_.addKeyValue("Bottom lock");
-	status_handler_.setEntityStatus(diagnostic_msgs::DiagnosticStatus::WARN);
+	status_handler_.setEntityStatus(diagnostic_msgs::DiagnosticStatus::OK);
 	status_handler_.setEntityMessage("Status handler initialized.");
 	status_handler_.publishStatus();
 }
@@ -128,6 +128,7 @@ void GPSHandler::onGps(const sensor_msgs::NavSatFix::ConstPtr& data)
 		isNew = true;
 
 		status_handler_.setEntityStatus(diagnostic_msgs::DiagnosticStatus::OK);
+		status_handler_.setEntityMessage("Normal");
 	}
 	catch(tf2::TransformException& ex)
 	{
@@ -148,7 +149,7 @@ void ImuHandler::configure(ros::NodeHandle& nh)
 					&ImuHandler::onMagDec, this);
 
 	//status_handler_.addKeyValue("Bottom lock");
-	status_handler_.setEntityStatus(diagnostic_msgs::DiagnosticStatus::WARN);
+	status_handler_.setEntityStatus(diagnostic_msgs::DiagnosticStatus::OK);
 	status_handler_.setEntityMessage("Status handler initialized.");
 	status_handler_.publishStatus();
 }
@@ -202,6 +203,8 @@ void ImuHandler::onImu(const sensor_msgs::Imu::ConstPtr& data)
 
 		isNew = true;
 		status_handler_.setEntityStatus(diagnostic_msgs::DiagnosticStatus::OK);
+		status_handler_.setEntityMessage("OK.");
+
 	}
 	catch (tf2::TransformException& ex)
 	{
@@ -225,7 +228,7 @@ void DvlHandler::configure(ros::NodeHandle& nh)
 	uvw[u] = uvw[v] = uvw[w] = 0;
 
 	status_handler_.addKeyValue("Bottom lock");
-	status_handler_.setEntityStatus(diagnostic_msgs::DiagnosticStatus::WARN);
+	status_handler_.setEntityStatus(diagnostic_msgs::DiagnosticStatus::OK);
 	status_handler_.setEntityMessage("Status handler initialized.");
 	status_handler_.publishStatus();
 
@@ -348,6 +351,7 @@ void DvlHandler::onDvl(const geometry_msgs::TwistStamped::ConstPtr& data)
 
 	isNew = true;
 	status_handler_.setEntityStatus(diagnostic_msgs::DiagnosticStatus::OK);
+	status_handler_.setEntityMessage("OK.");
 	status_handler_.publishStatus();
 }
 
@@ -364,7 +368,7 @@ void iUSBLHandler::configure(ros::NodeHandle& nh)
 	pos[x] = pos[y] = pos[z] = 0;
 
 	//status_handler_.addKeyValue("Bottom lock");
-	status_handler_.setEntityStatus(diagnostic_msgs::DiagnosticStatus::WARN);
+	status_handler_.setEntityStatus(diagnostic_msgs::DiagnosticStatus::OK);
 	status_handler_.setEntityMessage("Status handler initialized.");
 	status_handler_.publishStatus();
 }
