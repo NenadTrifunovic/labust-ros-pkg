@@ -226,6 +226,7 @@ namespace labust
 			ros::Publisher pubCondP, pubCondPxy, pubCost;
 			ros::Publisher pub_usbl_range, pub_usbl_bearing, pub_sonar_range, pub_sonar_bearing, pub_camera_range, pub_camera_bearing;
 			ros::Publisher pub_diver_course, pub_usbl_relative_bearing;
+			ros::Publisher pub_sonar_comp, pub_camera_comp, pub_usbl_comp, pub_usbl_comp_cur;
 
 
 			/**
