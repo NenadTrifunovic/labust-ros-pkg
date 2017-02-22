@@ -466,7 +466,7 @@ void Estimator3D::onSecond_sonar_fix(
   /*** Get sonar measurements ***/
   measurements(KFNav::sonar_range) = data->range + sonar_offset;
   bool enable_flag =
-      (std::abs(measurements(KFNav::sonar_range) - range_estimate) < 1.5) ?
+      (std::abs(measurements(KFNav::sonar_range) - range_estimate) < 0.75) ?
           true :
           false;
   newMeas(KFNav::sonar_range) = data->range > 0.1 && enable_flag;
@@ -504,7 +504,7 @@ void Estimator3D::onSecond_camera_fix(
   /*** Get sonar measurements ***/
   measurements(KFNav::camera_range) = data->range + camera_offset;
   bool enable_flag =
-      (std::abs(measurements(KFNav::camera_range) - range_estimate) < 1.5) ?
+      (std::abs(measurements(KFNav::camera_range) - range_estimate) < 0.75) ?
           true :
           false;
   newMeas(KFNav::camera_range) =
