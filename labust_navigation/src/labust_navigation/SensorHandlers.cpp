@@ -170,7 +170,7 @@ void ImuHandler::onImu(const sensor_msgs::Imu::ConstPtr& data)
 				transform.transform.rotation.z);
 		//ROS_ERROR("IMU raw topic quaternion: %f %f %f %f", meas.x(), meas.y(), meas.z(), meas.w());
 		//ROS_ERROR("IMU frame rot quaternion: %f %f %f %f", rot.x(), rot.y(), rot.z(), rot.w());
-		Eigen::Quaternion<double> result = meas*rot;
+		Eigen::Quaternion<double> result = meas*rot.inverse();
 		//ROS_ERROR("IMU resulting quaternion: %f %f %f %f", result.x(), result.y(), result.z(), result.w());
 		if (gps != 0) gps->setRotation(result);
 		//KDL::Rotation::Quaternion(result.x(),result.y(),result.z(),result.w()).GetEulerZYX
@@ -205,6 +205,10 @@ void ImuHandler::onImu(const sensor_msgs::Imu::ConstPtr& data)
 		status_handler_.setEntityStatus(diagnostic_msgs::DiagnosticStatus::OK);
 		status_handler_.setEntityMessage("OK.");
 
+		// ROS_ERROR("Corrected: acc: %f %f %f, gyro: %f %f %f, rpy: %f %f %f",
+		//	axyz[ax], axyz[ay], axyz[az],
+		//	pqr[p], pqr[q], pqr[r],
+		//	rpy[roll], rpy[pitch], rpy[yaw]);
 	}
 	catch (tf2::TransformException& ex)
 	{

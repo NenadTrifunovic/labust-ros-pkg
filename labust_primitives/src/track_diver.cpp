@@ -332,6 +332,7 @@ void TrackDiver::updateFS()
       0,  // path.orientation.roll - diver_pos.orientation.roll,
       0,  // path.orientation.pitch - diver_pos.orientation.pitch,
       labust::math::wrapRad(path.orientation.yaw), qpn);
+  
   Eigen::Vector3d speed;
   speed << diver_pos.gbody_velocity.x, diver_pos.gbody_velocity.y,
       0;  // diver_pos.gbody_velocity.z;

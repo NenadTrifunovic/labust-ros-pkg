@@ -154,6 +154,12 @@ struct VTControl : DisableAxis
     // Calculate the velocity control signal
     Eigen::Vector3d nur =
         Rpb * (-Kpd * d + dr_p + ref.dxi_r * Eigen::Vector3d(1, 0, 0));
+    Eigen::Vector3d dcon = -Rpb*Kpd*d;
+    Eigen::Vector3d dscon = Rpb*dr_p;
+    Eigen::Vector3d dxcon = ref.dxi_r * Eigen::Vector3d(1, 0, 0);
+    ROS_ERROR("Distance contribution: %f %f %f", dcon(0), dcon(1), dcon(2)); 
+    ROS_ERROR("Diver speed contribution: %f %f %f", dscon(0), dscon(1), dscon(2)); 
+    ROS_ERROR("Path contribution: %f %f %f", dxcon(0), dxcon(1), dxcon(2)); 
     // Calculate PI stuff
     if (use_pi)
     {
@@ -162,6 +168,7 @@ struct VTControl : DisableAxis
       con[s].state = d(s);
       con[e].state = d(e);
       Eigen::Vector3d out, in;
+
       in << state.gbody_velocity.x, state.gbody_velocity.y,
           0;  // state.gbody_velocity.z;
       out = Rpb.transpose() * in;
@@ -203,7 +210,7 @@ struct VTControl : DisableAxis
     nu->twist.angular.z =
         -labust::math::wrapRad(state.orientation.yaw - psi_r);
     nu->twist.linear.x = nur(u);  //+ nur(v)*nu->twist.angular.z;
-    // nu->twist.linear.x = labust::math::coerce(nur(u), -0.8, 0.3); //+ nur(v)*nu->twist.angular.z;
+    nu->twist.linear.x = labust::math::coerce(nur(u), -0.8, 0.5); //+ nur(v)*nu->twist.angular.z;
     nu->twist.linear.y = nur(v);  //- nur(u)*nu->twist.angular.z;
     nu->twist.linear.z = nur(w);
 
