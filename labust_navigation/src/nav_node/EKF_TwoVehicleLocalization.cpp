@@ -184,7 +184,13 @@ void Estimator3D::onInit()
       nh.advertise<std_msgs::Float32>("measurement_diver_2/camera/bearing", 1);
   pub_diver_course =
       nh.advertise<std_msgs::Float32>("estimate_diver_2/diver/course", 1);
+      
+  pub_sonar_comp = nh.advertise<navcon_msgs::RelativePosition>("measurement_diver/sonar", 10);
+  pub_camera_comp = nh.advertise<navcon_msgs::RelativePosition>("measurement_diver/camera", 10);
+  pub_usbl_comp = nh.advertise<navcon_msgs::RelativePosition>("measurement_diver/usbl", 10);
+  pub_usbl_comp_cur = nh.advertise<navcon_msgs::RelativePosition>("measurement_diver/usbl_current", 10);
 
+      
   /** Enable USBL measurements */
   ph.param("delay", enableDelay, enableDelay);
   ph.param("delay_time", delay_time, delay_time);
@@ -382,7 +388,20 @@ void Estimator3D::onSecond_usbl_fix(
   //    - 180 * labust::math::wrapRad(nav.getState()(KFNav::hdg)) / M_PI
   //    + usbl_bearing_offset;  // Buddy pings Videoray
 
+  /// Added compensate measurement output
+  navcon_msgs::RelativePosition comp_out, comp_out_cur;
+  // Keep header info
+  comp_out_cur.header = comp_out.header = data->header;
+  // Put timestamp for current time
+  comp_out_cur.header.stamp = ros::Time::now();
+  comp_out.range = comp_out_cur.range = data->range + usbl_offset;
+  comp_out.bearing = comp_out_cur.bearing = labust::math::wrapRad((data->bearing + usbl_bearing_offset)* M_PI/180.0);
+  pub_usbl_comp.publish(comp_out);
+  pub_usbl_comp_cur.publish(comp_out_cur);
+  /// Finish compensated output
+  
   double bear = data->bearing + usbl_bearing_offset;  // Buddy pings Videoray
+
 
   double elev = 180 - data->elevation;
 
@@ -435,6 +454,15 @@ void Estimator3D::onSecond_sonar_fix(
     const navcon_msgs::RelativePosition::ConstPtr& data)
 {
 
+  /// Added compensate measurement output
+  navcon_msgs::RelativePosition comp_out;
+  // Keep header info
+  comp_out.header = data->header;
+  comp_out.range = data->range + sonar_offset;
+  comp_out.bearing = data->bearing;
+  pub_sonar_comp.publish(comp_out);
+  /// Finish compensated output
+
   /*** Get sonar measurements ***/
   measurements(KFNav::sonar_range) = data->range + sonar_offset;
   bool enable_flag =
@@ -463,6 +491,15 @@ void Estimator3D::onSecond_sonar_fix(
 void Estimator3D::onSecond_camera_fix(
     const navcon_msgs::RelativePosition::ConstPtr& data)
 {
+
+  /// Added compensate measurement output
+  navcon_msgs::RelativePosition comp_out;
+  // Keep header info
+  comp_out.header = data->header;
+  comp_out.range = data->range + camera_offset;
+  comp_out.bearing = data->bearing + camera_bearing_offset * M_PI / 180;
+  pub_sonar_comp.publish(comp_out);
+  /// Finish compensated output
 
   /*** Get sonar measurements ***/
   measurements(KFNav::camera_range) = data->range + camera_offset;
