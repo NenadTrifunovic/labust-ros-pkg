@@ -188,11 +188,6 @@ const TwoVehicleLocalizationModel::output_type& TwoVehicleLocalizationModel::upd
 		}
 	}
 
-
-
-
-
-
 	measurement.resize(arrived.size());
 	H = matrix::Zero(arrived.size(),stateNum);
 	y = vector::Zero(arrived.size());

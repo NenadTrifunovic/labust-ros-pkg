@@ -353,7 +353,7 @@ void Estimator3D::onSecond_navsts(const auv_msgs::NavSts::ConstPtr& data)
   // measurements(KFNav::psib) = data->orientation.yaw;
   // newMeas(KFNav::psib) = 1;
   measurements(KFNav::psib) = measurements(KFNav::hdgb) =
-      hdgb_unwrap(data->orientation.yaw + divernet_heading_offset);
+      hdgb_unwrap(data->orientation.yaw + divernet_heading_offset * M_PI / 180);
   newMeas(KFNav::psib) = newMeas(KFNav::hdgb) = 1;
   ROS_ERROR("DIVER - ACOUSTIC - DEPTH: %f, HEADING: %f",
             measurements(KFNav::zb), measurements(KFNav::hdgb));
@@ -434,7 +434,6 @@ void Estimator3D::onSecond_usbl_fix(
 void Estimator3D::onSecond_sonar_fix(
     const navcon_msgs::RelativePosition::ConstPtr& data)
 {
-  measurement_timeout = ros::Time::now();
 
   /*** Get sonar measurements ***/
   measurements(KFNav::sonar_range) = data->range + sonar_offset;
@@ -453,6 +452,8 @@ void Estimator3D::onSecond_sonar_fix(
   }
   else
   {
+	measurement_timeout = ros::Time::now();
+
     ROS_ERROR("SONAR - RANGE: %f, BEARING: %f deg, TIME: %d %d",
               measurements(KFNav::sonar_range), data->bearing * 180 / M_PI,
               data->header.stamp.sec, data->header.stamp.nsec);
@@ -462,7 +463,6 @@ void Estimator3D::onSecond_sonar_fix(
 void Estimator3D::onSecond_camera_fix(
     const navcon_msgs::RelativePosition::ConstPtr& data)
 {
-  measurement_timeout = ros::Time::now();
 
   /*** Get sonar measurements ***/
   measurements(KFNav::camera_range) = data->range + camera_offset;
@@ -489,6 +489,8 @@ void Estimator3D::onSecond_camera_fix(
   }
   else
   {
+	measurement_timeout = ros::Time::now();
+
     ROS_ERROR("CAMERA - RANGE: %f, BEARING: %f deg, TIME: %d %d",
               measurements(KFNav::camera_range), data->bearing * 180 / M_PI,
               data->header.stamp.sec, data->header.stamp.nsec);
