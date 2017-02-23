@@ -101,6 +101,8 @@ Estimator3D::Estimator3D()
   , display_counter(0)
   , range_estimate(0.0)
   , bearing_estimate(0.0)
+  , usbl_range_outlier_flag(false)
+  , usbl_bearing_outlier_flag(false)
 {
   this->onInit();
 }
@@ -469,6 +471,18 @@ void Estimator3D::onSecond_sonar_fix(
       (std::abs(measurements(KFNav::sonar_range) - range_estimate) < 0.75) ?
           true :
           false;
+
+
+   if (usbl_range_outlier_flag && (std::abs(data->bearing) < 0.1) ) {
+	   ROS_ERROR("False sonar detection.");
+	   enable_flag = false;
+	   KFNav::matrix covariance = nav.getStateCovariance();
+	   covariance(KFNav::xb, KFNav::xb) = 1.5*cov_limit;
+	   covariance(KFNav::yb, KFNav::yb) = 1.5*cov_limit;
+	   nav.setStateCovariance(covariance);
+   }
+
+
   newMeas(KFNav::sonar_range) = data->range > 0.1 && enable_flag;
 
   measurements(KFNav::sonar_bearing) = data->bearing;
@@ -859,7 +873,15 @@ void Estimator3D::start()
                                               sqrt(nav.R0(j, j)));
 
                     if (!newMeas(j))
+                    {
                       ROS_ERROR("USBL range outlier!");
+                      usbl_range_outlier_flag = true;
+                    }
+                    else
+                    {
+                      usbl_range_outlier_flag = false;
+
+                    }
                   }
 
                   if (j == KFNav::bearing)
@@ -877,7 +899,15 @@ void Estimator3D::start()
                                               sqrt(nav.R0(j, j)));
 
                     if (!newMeas(j))
+                    {
                       ROS_ERROR("USBL bearing outlier!");
+                      usbl_bearing_outlier_flag = true;
+                    }
+                    else
+                    {
+                      usbl_bearing_outlier_flag = false;
+
+                    }
                   }
 
                   if (j == KFNav::sonar_range)

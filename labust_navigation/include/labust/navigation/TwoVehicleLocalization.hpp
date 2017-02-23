@@ -279,6 +279,8 @@ namespace labust
 
             int display_counter;
 
+            bool usbl_range_outlier_flag, usbl_bearing_outlier_flag;
+
 		};
 	}
 }
