@@ -12,7 +12,7 @@
 /*********************************************************************
 * Software License Agreement (BSD License)
 *
-*  Copyright (c) 2015-2016, LABUST, UNIZG-FER
+*  Copyright (c) 2015-2017, LABUST, UNIZG-FER
 *  All rights reserved.
 *
 *  Redistribution and use in source and binary forms, with or without
@@ -865,13 +865,19 @@ void Estimator3D::start()
                   if (j == KFNav::bearing)
                   {
                     const KFNav::vector& x = tmp_state.state;
-                    double bear = bearing_unwrap(
-                        atan2(KFNav::yp - KFNav::yb, KFNav::xp - KFNav::xb) -
-                            1 * x(KFNav::hdg),
-                        false);
+                    //double bear = bearing_unwrap(
+                    //    atan2(x(KFNav::yp) - x(KFNav::yb), x(KFNav::xp) - x(KFNav::xb)) -
+                    //        1 * x(KFNav::hdg),
+                    //    false);
+                    double bear =
+                        atan2(x(KFNav::yb) - x(KFNav::yp), x(KFNav::xb) - x(KFNav::xp)) -
+                            0 * x(KFNav::hdg);
                     double dist = fabs(bear - measurements(j));
                     newMeas(j) = (dist <= sqrt(P_rng_bear_relative(1, 1)) +
                                               sqrt(nav.R0(j, j)));
+
+                    if (!newMeas(j))
+                      ROS_ERROR("USBL bearing outlier!");
                   }
 
                   if (j == KFNav::sonar_range)
@@ -883,18 +889,24 @@ void Estimator3D::start()
                     double dist = fabs(rng - measurements(j));
                     newMeas(j) = (dist <= sqrt(P_rng_bear_relative(0, 0)) +
                                               sqrt(nav.R0(j, j)));
+
+                    if (!newMeas(j))
+                      ROS_ERROR("Sonar range outlier!");
                   }
 
                   if (j == KFNav::sonar_bearing)
                   {
                     const KFNav::vector& x = tmp_state.state;
                     double bear = bearing_unwrap(
-                        atan2(KFNav::yp - KFNav::yb, KFNav::xp - KFNav::xb) -
+                        atan2(x(KFNav::yb) - x(KFNav::yp), x(KFNav::xb) - x(KFNav::xp)) -
                             1 * x(KFNav::hdg),
                         false);
                     double dist = fabs(bear - measurements(j));
                     newMeas(j) = (dist <= sqrt(P_rng_bear_relative(1, 1)) +
                                               sqrt(nav.R0(j, j)));
+
+                    if (!newMeas(j))
+                      ROS_ERROR("Sonar bearing outlier!");
                   }
                 }
                 else
