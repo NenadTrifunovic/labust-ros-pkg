@@ -397,7 +397,7 @@ void Estimator3D::onSecond_usbl_fix(
   // Put timestamp for current time
   comp_out_cur.header.stamp = ros::Time::now();
   comp_out.range = comp_out_cur.range = data->range + usbl_offset;
-  comp_out.bearing = comp_out_cur.bearing = labust::math::wrapRad((data->bearing + usbl_bearing_offset)* M_PI/180.0);
+  comp_out.bearing = comp_out_cur.bearing = labust::math::wrapRad((data->bearing_raw + usbl_bearing_offset)*M_PI/180.0);
   pub_usbl_comp.publish(comp_out);
   pub_usbl_comp_cur.publish(comp_out_cur);
   /// Finish compensated output
