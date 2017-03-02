@@ -103,6 +103,8 @@ Estimator3D::Estimator3D()
   , bearing_estimate(0.0)
   , usbl_range_outlier_flag(false)
   , usbl_bearing_outlier_flag(false)
+  , sonar_false_detection_counter(0)
+  , sonar_false_detection_check(true)
 {
   this->onInit();
 }
@@ -222,6 +224,8 @@ void Estimator3D::onInit()
            diver_camera_heading_offset);
   ph.param("divernet_heading_offset", divernet_heading_offset,
            divernet_heading_offset);
+
+  ph.param("sonar_false_detection_check",sonar_false_detection_check,sonar_false_detection_check);
 }
 
 void Estimator3D::onReset(const std_msgs::Bool::ConstPtr& reset)
@@ -473,7 +477,13 @@ void Estimator3D::onSecond_sonar_fix(
           false;
 
 
-   if (usbl_range_outlier_flag && (std::abs(data->bearing) < 0.1) ) {
+
+   if (usbl_range_outlier_flag && (std::abs(data->bearing) < 0.05) )
+	   sonar_false_detection_counter++;
+
+   if(sonar_false_detection_counter>10 && sonar_false_detection_check)
+   {
+	   sonar_false_detection_counter = 0;
 	   ROS_ERROR("False sonar detection.");
 	   enable_flag = false;
 	   KFNav::matrix covariance = nav.getStateCovariance();
@@ -564,6 +574,10 @@ void Estimator3D::processMeasurements()
 
     // measurements(KFNav::zb) = 0;
     newMeas(KFNav::zb) = 1; /*** Repeat last depth measurement. ***/
+
+    // Reset counter
+	sonar_false_detection_counter = 0;
+
 
     if (display_counter++ % 50 == 0)
       ROS_ERROR("Measurement timeout");

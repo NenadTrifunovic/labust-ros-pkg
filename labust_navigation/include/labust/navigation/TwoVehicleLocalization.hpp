@@ -281,6 +281,10 @@ namespace labust
 
             bool usbl_range_outlier_flag, usbl_bearing_outlier_flag;
 
+            int sonar_false_detection_counter;
+
+            bool sonar_false_detection_check;
+
 		};
 	}
 }
