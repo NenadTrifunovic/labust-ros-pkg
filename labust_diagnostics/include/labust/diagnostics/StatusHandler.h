@@ -29,7 +29,7 @@ namespace labust
 				this->setEntityId(entity_id);
 
 				ros::NodeHandle nh;
-				pub_status_ = nh.advertise<diagnostic_msgs::DiagnosticArray>("/diagnostics/"+entity_id,1);
+				pub_status_ = nh.advertise<diagnostic_msgs::DiagnosticArray>("/diagnostics/"+entity_id,1,true);
 			}
 
 			~StatusHandler()
