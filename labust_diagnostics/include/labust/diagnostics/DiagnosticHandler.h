@@ -107,11 +107,13 @@ namespace labust
 
 			std::vector<ros::Subscriber> sub_diagnostic_topic_;
 
+			std::vector<ros::Publisher> pub_diagnostic_topic_;
+
 			diagnostic_msgs::DiagnosticArray diagnostic_merged_array_;
 
 			std::vector<diagnostic_msgs::DiagnosticStatus> diagnostic_merged_status_array_;
 
-
+			std::vector<diagnostic_msgs::DiagnosticArray> diagnostic_data_container_;
 		};
 
 		DiagnosticHandler::DiagnosticHandler()
@@ -139,12 +141,17 @@ namespace labust
 				}
 			}
 
+			diagnostic_msgs::DiagnosticArray empty_array;
+			empty_array.status.push_back(diagnostic_msgs::DiagnosticStatus());
+
 			ros::NodeHandle nh;
 			int i = 0;
 			for(std::vector<std::string>::const_iterator it  = diagnostic_topics.begin(); it != diagnostic_topics.end(); ++it)
 			{
 				std::cout << "Subscribing to topic " << (*it) << std::endl;
 				sub_diagnostic_topic_.push_back(nh.subscribe<diagnostic_msgs::DiagnosticArray>((*it).c_str(),1,&DiagnosticHandler::onDiagnosticData,this));
+				pub_diagnostic_topic_.push_back(nh.advertise<diagnostic_msgs::DiagnosticArray>((*it).c_str(),1));
+				diagnostic_data_container_.push_back(empty_array);
 			}
 
 			diagnostic_merged_status_array_.resize(sub_diagnostic_topic_.size());
@@ -152,7 +159,7 @@ namespace labust
 
 		/***
 		 *
-		 *  IMPORTANT! Diagnostic topic name must be the same as the status.name|hardware_id field.
+		 *  IMPORTANT! Diagnostic topic name must be the same as the status.hardware_id field.
 		 *
 		 * ***/
 		void DiagnosticHandler::onDiagnosticData(const diagnostic_msgs::DiagnosticArray::ConstPtr& data)
@@ -165,6 +172,8 @@ namespace labust
 				if(topic_name.find(data->status[0].hardware_id) != std::string::npos)
 				{
 					diagnostic_merged_status_array_.at(count) = data->status[0];
+					diagnostic_data_container_[count].header.stamp = ros::Time::now();
+					diagnostic_data_container_[count].status[0]= data->status[0];
 					break;
 				}
 				count++;
@@ -174,21 +183,24 @@ namespace labust
 			pub_diagnostic_merged_array_.publish(diagnostic_merged_array_);
 		}
 
+		/***
+		 *
+		 * Check if there is recent diagnostic topic available. If not declare that entity as stale.
+		 *
+		 */
 		void DiagnosticHandler::checkStatus()
 		{
-			/// OVO NEMA SMISLA
-			for(std::vector<ros::Subscriber>::iterator it  = sub_diagnostic_topic_.begin(); it != sub_diagnostic_topic_.end(); ++it)
+            int k = 0;
+			for(std::vector<ros::Publisher>::iterator it  = pub_diagnostic_topic_.begin(); it != pub_diagnostic_topic_.end(); ++it)
 			{
-//				if(ros::Time::now().toSec() - (*it).header.stamp.toSec()>4.0)
-//				{
-//					signed char* status = &(it->status[0].level);
-//
-//					if(*status == diagnostic_msgs::DiagnosticStatus::OK || *status == diagnostic_msgs::DiagnosticStatus::WARN)
-//					{
-//						*status = diagnostic_msgs::DiagnosticStatus::STALE;
-//					}
-//					pub_diagnostic_array_.publish(*it);
-//				}
+				if((ros::Time::now().toSec() - diagnostic_data_container_[k].header.stamp.toSec())>10.0)
+				{
+					diagnostic_data_container_[k].status[0].level = diagnostic_msgs::DiagnosticStatus::STALE;
+					diagnostic_data_container_[k].status[0].message = "No information";
+					//pub_diagnostic_array_.publish(diagnostic_data_container_[k]);
+					it->publish(diagnostic_data_container_[k]);
+				}
+				k++;
 			}
 		}
 	}

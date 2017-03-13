@@ -47,19 +47,18 @@
 
   	DH.subscribeTopics();
 
-  	double Td = 5.0;
+  	int counter = 0;
+  	double Td = 1;
   	ros::Rate rate(1/Td);
 
   	while(ros::ok())
   	{
-  		DH.checkStatus();
 
-  		ros::spin();
+  		if(!(++counter%4)) DH.checkStatus();
+
+  		ros::spinOnce();
   		rate.sleep();
   	}
 
-
-
-  	ros::spin();
   	return 0;
   }
