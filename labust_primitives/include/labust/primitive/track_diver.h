@@ -106,9 +106,16 @@ protected:
   void onGuidancePoint(const geometry_msgs::PointStamped::ConstPtr& point)
   {
     boost::mutex::scoped_lock l(goal_mux);
-    cgoal->guidance_target = point->point;
-    // Enable guidance
-    cgoal->guidance_enable = true;
+    if (cgoal)
+    {
+      cgoal->guidance_target = point->point;
+      // Enable guidance
+      cgoal->guidance_enable = true;
+    }
+    else
+    {
+      ROS_ERROR("Pointer primitive is not active. Unable to set the guidance point.");
+    }
   }
   /// Variable radius handling method
   void onRadius(const std_msgs::Float32::ConstPtr& radius)

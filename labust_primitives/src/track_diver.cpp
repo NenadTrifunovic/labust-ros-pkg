@@ -141,7 +141,7 @@ void TrackDiver::processGoal()
     ros::NodeHandle nh;
     guidance_sub.shutdown();
     guidance_sub =
-        nh.subscribe("guidance_point", 1, &TrackDiver::onGuidancePoint, this);
+        nh.subscribe(cgoal->guidance_topic, 1, &TrackDiver::onGuidancePoint, this);
   }
 
   // If not empty and the topic name changed
@@ -150,7 +150,7 @@ void TrackDiver::processGoal()
   {
     ros::NodeHandle nh;
     radius_sub.shutdown();
-    radius_sub = nh.subscribe("safety_radius", 1, &TrackDiver::onRadius, this);
+    radius_sub = nh.subscribe(cgoal->radius_topic, 1, &TrackDiver::onRadius, this);
   }
 
   if (cgoal->radius < min_radius)
@@ -162,8 +162,8 @@ void TrackDiver::onPreempt()
   ROS_DEBUG("Preempted.");
   if (!process_new)
   {
-    cgoal.reset();
     this->stop();
+    cgoal.reset();
   }
   else
   {
@@ -386,8 +386,7 @@ void TrackDiver::step()
 void TrackDiver::stop()
 {
   ROS_DEBUG("TrackDiver: Stopping.");
-  cgoal.reset();
-  this->updateControllers();
+  this->updateControllers(false);
   // Stop path progression
   dpi_r = 0;
 }

@@ -310,13 +310,13 @@ void CaddyMissions::onGuideMe(const std_msgs::Int32::ConstPtr& data)
     ROS_INFO("Setup Pointer primitive.");
     misc_msgs::PointerPrimitiveService srv_data;
     srv_data.request.radius = pointer_radius;
-    srv_data.request.radius_topic = "diver_distance";
+    srv_data.request.radius_topic = "safety_radius";
     srv_data.request.vertical_offset = 0;
     srv_data.request.guidance_enable = false;
     srv_data.request.guidance_target.x = 0;
     srv_data.request.guidance_target.y = 0;
     srv_data.request.guidance_target.z = 0;
-    srv_data.request.guidance_topic = "guide_target";
+    srv_data.request.guidance_topic = "guidance_point";
     srv_data.request.streamline_orientation = false;
     srv_data.request.wrapping_enable = true;
 
