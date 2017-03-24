@@ -42,13 +42,13 @@ import subprocess
 class WiFiMonitor:
     def __init__(self):
         ''' Status handler intialization '''
-        self.status_handler_= StatusHandler("WiFi monitor","wifi_monitor")
+        self.status_handler_= StatusHandler("WiFi","wifi")
         self.status_handler_.addKeyValue("Link quality");
         self.status_handler_.setEntityStatus(DiagnosticStatus.OK);
         self.status_handler_.setEntityMessage("Status handler initialized.");
         self.status_handler_.publishStatus();
         
-        self.wifi_low_threshold = rospy.get_param('~battery_low_threshold', 20)
+        self.wifi_low_threshold = rospy.get_param('~wifi_low_threshold', 20)
 
     def checkWiFiStatus(self):
         p = subprocess.Popen('awk \'NR==3 {print $3 0}\'\'\' /proc/net/wireless',

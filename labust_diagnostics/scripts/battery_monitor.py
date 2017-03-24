@@ -42,7 +42,7 @@ from subprocess import Popen, PIPE
 class BatteryMonitor:
     def __init__(self):
         ''' Status handler intialization '''
-        self.status_handler_= StatusHandler("Battery monitor","battery_monitor")
+        self.status_handler_= StatusHandler("Battery","battery")
         self.status_handler_.addKeyValue("Percentage");
         self.status_handler_.addKeyValue("Voltage");
         self.status_handler_.addKeyValue("Current");
