@@ -187,6 +187,9 @@ namespace labust
 			/** Mission execution initialized flag */
 			bool missionExecutionReady;
 
+			/** Manual enabled flag */
+			bool manual_enabled_flag;
+
 			/*** ***/
 			labust::primitive::PrimitiveMapGenerator PrimitiveMapGenerator;
 
@@ -206,6 +209,7 @@ namespace labust
 																	timeoutActive(false),
 																	missionActive(false),
 																	missionExecutionReady(false),
+																	manual_enabled_flag(false),
 																	PrimitiveMapGenerator(xml_path),
 																	MP(xml_path),
 status_handler_("Mission execution","mission_execution")
@@ -458,6 +462,7 @@ status_handler_("Mission execution","mission_execution")
 			std::string primitive_name = (receivedPrimitive.primitiveID != none)?PRIMITIVES[receivedPrimitive.primitiveID]:"None";
 			msg.active_primitive = missionActive?primitive_name:"None";
 			msg.mission_execution_ready = missionExecutionReady;
+			msg.manual_enabled = manual_enabled_flag;
 			pubMissionStatus.publish(msg);
 
 			/*** Publish diagnostic status ***/
@@ -496,11 +501,13 @@ status_handler_("Mission execution","mission_execution")
 			{
 				PM.enableManual(true);
 		        status_handler_.updateKeyValue("Manual","Enabled");
+		        manual_enabled_flag = true;
 			}
 			else if(strcmp(msg->data.c_str(),"/MANUAL_DISABLE") == 0 && !missionActive)
 			{
 				PM.enableManual(false);
 		        status_handler_.updateKeyValue("Manual","Disabled");
+		        manual_enabled_flag = false;
 			}
 
 			mainEventQueue->riseEvent(msg->data.c_str());
