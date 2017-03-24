@@ -539,7 +539,12 @@ void Estimator3D::processMeasurements()
 	meas->orientation.roll = measurements(KFNav::phi);
 	meas->orientation.pitch = measurements(KFNav::theta);
 	meas->orientation.yaw = labust::math::wrapRad(measurements(KFNav::psi));
-	if (useYawRate)	meas->orientation_rate.yaw = measurements(KFNav::r);
+	if (useYawRate)
+	{
+		meas->orientation_rate.roll = imu.rate()[ImuHandler::p];
+		meas->orientation_rate.pitch = imu.rate()[ImuHandler::q];
+		meas->orientation_rate.yaw = measurements(KFNav::r);
+	}	
 
 	meas->origin.latitude = gps.origin().first;
 	meas->origin.longitude = gps.origin().second;
