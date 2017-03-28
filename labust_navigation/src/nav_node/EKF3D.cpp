@@ -619,7 +619,7 @@ void Estimator3D::publishState()
 
 	if(covariance(KFNav::xp, KFNav::xp) > 10 || covariance(KFNav::xp, KFNav::xp) > 10)
 	{
-		status_handler_.setEntityMessage("Large position covarinace");
+		status_handler_.setEntityMessage("Large position covariance.");
 		status_handler_.updateKeyValue("Filter state","Large position covariance.");
 		status_handler_.setEntityStatus(diagnostic_msgs::DiagnosticStatus::WARN);
 	}
