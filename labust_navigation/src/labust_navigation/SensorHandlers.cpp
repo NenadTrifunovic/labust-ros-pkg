@@ -42,6 +42,51 @@
 
 using namespace labust::navigation;
 
+void LocalPosHandler::configure(ros::NodeHandle& nh)
+{
+	std::string key;
+	if (nh.searchParam("tf_prefix", key)) nh.getParam(key, tf_prefix);
+
+	localpos_sub = nh.subscribe<geometry_msgs::PointStamped>("local_position_in", 1,
+			&LocalPosHandler::onLocalPos, this);
+
+	//status_handler_.addKeyValue("Bottom lock");
+	status_handler_.setEntityStatus(diagnostic_msgs::DiagnosticStatus::OK);
+	status_handler_.setEntityMessage("Status handler initialized.");
+	status_handler_.publishStatus();
+}
+
+void LocalPosHandler::onLocalPos(const geometry_msgs::PointStamped::ConstPtr& data)
+{
+	status_handler_.setEntityStatus(diagnostic_msgs::DiagnosticStatus::ERROR);
+	
+	geometry_msgs::TransformStamped transform;
+	try
+	{
+		transform = buffer.lookupTransform(tf_prefix + "local", data->header.frame_id, ros::Time(0));
+		Eigen::Quaternion<double> rot(transform.transform.rotation.w,
+				transform.transform.rotation.x,
+				transform.transform.rotation.y,
+				transform.transform.rotation.z);
+		Eigen::Vector3d point(data->point.x, data->point.y, 0);
+		Eigen::Vector3d point_local = rot.matrix()*point;
+
+		//Set the data
+		posxy.first = point_local(0);
+		posxy.second = point_local(1);
+		isNew = true;
+
+		status_handler_.setEntityStatus(diagnostic_msgs::DiagnosticStatus::OK);
+		status_handler_.setEntityMessage("Normal");
+	}
+	catch(tf2::TransformException& ex)
+	{
+		ROS_WARN("Unable to convert local position measurement. Missing frame : %s",ex.what());
+	}
+
+	status_handler_.publishStatus();
+};
+
 void GPSHandler::configure(ros::NodeHandle& nh)
 {
 	std::string key;
@@ -68,7 +113,7 @@ void GPSHandler::onGps(const sensor_msgs::NavSatFix::ConstPtr& data)
 		transformDeg = buffer.lookupTransform("ecef", tf_prefix + "world", ros::Time(0));
 		//Set the projection origin
 		double lat0,lon0,h0;
-		GeographicLib::Geocentric::WGS84.Reverse(
+		GeographicLib::Geocentric::WGS84().Reverse(
 				transformDeg.transform.translation.x,
 				transformDeg.transform.translation.y,
 				transformDeg.transform.translation.z,

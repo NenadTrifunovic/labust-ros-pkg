@@ -52,7 +52,7 @@ void KinematicModel::initModel()
   W = Base::matrix::Identity(stateNum,stateNum);
 
   //These are the noise variances
-  vector q(stateNum);
+  vector q(static_cast<int>(stateNum));
   q<<std::pow(0.02,2), //x
   std::pow(0.02,2), //y
   std::pow(0.07,2), //u

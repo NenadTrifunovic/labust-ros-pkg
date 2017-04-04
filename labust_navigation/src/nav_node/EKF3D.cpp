@@ -134,6 +134,7 @@ void Estimator3D::onInit()
 	if (nh.searchParam("tf_prefix", key)) nh.getParam(key, tf_prefix);
 
 	//Configure handlers.
+	lpos.configure(nh);
 	gps.configure(nh);
 	dvl.configure(nh);
 	imu.configure(nh);
@@ -386,15 +387,28 @@ void Estimator3D::processMeasurements()
 				measurements(KFNav::yp) = deltaYpos;
 		    }
 		} else {
-
-			//GPS measurements
-			if ((newMeas(KFNav::xp) = newMeas(KFNav::yp) = gps.newArrived()))
+			//Local positon measurements
+			bool gps_arrived = gps.newArrived();
+			bool lpos_arrived = lpos.newArrived();
+			if (gps_arrived)
 			{
+				//GPS measurements
+				newMeas(KFNav::xp) = newMeas(KFNav::yp) = gps_arrived;
 				measurements(KFNav::xp) = gps.position().first;
 				measurements(KFNav::yp) = gps.position().second;
 
 				diagnostic_time_gps_ = ros::Time::now();
 				status_handler_.updateKeyValue("GPS","OK.");
+			}
+			else if (lpos_arrived)
+			{
+				newMeas(KFNav::xp) = newMeas(KFNav::yp) = lpos_arrived;
+				ROS_INFO("Adding local measurements.");
+				measurements(KFNav::xp) = lpos.position().first;
+				measurements(KFNav::yp) = lpos.position().second;
+
+				diagnostic_time_gps_ = ros::Time::now();
+				status_handler_.updateKeyValue("LocalPos","OK.");
 			}
 		}
 
