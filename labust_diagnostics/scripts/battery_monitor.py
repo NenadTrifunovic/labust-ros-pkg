@@ -83,10 +83,18 @@ class BatteryMonitor:
             
         self.status_handler_.publishStatus();
         
+    def scaleVoltage(self,value):
+        value/1024*5*3
+        pass
+        
+    def scaleCurrent(self,value):
+        (value-512)*0.2
+        pass
+        
     def onTelemetry(self,msg):
         self.last_measurement_timestamp = rospy.Time.now()
-        self.battery_voltage = msg.data[0]
-        self.battery_current = msg.data[1]
+        self.battery_voltage = self.scaleVoltage(msg.data[0])
+        self.battery_current = self.scaleCurrent(msg.data[1])
     
 if __name__ == "__main__":
     try:
