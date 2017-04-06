@@ -35,7 +35,7 @@ import rospy
 import roslib
 from diagnostic_msgs.msg import DiagnosticArray, DiagnosticStatus, KeyValue
 from labust_diagnostics.StatusHandler import StatusHandler
-from std_msgs.msg import Float32MultiArray
+from std_msgs.msg import Int16MultiArray
 
 import sys
 from subprocess import Popen, PIPE
@@ -56,7 +56,7 @@ class BatteryMonitor:
         self.battery_voltage_minimum = rospy.get_param('~battery_minimum_voltage', 11.7)
         self.battery_volatge_maximum = rospy.get_param('~battery_maximum_voltage', 12.6)
 
-        self.sub_telemetry = rospy.Subscriber("/telemetry", Float32MultiArray, self.onTelemetry)
+        self.sub_telemetry = rospy.Subscriber("telemetry", Int16MultiArray, self.onTelemetry)
         self.last_measurement_timestamp = rospy.Time.now() 
         
         self.battery_status = 0
@@ -70,8 +70,11 @@ class BatteryMonitor:
         self.status_handler_.updateKeyValue("Percentage",str(self.battery_status))
         self.status_handler_.updateKeyValue("Voltage",str(self.battery_voltage))
         self.status_handler_.updateKeyValue("Current",str(self.battery_current))
-        
-        if battery_status > self.battery_low_threshold:
+
+        if (rospy.Time.now()-self.last_measurement_timestamp).to_sec > 10: 
+            self.status_handler_.setEntityStatus(DiagnosticStatus.ERROR);
+            self.status_handler_.setEntityMessage("No measurements.");
+        elif self.battery_status > self.battery_low_threshold:
             self.status_handler_.setEntityStatus(DiagnosticStatus.OK);
             self.status_handler_.setEntityMessage("Status normal.");
         else:
@@ -80,7 +83,7 @@ class BatteryMonitor:
             
         self.status_handler_.publishStatus();
         
-    def onTelemetery(self,msg):
+    def onTelemetry(self,msg):
         self.last_measurement_timestamp = rospy.Time.now()
         self.battery_voltage = msg.data[0]
         self.battery_current = msg.data[1]
