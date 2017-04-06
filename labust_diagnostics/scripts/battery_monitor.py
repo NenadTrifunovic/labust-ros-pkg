@@ -71,7 +71,7 @@ class BatteryMonitor:
         self.status_handler_.updateKeyValue("Voltage",str(self.battery_voltage))
         self.status_handler_.updateKeyValue("Current",str(self.battery_current))
 
-        if (rospy.Time.now()-self.last_measurement_timestamp).to_sec > 10: 
+        if (rospy.Time.now()-self.last_measurement_timestamp).to_sec() > 10: 
             self.status_handler_.setEntityStatus(DiagnosticStatus.ERROR);
             self.status_handler_.setEntityMessage("No measurements.");
         elif self.battery_status > self.battery_low_threshold:
