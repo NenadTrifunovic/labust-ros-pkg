@@ -35,6 +35,7 @@ import rospy
 import roslib
 from diagnostic_msgs.msg import DiagnosticArray, DiagnosticStatus, KeyValue
 from labust_diagnostics.StatusHandler import StatusHandler
+from std_msgs.msg import Float32MultiArray
 
 import sys
 from subprocess import Popen, PIPE
@@ -51,15 +52,24 @@ class BatteryMonitor:
         self.status_handler_.publishStatus();
         
         self.battery_low_threshold = rospy.get_param('~battery_low_threshold', 30)
+        self.gain_k = rospy.get_param('~gain_k', 0.05)
+        self.battery_voltage_minimum = rospy.get_param('~battery_minimum_voltage', 11.7)
+        self.battery_volatge_maximum = rospy.get_param('~battery_maximum_voltage', 12.6)
 
-    def checkBatteryStatus(self):
-        battery_status  = 57;
-        battery_voltage = 11.67;
-        battery_current = 6.78;
+        self.sub_telemetry = rospy.Subscriber("/telemetry", Float32MultiArray, self.onTelemetry)
+        self.last_measurement_timestamp = rospy.Time.now() 
         
-        self.status_handler_.updateKeyValue("Percentage",str(battery_status))
-        self.status_handler_.updateKeyValue("Voltage",str(battery_voltage))
-        self.status_handler_.updateKeyValue("Current",str(battery_current))
+        self.battery_status = 0
+        self.battery_voltage = 0
+        self.battery_current = 0
+        
+    def checkBatteryStatus(self):
+        
+        self.battery_status = 100*(self.battery_voltage-self.battery_voltage_minimum+self.gain_k*self.battery_current)/(self.battery_volatge_maximum-self.battery_voltage_minimum) 
+        
+        self.status_handler_.updateKeyValue("Percentage",str(self.battery_status))
+        self.status_handler_.updateKeyValue("Voltage",str(self.battery_voltage))
+        self.status_handler_.updateKeyValue("Current",str(self.battery_current))
         
         if battery_status > self.battery_low_threshold:
             self.status_handler_.setEntityStatus(DiagnosticStatus.OK);
@@ -69,6 +79,11 @@ class BatteryMonitor:
             self.status_handler_.setEntityMessage("Battery low.");
             
         self.status_handler_.publishStatus();
+        
+    def onTelemetery(self,msg):
+        self.last_measurement_timestamp = rospy.Time.now()
+        self.battery_voltage = msg.data[0]
+        self.battery_current = msg.data[1]
     
 if __name__ == "__main__":
     try:
