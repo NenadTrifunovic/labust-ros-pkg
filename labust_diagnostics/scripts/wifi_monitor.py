@@ -51,7 +51,10 @@ class WiFiMonitor:
         self.wifi_low_threshold = rospy.get_param('~wifi_low_threshold', 20)
 
     def checkWiFiStatus(self):
-        p = subprocess.Popen('awk \'NR==3 {print $3 0}\'\'\' /proc/net/wireless',
+        #p = subprocess.Popen('ssh -T ubnt@10.0.103.1 "awk \'NR==4 {print $3 0}\'\'\' /proc/net/wireless"',
+        #                     stdout = subprocess.PIPE,
+        #                     stderr = subprocess.PIPE, shell = True)
+        p = subprocess.Popen('cat /home/oem/ros/src/labust-ros-pkg/labust_diagnostics/scripts/read_wifi_info.sh | ssh -T ubnt@10.0.103.1',
                              stdout = subprocess.PIPE,
                              stderr = subprocess.PIPE, shell = True)
         stdout, stderr = p.communicate()

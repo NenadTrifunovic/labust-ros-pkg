@@ -40,6 +40,7 @@
 #include <std_msgs/Bool.h>
 #include <std_msgs/Float64.h>
 #include <geometry_msgs/TwistStamped.h>
+#include <geometry_msgs/PointStamped.h>
 #include <underwater_msgs/USBLFix.h>
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
@@ -74,6 +75,27 @@ namespace labust
 
 		protected:
 			bool isNew;
+		};
+		/**
+		 * The local position handler.
+		 */
+		class LocalPosHandler : public NewArrived
+		{
+		public:
+			LocalPosHandler():listener(buffer),tf_prefix(""),status_handler_("LocalPos","localpos"){};
+			void configure(ros::NodeHandle& nh);
+
+			inline const std::pair<double, double>&
+			position() const {return posxy;}
+
+		private:
+			void onLocalPos(const geometry_msgs::PointStamped::ConstPtr& data);
+			std::pair<double, double> posxy;
+			ros::Subscriber localpos_sub;
+			std::string tf_prefix;
+			labust::diagnostic::StatusHandler status_handler_;
+			tf2_ros::Buffer buffer;
+			tf2_ros::TransformListener listener;
 		};
 		/**
 		 * The GPS handler.

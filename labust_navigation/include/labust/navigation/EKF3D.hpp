@@ -159,6 +159,8 @@ namespace labust
 			 * Sensors and input subscribers.
 			 */
 			ros::Subscriber tauAch, depth, altitude, altNSample, modelUpdate, resetTopic, useGyro, useAltSampling, sub, subKFmode;
+			/// Local position handler.
+			LocalPosHandler lpos;
 			/**
 			 * The GPS handler.
 			 */

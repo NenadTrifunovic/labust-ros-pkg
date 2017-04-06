@@ -164,7 +164,7 @@ struct LLNode
       {
         // Setup the geocentric <-> world frame
         geometry_msgs::TransformStamped transform;
-        GeographicLib::Geocentric::WGS84.Forward(
+        GeographicLib::Geocentric::WGS84().Forward(
             originLat, originLon, originH, transform.transform.translation.x,
             transform.transform.translation.y,
             transform.transform.translation.z);

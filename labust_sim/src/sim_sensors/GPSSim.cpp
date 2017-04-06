@@ -143,7 +143,7 @@ struct GPSSim
                                             ros::Time(0), ros::Duration(5.0));
       // Set the projection origin
       double lat0, lon0, h0;
-      GeographicLib::Geocentric::WGS84.Reverse(
+      GeographicLib::Geocentric::WGS84().Reverse(
           transformDeg.transform.translation.x,
           transformDeg.transform.translation.y,
           transformDeg.transform.translation.z, lat0, lon0, h0);
