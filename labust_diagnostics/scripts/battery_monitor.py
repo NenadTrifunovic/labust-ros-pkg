@@ -53,6 +53,7 @@ class BatteryMonitor:
         
         self.battery_low_threshold = rospy.get_param('~battery_low_threshold', 30)
         self.gain_k = rospy.get_param('~gain_k', 0.05)
+        self.gain_a = rospy.get_param('~gain_a', 0.01)
         self.battery_voltage_minimum = rospy.get_param('~battery_minimum_voltage', 11.7)
         self.battery_volatge_maximum = rospy.get_param('~battery_maximum_voltage', 12.6)
 
@@ -62,10 +63,16 @@ class BatteryMonitor:
         self.battery_status = 0
         self.battery_voltage = 0
         self.battery_current = 0
+        self.battery_voltage_avg = 0
+        self.battery_current_avg = 0
         
     def checkBatteryStatus(self):
+
+        self.battery_voltage_avg = self.battery_voltage_avg*(1-self.gain_a) + self.gain_a*self.battery_voltage
         
-        self.battery_status = 100*(self.battery_voltage-self.battery_voltage_minimum+self.gain_k*self.battery_current)/(self.battery_volatge_maximum-self.battery_voltage_minimum) 
+        self.battery_current_avg = self.battery_current_avg*(1-self.gain_a) + self.gain_a*self.battery_current
+
+        self.battery_status = 100*(self.battery_voltage_avg-self.battery_voltage_minimum+self.gain_k*self.battery_current_avg)/(self.battery_volatge_maximum-self.battery_voltage_minimum) 
         
         self.status_handler_.updateKeyValue("Percentage",str(self.battery_status))
         self.status_handler_.updateKeyValue("Voltage",str(self.battery_voltage))
@@ -84,11 +91,11 @@ class BatteryMonitor:
         self.status_handler_.publishStatus();
         
     def scaleVoltage(self,value):
-        value/1024*5*3
+        return value/1024.0*5*3
         pass
         
     def scaleCurrent(self,value):
-        (value-512)*0.2
+        return (value-512)*0.2
         pass
         
     def onTelemetry(self,msg):
