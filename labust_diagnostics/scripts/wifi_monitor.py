@@ -38,6 +38,8 @@ from labust_diagnostics.StatusHandler import StatusHandler
 
 import sys
 import subprocess
+import netifaces as ni
+import ipaddress
 
 class WiFiMonitor:
     def __init__(self):
@@ -50,11 +52,17 @@ class WiFiMonitor:
         
         self.wifi_low_threshold = rospy.get_param('~wifi_low_threshold', 20)
 
+        #ni.ifaddresses('eno1')
+        self.local_ip =  ni.ifaddresses('eno1')[2][0]['addr']
+        rospy.loginfo("wifi_monitor:: Local ip address: %s", self.local_ip)
+        self.picostation_address = str(ipaddress.ip_address(self.local_ip.decode('utf-8'))+1)
+        rospy.loginfo("wifi_monitor:: Picostation ip address: %s", self.picostation_address)
+
     def checkWiFiStatus(self):
         #p = subprocess.Popen('ssh -T ubnt@10.0.103.1 "awk \'NR==4 {print $3 0}\'\'\' /proc/net/wireless"',
         #                     stdout = subprocess.PIPE,
         #                     stderr = subprocess.PIPE, shell = True)
-        p = subprocess.Popen('cat /home/oem/ros/src/labust-ros-pkg/labust_diagnostics/scripts/read_wifi_info.sh | ssh -T ubnt@10.0.103.1',
+        p = subprocess.Popen('cat /home/oem/ros/src/labust-ros-pkg/labust_diagnostics/scripts/read_wifi_info.sh | ssh -T stdops@' + self.picostation_address,
                              stdout = subprocess.PIPE,
                              stderr = subprocess.PIPE, shell = True)
         stdout, stderr = p.communicate()
