@@ -76,10 +76,10 @@ class BatteryMonitor:
         
         self.battery_status = self.saturation(self.battery_status, 0, 100)
         
-        self.status_handler_.updateKeyValue("Percentage",str(self.battery_status))
-        self.status_handler_.updateKeyValue("Voltage",str(self.battery_voltage))
-        self.status_handler_.updateKeyValue("Current",str(self.battery_current))
-
+        self.status_handler_.updateKeyValue("Percentage",'{:3.0f}'.format(self.battery_status))
+        self.status_handler_.updateKeyValue("Voltage",'{:3.2f}'.format(self.battery_voltage))
+        self.status_handler_.updateKeyValue("Current",'{:3.2f}'.format(self.battery_current))
+        
         if (rospy.Time.now()-self.last_measurement_timestamp).to_sec() > 10: 
             self.status_handler_.setEntityStatus(DiagnosticStatus.ERROR);
             self.status_handler_.setEntityMessage("No measurements.");
@@ -100,7 +100,7 @@ class BatteryMonitor:
         return (value-512)*0.2
         pass
     
-    def saturation(n, minn, maxn):
+    def saturation(self, n, minn, maxn):
         if n < minn:
             return minn
         elif n > maxn:
