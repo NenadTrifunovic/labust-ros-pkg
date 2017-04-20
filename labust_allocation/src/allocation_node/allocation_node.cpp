@@ -35,11 +35,13 @@
 #include <labust/tools/conversions.hpp>
 
 #include <std_msgs/Float32MultiArray.h>
+#include <std_msgs/Int32.h>
 
 using namespace labust::allocation;
 
 AllocationNode::AllocationNode():
 					timeout(0.5),
+					allocation_mode(STANDARD),
 					alloc_loader("labust_allocation",
 							"labust::allocation::AllocationInterface")
 {
@@ -69,12 +71,24 @@ void AllocationNode::onInit()
 
 	//Initialize subscribers and publishers
 	tau_sub = nh.subscribe("tau_in", 1, &AllocationNode::onTau,this);
+	mode_sub = nh.subscribe("allocation_mode", 1, &AllocationNode::onAllocationMode,this);
 	tauach_pub = nh.advertise<auv_msgs::BodyForceReq>("tau_ach",1);
 	pwm_pub = nh.advertise<std_msgs::Float32MultiArray>("pwm_out",1);
 }
 
+void AllocationNode::onAllocationMode(const std_msgs::Int32::ConstPtr mode)
+{
+    if(mode->data == STANDARD || mode->data == THRUSTER_TEST)
+    {
+        allocation_mode = mode->data;
+    }
+}
+
 void AllocationNode::onTau(const auv_msgs::BodyForceReq::ConstPtr tau)
 {
+
+    if(allocation_mode == STANDARD)
+    {
 	//Reset timer
 
 	//Load into vector
@@ -104,6 +118,17 @@ void AllocationNode::onTau(const auv_msgs::BodyForceReq::ConstPtr tau)
 	labust::tools::vectorToRPY(tsgn, tau_ach->windup, AllocationInterface::K);
 	tau_ach->header.stamp = ros::Time::now();
 	tauach_pub.publish(tau_ach);
+    } 
+    else if(allocation_mode == THRUSTER_TEST)
+    {
+
+        ROS_WARN("allocation_node: THRUSTER_TEST mode active!");
+
+    }
+    else
+    {
+        ROS_FATAL("allocation_node: Wrong operation mode!");
+    }
 }
 
 int main(int argc, char* argv[])
