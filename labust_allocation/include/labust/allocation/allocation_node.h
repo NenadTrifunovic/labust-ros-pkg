@@ -37,6 +37,7 @@
 #include <pluginlib/class_loader.h>
 
 #include <auv_msgs/BodyForceReq.h>
+#include <std_msgs/Int32.h>
 #include <ros/ros.h>
 
 
@@ -58,13 +59,20 @@ namespace labust
 			//Default initialization method.
 			void onInit();
 
+                        enum {THRUSTER_TEST = 0, STANDARD = 1};
+
 		private:
 			///The desired force and torque subscriber.
 			ros::Subscriber tau_sub;
+			///Allocation operation mode subscriber.
+			ros::Subscriber mode_sub;
 			///The achieved force and torque publisher.
 			ros::Publisher tauach_pub;
 			///The achieved PWM commands
 			ros::Publisher pwm_pub;
+                        
+                        /// Get allocation operation mode
+                        void onAllocationMode(const std_msgs::Int32::ConstPtr mode);
 
 			///Handles the desired force and torque request.
 			void onTau(const auv_msgs::BodyForceReq::ConstPtr tau);
@@ -78,6 +86,9 @@ namespace labust
 			pluginlib::ClassLoader<AllocationInterface> alloc_loader;
 			///Allocation handle
 			AllocationInterface::Ptr alloc;
+
+			///Allocation mode
+			int allocation_mode;
 		};
 	}
 }

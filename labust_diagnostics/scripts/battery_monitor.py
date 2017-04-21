@@ -32,73 +32,91 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 import rospy
-import roslib
-from diagnostic_msgs.msg import DiagnosticArray, DiagnosticStatus, KeyValue
+from diagnostic_msgs.msg import DiagnosticStatus
 from labust_diagnostics.StatusHandler import StatusHandler
 from std_msgs.msg import Int16MultiArray
 
-import sys
-from subprocess import Popen, PIPE
-
 class BatteryMonitor:
+    # pylint: disable=too-many-instance-attributes
     def __init__(self):
         ''' Status handler intialization '''
-        self.status_handler_= StatusHandler("Battery","battery")
-        self.status_handler_.addKeyValue("Percentage");
-        self.status_handler_.addKeyValue("Voltage");
-        self.status_handler_.addKeyValue("Current");
-        self.status_handler_.setEntityStatus(DiagnosticStatus.OK);
-        self.status_handler_.setEntityMessage("Status handler initialized.");
-        self.status_handler_.publishStatus();
-        
-        self.battery_low_threshold = rospy.get_param('~battery_low_threshold', 30)
+        self.status_handler_ = StatusHandler("Battery", "battery")
+        self.status_handler_.addKeyValue("Percentage")
+        self.status_handler_.addKeyValue("Voltage")
+        self.status_handler_.addKeyValue("Current")
+        self.status_handler_.setEntityStatus(DiagnosticStatus.OK)
+        self.status_handler_.setEntityMessage("Status handler initialized.")
+        self.status_handler_.publishStatus()
+
+        self.battery_low_threshold = rospy.get_param(
+            '~battery_low_threshold', 30)
         self.gain_k = rospy.get_param('~gain_k', 0.05)
         self.gain_a = rospy.get_param('~gain_a', 0.01)
-        self.battery_voltage_minimum = rospy.get_param('~battery_minimum_voltage', 11.7)
-        self.battery_volatge_maximum = rospy.get_param('~battery_maximum_voltage', 12.6)
+        self.battery_voltage_minimum = rospy.get_param(
+            '~battery_minimum_voltage', 11.7)
+        self.battery_voltage_maximum = rospy.get_param(
+            '~battery_maximum_voltage', 12.4)
 
-        self.sub_telemetry = rospy.Subscriber("telemetry", Int16MultiArray, self.onTelemetry)
-        self.last_measurement_timestamp = rospy.Time.now() 
-        
+        self.sub_telemetry = rospy.Subscriber(
+            "telemetry", Int16MultiArray, self.onTelemetry)
+        self.last_measurement_timestamp = rospy.Time.now()
+
         self.battery_status = 0
         self.battery_voltage = 0
         self.battery_current = 0
         self.battery_voltage_avg = 0
         self.battery_current_avg = 0
-        
+
     def checkBatteryStatus(self):
 
-        self.battery_voltage_avg = self.battery_voltage_avg*(1-self.gain_a) + self.gain_a*self.battery_voltage
-        
-        self.battery_current_avg = self.battery_current_avg*(1-self.gain_a) + self.gain_a*self.battery_current
+        self.battery_voltage_avg = self.battery_voltage_avg * \
+            (1 - self.gain_a) + self.gain_a * self.battery_voltage
 
-        self.battery_status = 100*(self.battery_voltage_avg-self.battery_voltage_minimum+self.gain_k*self.battery_current_avg)/(self.battery_volatge_maximum-self.battery_voltage_minimum) 
-        
-        self.status_handler_.updateKeyValue("Percentage",str(self.battery_status))
-        self.status_handler_.updateKeyValue("Voltage",str(self.battery_voltage))
-        self.status_handler_.updateKeyValue("Current",str(self.battery_current))
+        self.battery_current_avg = self.battery_current_avg * \
+            (1 - self.gain_a) + self.gain_a * self.battery_current
 
-        if (rospy.Time.now()-self.last_measurement_timestamp).to_sec() > 10: 
-            self.status_handler_.setEntityStatus(DiagnosticStatus.ERROR);
-            self.status_handler_.setEntityMessage("No measurements.");
+        self.battery_status = 100 * (self.battery_voltage_avg - self.battery_voltage_minimum + self.gain_k *
+                                     self.battery_current_avg) / (self.battery_voltage_maximum - self.battery_voltage_minimum)
+
+        self.battery_status = self.saturation(self.battery_status, 0, 100)
+
+        self.status_handler_.updateKeyValue(
+            "Percentage", '{:3.0f}'.format(self.battery_status))
+        self.status_handler_.updateKeyValue(
+            "Voltage", '{:3.2f}'.format(self.battery_voltage))
+        self.status_handler_.updateKeyValue(
+            "Current", '{:3.2f}'.format(self.battery_current))
+
+        if (rospy.Time.now() - self.last_measurement_timestamp).to_sec() > 10:
+            self.status_handler_.setEntityStatus(DiagnosticStatus.ERROR)
+            self.status_handler_.setEntityMessage("No measurements.")
         elif self.battery_status > self.battery_low_threshold:
-            self.status_handler_.setEntityStatus(DiagnosticStatus.OK);
-            self.status_handler_.setEntityMessage("Status normal.");
+            self.status_handler_.setEntityStatus(DiagnosticStatus.OK)
+            self.status_handler_.setEntityMessage("Status normal.")
         else:
-            self.status_handler_.setEntityStatus(DiagnosticStatus.WARN);
-            self.status_handler_.setEntityMessage("Battery low.");
-            
-        self.status_handler_.publishStatus();
-        
-    def scaleVoltage(self,value):
-        return value/1024.0*5*3
-        pass
-        
-    def scaleCurrent(self,value):
-        return (value-512)*0.2
-        pass
-        
-    def onTelemetry(self,msg):
+            self.status_handler_.setEntityStatus(DiagnosticStatus.WARN)
+            self.status_handler_.setEntityMessage("Battery low.")
+
+        self.status_handler_.publishStatus()
+
+    @staticmethod
+    def scaleVoltage(value):
+        return value / 1024.0 * 5 * 3
+
+    @staticmethod
+    def scaleCurrent(value):
+        return (value - 512) * 0.2
+
+    @staticmethod
+    def saturation(valn, minn, maxn):
+        if valn < minn:
+            return minn
+        elif valn > maxn:
+            return maxn
+        else:
+            return valn
+
+    def onTelemetry(self, msg):
         self.last_measurement_timestamp = rospy.Time.now()
         self.battery_voltage = self.scaleVoltage(msg.data[0])
         self.battery_current = self.scaleCurrent(msg.data[1])
@@ -112,12 +130,14 @@ if __name__ == "__main__":
         rospy.init_node('battery_monitor_node', anonymous=True)
         update_rate = rospy.get_param('~update_rate', 1)
         bm = BatteryMonitor()
-        rate = rospy.Rate(update_rate) # In Hz
+        rate = rospy.Rate(update_rate)  # In Hz
         while not rospy.is_shutdown():
             bm.checkBatteryStatus()
             rate.sleep()
-    except KeyboardInterrupt: pass
-    except SystemExit: pass
+    except KeyboardInterrupt:
+        pass
+    except SystemExit:
+        pass
     except:
         import traceback
         traceback.print_exc()
