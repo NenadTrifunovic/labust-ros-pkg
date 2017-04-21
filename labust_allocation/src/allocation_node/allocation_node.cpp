@@ -128,6 +128,8 @@ void AllocationNode::onTau(const auv_msgs::BodyForceReq::ConstPtr tau)
     else
     {
         ROS_FATAL("allocation_node: Wrong operation mode!");
+        ROS_WARN("allocation_node: Switching to STANDARD allocation mode.");
+        allocation_mode = STANDARD;
     }
 }
 
