@@ -120,8 +120,11 @@ class BatteryMonitor:
         self.last_measurement_timestamp = rospy.Time.now()
         self.battery_voltage = self.scaleVoltage(msg.data[0])
         self.battery_current = self.scaleCurrent(msg.data[1])
-
-
+        ''' Initialize average values '''
+        if self.battery_voltage_avg == 0:
+            self.battery_voltage_avg = self.battery_voltage
+            self.battery_current_avg = self.battery_current
+    
 if __name__ == "__main__":
     try:
         rospy.init_node('battery_monitor_node', anonymous=True)
