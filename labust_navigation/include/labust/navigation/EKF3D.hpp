@@ -257,6 +257,9 @@ namespace labust
 			ros::Time diagnostic_time_gps_;
 			ros::Time diagnostic_time_imu_;
 
+			/*** Diagnostic flag ***/
+			bool diagnostic_error_flag;
+
 
 		};
 	}

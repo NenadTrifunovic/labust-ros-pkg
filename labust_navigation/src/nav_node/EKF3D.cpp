@@ -83,7 +83,8 @@ Estimator3D::Estimator3D():
 		enable_base_link_tf(true),
 		status_handler_("Navigation","navigation"),
 		diagnostic_time_gps_(ros::Time::now()),
-		diagnostic_time_imu_(ros::Time::now()){this->onInit();};
+		diagnostic_time_imu_(ros::Time::now()),
+		diagnostic_error_flag(false){this->onInit();};
 
 void Estimator3D::onInit()
 {
@@ -376,6 +377,8 @@ void Estimator3D::processMeasurements()
 		status_handler_.setEntityStatus(diagnostic_msgs::DiagnosticStatus::WARN);
 		status_handler_.setEntityMessage("Measurements missing.");
 		status_handler_.updateKeyValue("GPS","No measurement");
+		diagnostic_error_flag = true;
+
 	}
 
 	if(KFmode == true && absoluteEKF == false)
@@ -399,6 +402,8 @@ void Estimator3D::processMeasurements()
 
 				diagnostic_time_gps_ = ros::Time::now();
 				status_handler_.updateKeyValue("GPS","OK.");
+				diagnostic_error_flag = false;
+
 			}
 			else if (lpos_arrived)
 			{
@@ -409,6 +414,8 @@ void Estimator3D::processMeasurements()
 
 				diagnostic_time_gps_ = ros::Time::now();
 				status_handler_.updateKeyValue("LocalPos","OK.");
+				diagnostic_error_flag = false;
+
 			}
 		}
 
@@ -430,6 +437,8 @@ void Estimator3D::processMeasurements()
 		status_handler_.setEntityStatus(diagnostic_msgs::DiagnosticStatus::WARN);
 		status_handler_.setEntityMessage("Measurements missing.");
 		status_handler_.updateKeyValue("IMU","No measurement");
+		diagnostic_error_flag = true;
+
 	}
 
 	//Imu measurements
@@ -443,6 +452,7 @@ void Estimator3D::processMeasurements()
 				imu.orientation()[ImuHandler::pitch],
 				imu.orientation()[ImuHandler::yaw]);
 
+		diagnostic_error_flag = false;
 
 		if ((newMeas(KFNav::r) = useYawRate))
 		{
@@ -631,7 +641,13 @@ void Estimator3D::publishState()
 	state->header.frame_id = "local";
 	stateHat.publish(state);
 
-	if(covariance(KFNav::xp, KFNav::xp) > 10 || covariance(KFNav::xp, KFNav::xp) > 10)
+	if(diagnostic_error_flag)
+	{
+		status_handler_.setEntityMessage("No measurements.");
+		status_handler_.updateKeyValue("Filter state","Error state.");
+		status_handler_.setEntityStatus(diagnostic_msgs::DiagnosticStatus::ERROR);
+	}
+	else if(covariance(KFNav::xp, KFNav::xp) > 10 || covariance(KFNav::xp, KFNav::xp) > 10)
 	{
 		status_handler_.setEntityMessage("Large position covariance.");
 		status_handler_.updateKeyValue("Filter state","Large position covariance.");
