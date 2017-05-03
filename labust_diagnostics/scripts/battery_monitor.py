@@ -55,7 +55,7 @@ class BatteryMonitor:
         self.battery_voltage_minimum = rospy.get_param(
             '~battery_minimum_voltage', 11.7)
         self.battery_voltage_maximum = rospy.get_param(
-            '~battery_maximum_voltage', 12.4)
+            '~battery_maximum_voltage', 12.5)
 
         self.sub_telemetry = rospy.Subscriber(
             "telemetry", Int16MultiArray, self.onTelemetry)
