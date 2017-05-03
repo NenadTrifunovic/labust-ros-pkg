@@ -53,7 +53,7 @@ class WiFiMonitor:
         self.wifi_low_threshold = rospy.get_param('~wifi_low_threshold', 20)
 
         #ni.ifaddresses('eno1')
-        self.local_ip =  ni.ifaddresses('eth0')[2][0]['addr']
+        self.local_ip =  ni.ifaddresses('br0')[2][0]['addr']
         rospy.loginfo("wifi_monitor:: Local ip address: %s", self.local_ip)
         self.picostation_address = str(ipaddress.ip_address(self.local_ip.decode('utf-8'))+1)
         rospy.loginfo("wifi_monitor:: Picostation ip address: %s", self.picostation_address)
