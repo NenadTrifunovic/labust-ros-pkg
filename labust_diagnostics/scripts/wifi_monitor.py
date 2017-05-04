@@ -69,7 +69,7 @@ class WiFiMonitor:
         retcode = p.returncode
 
         if stdout != '':
-            if stdout>self.wifi_low_threshold:
+            if float(stdout)>self.wifi_low_threshold:
                 self.status_handler_.setEntityStatus(DiagnosticStatus.OK)
                 self.status_handler_.setEntityMessage("Status normal.")
             else:
