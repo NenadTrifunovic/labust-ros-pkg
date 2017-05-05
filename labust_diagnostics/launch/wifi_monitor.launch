@@ -1,9 +1,11 @@
 <launch>
   <arg name="wifi_low_threshold" default="30" />
+  <arg name="wifi_communication_timeout" default="30" />
   <arg name="update_rate" default="1" />
   
   <node name="wifi_monitor" pkg="labust_diagnostics" type="wifi_monitor.py">
     <param name="wifi_low_threshold" value="$(arg wifi_low_threshold)" /><!-- In percentage -->
+    <param name="wifi_communication_timeout" value="$(arg wifi_communication_timeout)" /><!-- In seconds -->
     <param name="update_rate" value="$(arg update_rate)" /><!-- In Hz -->
   </node>
 </launch>
