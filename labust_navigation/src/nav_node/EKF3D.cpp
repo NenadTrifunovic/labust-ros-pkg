@@ -165,7 +165,8 @@ void Estimator3D::onInit()
 	status_handler_.addKeyValue("IMU");
 	status_handler_.addKeyValue("Filter state");
 	status_handler_.setEntityStatus(diagnostic_msgs::DiagnosticStatus::OK);
-	status_handler_.setEntityMessage("Status handler initialized.");
+	//status_handler_.setEntityMessage("Status handler initialized.");
+	status_handler_.setEntityMessage("");
 	status_handler_.publishStatus();
 }
 
@@ -369,7 +370,7 @@ void Estimator3D::processMeasurements()
 {
 	boost::mutex::scoped_lock l(meas_mux);
 
-	status_handler_.setEntityMessage("OK.");
+	status_handler_.setEntityMessage("");
 	status_handler_.setEntityStatus(diagnostic_msgs::DiagnosticStatus::OK);
 
 	if((ros::Time::now()-diagnostic_time_gps_).toSec()>5)
