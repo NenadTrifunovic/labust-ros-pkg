@@ -66,7 +66,7 @@ class StatusHandler(StatusHandlerBase):
         super(StatusHandler, self).__init__()
         self.setEntityName(entity_name)
         self.setEntityId(entity_id)
-        self.pub_status_ = rospy.Publisher('/diagnostics/'+entity_id,DiagnosticArray,queue_size=1)
+        self.pub_status_ = rospy.Publisher('/diagnostics/'+entity_id,DiagnosticArray, latch=True, queue_size=1)
         
     def publishStatus(self):
         diagnostic_array = DiagnosticArray()
