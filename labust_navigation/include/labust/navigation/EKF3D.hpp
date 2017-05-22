@@ -260,6 +260,8 @@ namespace labust
 			/*** Diagnostic flag ***/
 			bool diagnostic_error_flag;
 
+			/*** Position measurements diagnostic name ***/
+
 
 		};
 	}
