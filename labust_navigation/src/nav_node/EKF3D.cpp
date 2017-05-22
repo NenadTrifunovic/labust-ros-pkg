@@ -161,8 +161,8 @@ void Estimator3D::onInit()
   ph.param("dvl_fp",dvl_fp, dvl_fp);
 
   	/*** Diagnostic handler initialization ***/
-	status_handler_.addKeyValue("GPS");
-	status_handler_.addKeyValue("IMU");
+	status_handler_.addKeyValue("Position measurement");
+	status_handler_.addKeyValue("Inertial measurement");
 	status_handler_.addKeyValue("Filter state");
 	status_handler_.setEntityStatus(diagnostic_msgs::DiagnosticStatus::OK);
 	//status_handler_.setEntityMessage("Status handler initialized.");
@@ -377,7 +377,7 @@ void Estimator3D::processMeasurements()
 	{
 		status_handler_.setEntityStatus(diagnostic_msgs::DiagnosticStatus::WARN);
 		status_handler_.setEntityMessage("Measurements missing.");
-		status_handler_.updateKeyValue("GPS","No measurement");
+		status_handler_.updateKeyValue("Position measurement","No measurement");
 		diagnostic_error_flag = true;
 
 	}
@@ -402,7 +402,7 @@ void Estimator3D::processMeasurements()
 				measurements(KFNav::yp) = gps.position().second;
 
 				diagnostic_time_gps_ = ros::Time::now();
-				status_handler_.updateKeyValue("GPS","OK.");
+				status_handler_.updateKeyValue("Position measurement","OK.");
 				diagnostic_error_flag = false;
 
 			}
@@ -437,7 +437,7 @@ void Estimator3D::processMeasurements()
 	{
 		status_handler_.setEntityStatus(diagnostic_msgs::DiagnosticStatus::WARN);
 		status_handler_.setEntityMessage("Measurements missing.");
-		status_handler_.updateKeyValue("IMU","No measurement");
+		status_handler_.updateKeyValue("Inertial measurement","No measurement");
 		diagnostic_error_flag = true;
 
 	}
@@ -463,7 +463,7 @@ void Estimator3D::processMeasurements()
 		}
 
 		diagnostic_time_imu_ = ros::Time::now();
-		status_handler_.updateKeyValue("IMU","OK.");
+		status_handler_.updateKeyValue("Inertial measurement","OK.");
 	}
 	//DVL measurements
 	if ((newMeas(KFNav::u) = newMeas(KFNav::v) = newMeas(KFNav::w) = dvl.newArrived()))
