@@ -41,11 +41,11 @@ class StatusHandlerBase(object):
     
 
     def updateKeyValue(self,key_value_name,value):
-        rospy.loginfo("Updating key value %s...", key_value_name)
+        rospy.logdebug("Updating key value %s...", key_value_name)
         for i,it in enumerate(self.entity_status_.values):
             if key_value_name == it.key:
                 self.entity_status_.values[i].value = value
-                rospy.loginfo("Key value %s updated.", key_value_name)
+                rospy.logdebug("Key value %s updated.", key_value_name)
                 return
         rospy.logerr("No key value %s found.", key_value_name)
         
