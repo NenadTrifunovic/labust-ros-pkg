@@ -414,7 +414,8 @@ void Estimator3D::processMeasurements()
 				measurements(KFNav::yp) = lpos.position().second;
 
 				diagnostic_time_gps_ = ros::Time::now();
-				status_handler_.updateKeyValue("LocalPos","OK.");
+				//status_handler_.updateKeyValue("LocalPos","OK.");
+				status_handler_.updateKeyValue("Position measurement","OK.");
 				diagnostic_error_flag = false;
 
 			}
