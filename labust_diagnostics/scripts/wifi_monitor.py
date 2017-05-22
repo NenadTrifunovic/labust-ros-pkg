@@ -35,7 +35,7 @@ import rospy
 import roslib
 from diagnostic_msgs.msg import DiagnosticArray, DiagnosticStatus, KeyValue
 from labust_diagnostics.StatusHandler import StatusHandler
-from std_msgs.msg import Bool
+from std_msgs.msg import Bool, Float32
 
 import sys
 import subprocess
@@ -61,6 +61,8 @@ class WiFiMonitor:
 
         self.wifi_active_pub = rospy.Publisher(
             'wifi_active', Bool, queue_size=1)
+        self.wifi_inactive_duration_pub = rospy.Publisher(
+            'wifi_inactive_duration', Float32, queue_size=1)
 
         # ni.ifaddresses('eno1')
         self.local_ip = ni.ifaddresses('br0')[2][0]['addr']
@@ -102,6 +104,8 @@ class WiFiMonitor:
 
         self.status_handler_.publishStatus()
         self.wifi_active_pub.publish(Bool(self.wifi_communication_active))
+        self.wifi_inactive_duration_pub.publish(
+            Float32((rospy.Time.now() - self.wifi_communication_last).to_sec()))
 
 
 if __name__ == "__main__":
