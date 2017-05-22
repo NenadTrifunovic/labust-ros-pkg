@@ -92,7 +92,7 @@ class BatteryMonitor:
             self.status_handler_.setEntityMessage("No measurements.")
         elif self.battery_status > self.battery_low_threshold:
             self.status_handler_.setEntityStatus(DiagnosticStatus.OK)
-            self.status_handler_.setEntityMessage("Status normal.")
+            self.status_handler_.setEntityMessage("")
         else:
             self.status_handler_.setEntityStatus(DiagnosticStatus.WARN)
             self.status_handler_.setEntityMessage("Battery low.")

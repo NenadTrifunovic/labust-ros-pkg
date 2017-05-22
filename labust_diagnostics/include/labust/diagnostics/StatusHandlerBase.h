@@ -83,15 +83,14 @@ namespace labust
 
 		void StatusHandlerBase::updateKeyValue(const std::string& key_value_name, const std::string& value)
 		{
-			ROS_INFO("Updating key value %s...", key_value_name.c_str());
+			ROS_DEBUG("Updating key value %s...", key_value_name.c_str());
 			for(std::vector<diagnostic_msgs::KeyValue>::iterator it = entity_status_.values.begin();
 					it != entity_status_.values.end(); ++it)
 			{
-				//ROS_ERROR("%s",it->key.c_str());
 				if(key_value_name.compare(it->key.c_str()) == 0)
 				{
 					it->value = value;
-					ROS_INFO("Key value %s updated.", key_value_name.c_str());
+					ROS_DEBUG("Key value %s updated.", key_value_name.c_str());
 					return;
 				}
 			}

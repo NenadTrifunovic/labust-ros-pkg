@@ -236,7 +236,8 @@ status_handler_("Mission execution","mission_execution")
 			status_handler_.addKeyValue("Primitive status");
 			status_handler_.addKeyValue("Manual");
 			status_handler_.setEntityStatus(diagnostic_msgs::DiagnosticStatus::OK);
-			status_handler_.setEntityMessage("Status handler initialized.");
+			status_handler_.setEntityMessage("");
+			//status_handler_.setEntityMessage("Status handler initialized.");
 			status_handler_.publishStatus();
 		}
 
@@ -477,7 +478,8 @@ status_handler_("Mission execution","mission_execution")
 		void MissionExecution::onEventString(const std_msgs::String::ConstPtr& msg){
 
 			status_handler_.setEntityStatus(diagnostic_msgs::DiagnosticStatus::OK);
-			status_handler_.setEntityMessage("Normal operation.");
+			//status_handler_.setEntityMessage("Normal operation.");
+			status_handler_.setEntityMessage("");
 
 
 			if(strcmp(msg->data.c_str(),"/START_DISPATCHER") == 0)
