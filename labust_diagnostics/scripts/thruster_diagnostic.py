@@ -75,7 +75,7 @@ class ThrusterDiagnostic():
         elif self.test_active_flag:
             self.pub_pwm_out.publish(self.pwm_request)
 
-        if (rospy.Time.now() - self.start_timestamp).to_sec() > 10:
+        if (rospy.Time.now() - self.start_timestamp).to_sec() > 5:
             self.test_active_flag = False
             msg = Int32()
             msg.data = 1
