@@ -6,6 +6,7 @@ find_package(catkin REQUIRED COMPONENTS
   actionlib
   snippets
   roscpp
+  navcon_msgs
 )
 
 ###################################
