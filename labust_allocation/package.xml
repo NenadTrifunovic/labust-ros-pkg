@@ -20,6 +20,7 @@
   <build_depend>pluginlib</build_depend>
   <build_depend>cmake_modules</build_depend>
   <build_depend>cgal</build_depend>
+  <build_depend>libcgal-qt5-dev</build_depend>
   
   <run_depend>std_msgs</run_depend>
   <run_depend>auv_msgs</run_depend>
@@ -27,6 +28,7 @@
   <run_depend>roscpp</run_depend>
   <run_depend>snippets</run_depend>
   <run_depend>cgal</run_depend>
+  <run_depend>libcgal-qt5-dev</run_depend>
 
   <export>
       <labust_allocation plugin="${prefix}/allocation_plugin.xml" />
