@@ -68,6 +68,10 @@ add_executable(sonar_sim src/sim_sensors/SonarSim.cpp)
 add_dependencies(sonar_sim navcon_msgs_gencpp)
 target_link_libraries(sonar_sim ${catkin_LIBRARIES} ${Boost_RANDOM_LIBRARY})
 
+add_executable(tdoa_sim src/data_sim/tdoa_sim.cpp)
+add_dependencies(tdoa_sim auv_msgs_gencpp)
+target_link_libraries(tdoa_sim ${catkin_LIBRARIES})
+
 ## Diver simulator
 add_executable(diver_sim src/diver_sim/diver_sim.cpp)
 add_dependencies(diver_sim auv_msgs_gencpp)
