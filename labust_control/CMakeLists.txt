@@ -51,6 +51,10 @@ set_source_files_properties(
    src/pidtoolkit/PIDFFController.c
    src/pidtoolkit/IPDFFController.c PROPERTIES LANGUAGE CXX)
 
+add_library(esctoolkit
+   src/esctoolkit/esc_classic.cpp
+)
+
 ## Manual control 
 add_executable(manual_control src/manual_control/manual_control.cpp)
 add_dependencies(manual_control auv_msgs_gencpp navcon_msgs_gencpp)
@@ -111,6 +115,11 @@ target_link_libraries(esc_ekf_model_uv  ${catkin_LIBRARIES})
 add_executable(esc_bounded_uv src/esc/ESControlBounded_UV.cpp src/esctoolkit/esc_bounded.cpp)
 add_dependencies(esc_bounded_uv auv_msgs_gencpp navcon_msgs_gencpp)
 target_link_libraries(esc_bounded_uv  ${catkin_LIBRARIES})
+
+## TDOASS node
+add_executable(tdoass_node src/tdoass/tdoass_node.cpp)
+#add_dependencies(tdoass_node)
+target_link_libraries(tdoass_node ${catkin_LIBRARIES} esctoolkit)
 
 ## Tools
 add_executable(async_merger src/AsyncMerger.cpp)
