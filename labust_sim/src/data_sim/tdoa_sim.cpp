@@ -40,109 +40,109 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *
  *********************************************************************/
-#include <Eigen/Dense>
-#include <ros/ros.h>
 #include <auv_msgs/NavSts.h>
-#include <std_msgs/Time.h>
+#include <ros/ros.h>
 #include <std_msgs/Float64.h>
+#include <std_msgs/Time.h>
+#include <Eigen/Dense>
 
 class TDOASim
 {
 public:
-	TDOASim() : speed_of_sound(1500.0)
-	          , veh1_pos(Eigen::Vector3d::Zero())
-						, veh2_pos(Eigen::Vector3d::Zero())
-						, source_pos(Eigen::Vector3d::Zero())
-	{
-		ros::NodeHandle nh;
+  TDOASim()
+    : speed_of_sound(1500.0)
+    , veh1_pos(Eigen::Vector3d::Zero())
+    , veh2_pos(Eigen::Vector3d::Zero())
+    , source_pos(Eigen::Vector3d::Zero())
+  {
+    ros::NodeHandle nh;
 
-		sub_veh1_state = nh.subscribe<auv_msgs::NavSts>("veh1/state",1,&TDOASim::onVeh1State,this);
-		sub_veh2_state = nh.subscribe<auv_msgs::NavSts>("veh2/state",1,&TDOASim::onVeh2State,this);
-		sub_source_state = nh.subscribe<auv_msgs::NavSts>("source/state",1,&TDOASim::onSourceState,this);
+    sub_veh1_state = nh.subscribe<auv_msgs::NavSts>(
+        "veh1/state", 1, &TDOASim::onVeh1State, this);
+    sub_veh2_state = nh.subscribe<auv_msgs::NavSts>(
+        "veh2/state", 1, &TDOASim::onVeh2State, this);
+    sub_source_state = nh.subscribe<auv_msgs::NavSts>(
+        "source/state", 1, &TDOASim::onSourceState, this);
 
-		pub_veh1_toa = nh.advertise<std_msgs::Time>("veh1/toa",1);
-	  pub_veh2_toa = nh.advertise<std_msgs::Time>("veh2/toa",1);
-	  pub_tdoa = nh.advertise<std_msgs::Float64>("tdoa",1);
-	}
+    pub_veh1_toa = nh.advertise<std_msgs::Time>("veh1/toa", 1);
+    pub_veh2_toa = nh.advertise<std_msgs::Time>("veh2/toa", 1);
+    pub_tdoa = nh.advertise<std_msgs::Float64>("tdoa", 1);
+  }
 
-	~TDOASim(){}
+  ~TDOASim()
+  {
+  }
 
-	void start()
-	{
-		ros::NodeHandle ph("~");
-		double Ts(1.0);
-		ph.param("Ts",Ts,Ts);
-		ros::Rate rate(1/Ts);
+  void start()
+  {
+    ros::NodeHandle ph("~");
+    double Ts(1.0);
+    ph.param("Ts", Ts, Ts);
+    ros::Rate rate(1 / Ts);
 
-		while (ros::ok())
-		{
-			Eigen::VectorXd range1s(1);
-			Eigen::VectorXd range2s(1);
-			
-			range1s(0) = (veh1_pos - source_pos).norm(); 
+    while (ros::ok())
+    {
+      Eigen::VectorXd range1s(1);
+      Eigen::VectorXd range2s(1);
+
+      range1s(0) = (veh1_pos - source_pos).norm();
       range2s(0) = (veh2_pos - source_pos).norm();
-			
-			ros::Time toa_close = ros::Time::now();
-			double tdoa = (range1s(0)-range2s(0))/speed_of_sound; 								 
-			ros::Time toa_far = toa_close + ros::Duration(std::abs(tdoa));
-														 
-			std_msgs::Time timestamp;
-			if (range1s(0) <= range2s(0))
-			{
-				timestamp.data = toa_close;
-				pub_veh1_toa.publish(timestamp);
-				timestamp.data = toa_far;
-				pub_veh2_toa.publish(timestamp);				
-			}
-			else
-			{
-				timestamp.data = toa_close;
-				pub_veh2_toa.publish(timestamp);
-				timestamp.data = toa_far;
-				pub_veh1_toa.publish(timestamp);	
-			}
-			std_msgs::Float64 duration;
-			duration.data = tdoa;
+
+      ros::Time toa_close = ros::Time::now();
+      double tdoa = (range1s(0) - range2s(0)) / speed_of_sound;
+      ros::Time toa_far = toa_close + ros::Duration(std::abs(tdoa));
+
+      std_msgs::Time timestamp;
+      if (range1s(0) <= range2s(0))
+      {
+        timestamp.data = toa_close;
+        pub_veh1_toa.publish(timestamp);
+        timestamp.data = toa_far;
+        pub_veh2_toa.publish(timestamp);
+      }
+      else
+      {
+        timestamp.data = toa_close;
+        pub_veh2_toa.publish(timestamp);
+        timestamp.data = toa_far;
+        pub_veh1_toa.publish(timestamp);
+      }
+      std_msgs::Float64 duration;
+      duration.data = tdoa;
       pub_tdoa.publish(duration);
-			rate.sleep();
-			ros::spinOnce();
-		}
-	}
+      rate.sleep();
+      ros::spinOnce();
+    }
+  }
 
-	void onVeh1State(const auv_msgs::NavSts::ConstPtr& data)
-	{
-		veh1_pos << data->position.north, data->position.east, data->position.depth;
-	}
+  void onVeh1State(const auv_msgs::NavSts::ConstPtr& data)
+  {
+    veh1_pos << data->position.north, data->position.east, data->position.depth;
+  }
 
-	void onVeh2State(const auv_msgs::NavSts::ConstPtr& data)
-	{
-		veh2_pos << data->position.north, data->position.east, data->position.depth;
-	}
-	
-	void onSourceState(const auv_msgs::NavSts::ConstPtr& data)
-	{
-		source_pos << data->position.north, data->position.east, data->position.depth;
-	}	
+  void onVeh2State(const auv_msgs::NavSts::ConstPtr& data)
+  {
+    veh2_pos << data->position.north, data->position.east, data->position.depth;
+  }
 
-	ros::Subscriber sub_veh1_state, sub_veh2_state, sub_source_state;
-	ros::Publisher pub_veh1_toa, pub_veh2_toa, pub_tdoa;
+  void onSourceState(const auv_msgs::NavSts::ConstPtr& data)
+  {
+    source_pos << data->position.north, data->position.east,
+        data->position.depth;
+  }
 
-	Eigen::Vector3d veh1_pos, veh2_pos, source_pos;
-	
-	double speed_of_sound;
+  ros::Subscriber sub_veh1_state, sub_veh2_state, sub_source_state;
+  ros::Publisher pub_veh1_toa, pub_veh2_toa, pub_tdoa;
+
+  Eigen::Vector3d veh1_pos, veh2_pos, source_pos;
+
+  double speed_of_sound;
 };
 
 int main(int argc, char* argv[])
 {
-	ros::init(argc,argv,"tdoa_sim");
-	TDOASim ts;
-	ts.start();
-	return 0;
+  ros::init(argc, argv, "tdoa_sim");
+  TDOASim ts;
+  ts.start();
+  return 0;
 }
-
-
-
-
-
-
-
