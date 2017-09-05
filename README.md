@@ -12,7 +12,7 @@ This repository contains the ROS related code developed at the **LAB**oratory fo
 
 Compilation
 ------------------
-The repository depends on the **[labust-common-msgs](http://https://github.com/labust/labust-common-msgs)** packages that contain all required messages. Additionally, `labust_mission` depends on the third-party `decision_making` package. The LABUST fork can be found at **[decision_making](http://https://github.com/labust/decision_makinglabust-common-msgs)**. Before proceeding clone these repositories into your workspace.
+The repository depends on the **[labust-common-msgs](http://https://github.com/labust/labust-common-msgs)** packages that contain all required messages. Additionally, `labust_mission` depends on the third-party `decision_making` package. The LABUST fork can be found at **[decision_making](http://https://github.com/labust/decision_makinglabust-common-msgs)**. Since it is already integrated within the `labust_mission` package there are no further actions needed.
 
 Most dependencies can be installed using `rosdep` with: 
 
@@ -27,3 +27,8 @@ Navigation nodes require the GeographicLib library which can be installed for th
     sudo labust-ros-pkg/labust_navigation/scripts/download_geographiclib_models.sh
 
 will install a minimum subset of available models. If models are not present some capabilities are not enabled, e.g. magnetic declination compensation.
+
+Code formating
+------------------
+Auto formatting configuration for ROS C++ Style Guidelines is given with file `.clang-format`.
+Read **(https://github.com/davetcoleman/roscpp_code_format)** for more info on how to use it. 
