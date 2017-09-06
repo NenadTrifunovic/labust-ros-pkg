@@ -117,9 +117,9 @@ add_dependencies(esc_bounded_uv auv_msgs_gencpp navcon_msgs_gencpp)
 target_link_libraries(esc_bounded_uv  ${catkin_LIBRARIES})
 
 ## TDOASS node
-add_executable(tdoass_node src/tdoass/tdoass_node.cpp)
-#add_dependencies(tdoass_node)
-target_link_libraries(tdoass_node ${catkin_LIBRARIES} esctoolkit)
+add_executable(tdoass_control src/tdoass/tdoass_control.cpp)
+#add_dependencies(tdoass_control)
+target_link_libraries(tdoass_control ${catkin_LIBRARIES} esctoolkit)
 
 ## Tools
 add_executable(async_merger src/AsyncMerger.cpp)
