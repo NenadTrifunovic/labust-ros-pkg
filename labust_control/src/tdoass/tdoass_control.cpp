@@ -102,74 +102,42 @@ void TDOASSControl::init()
 
 void TDOASSControl::initializeController()
 {
-  // ROS_INFO("Initializing extremum seeking controller...");
-  // 
-  // ros::NodeHandle nh;
-  // 
-  // double sin_amp = 0.2;
-  // double sin_demodulation_amp = 1;
-  // double sin_freq = 0.09;
-  // double corr_gain = -5;
-  // double high_pass_pole = 3;
-  // double low_pass_pole = 0;
-  // double comp_zero = 0;
-  // double comp_pole = 0;
-  // double sampling_time = 0.1;
-  // 
-  // nh.param("esc_sin_amp", sin_amp, sin_amp);
-  // nh.param("esc_sin_demodulation_amp", sin_amp, sin_amp);
-  // nh.param("esc_sin_freq", sin_freq, sin_freq);
-  // nh.param("esc_corr_gain", corr_gain, corr_gain);
-  // nh.param("esc_high_pass_pole", high_pass_pole, high_pass_pole);
-  // nh.param("esc_low_pass_pole", low_pass_pole, low_pass_pole);
-  // nh.param("esc_comp_zero", comp_zero, comp_zero);
-  // nh.param("esc_comp_pole", comp_pole, comp_pole);
-  // nh.param("esc_sampling_time", sampling_time, sampling_time);
+  ROS_INFO("Initializing extremum seeking controller...");
 
-  //esc_Ts = sampling_time;
+  ros::NodeHandle nh;
 
-  // es_controller.initController(sin_amp, sin_demodulation_amp, sin_freq,
-  // corr_gain, high_pass_pole, low_pass_pole, comp_zero, comp_pole,
-  // sampling_time);
+  double sin_amp = 0.2;
+  double sin_freq = 0.09;
+  double corr_gain = -5;
+  double high_pass_pole = 3;
+  double low_pass_pole = 0;
+  double comp_zero = 0;
+  double comp_pole = 0;
+  double sampling_time = 0.1;
+
+  nh.param("esc/sin_amp", sin_amp, sin_amp);
+  nh.param("esc/sin_freq", sin_freq, sin_freq);
+  nh.param("esc/corr_gain", corr_gain, corr_gain);
+  nh.param("esc/high_pass_pole", high_pass_pole, high_pass_pole);
+  nh.param("esc/low_pass_pole", low_pass_pole, low_pass_pole);
+  nh.param("esc/comp_zero", comp_zero, comp_zero);
+  nh.param("esc/comp_pole", comp_pole, comp_pole);
+  nh.param("esc/sampling_time", sampling_time, sampling_time);
+
+  // esc_Ts = sampling_time;
+
+  es_controller.initController(sin_amp, sin_freq, corr_gain, high_pass_pole,
+                               low_pass_pole, comp_zero, comp_pole,
+                               sampling_time);
+
+  disable_axis[x] = 0;
+  disable_axis[y] = 0;
 
   ROS_INFO("Extremum seeking controller initialized.");
-  
-    ROS_INFO("Initializing extremum seeking controller...");
-
-    ros::NodeHandle nh;
-
-    double sin_amp = 0.2;
-    double sin_freq = 0.09;
-    double corr_gain = -5;
-    double high_pass_pole = 3;
-    double low_pass_pole = 0;
-    double comp_zero = 0;
-    double comp_pole = 0;
-    double sampling_time = 0.1;
-
-    nh.param("esc/sin_amp", sin_amp, sin_amp);
-    nh.param("esc/sin_freq", sin_freq, sin_freq);
-    nh.param("esc/corr_gain", corr_gain, corr_gain);
-    nh.param("esc/high_pass_pole", high_pass_pole, high_pass_pole);
-    nh.param("esc/low_pass_pole", low_pass_pole, low_pass_pole);
-    nh.param("esc/comp_zero", comp_zero, comp_zero);
-    nh.param("esc/comp_pole", comp_pole, comp_pole);
-    nh.param("esc/sampling_time", sampling_time, sampling_time);
-
-    //esc_Ts = sampling_time;
-
-    es_controller.initController(sin_amp, sin_freq, corr_gain, high_pass_pole,
-                                  low_pass_pole, comp_zero, comp_pole,
-                                  sampling_time);
-
-    disable_axis[x] = 0;
-    disable_axis[y] = 0;
-
-    ROS_INFO("Extremum seeking controller initialized.");  
 }
 
-auv_msgs::BodyVelocityReqPtr TDOASSControl::step(const auv_msgs::NavSts& ref,
-                                                 const auv_msgs::NavSts& state_hat)
+auv_msgs::BodyVelocityReqPtr TDOASSControl::step(
+    const auv_msgs::NavSts& ref, const auv_msgs::NavSts& state_hat)
 {
   if (isMaster())
   {
@@ -202,53 +170,16 @@ auv_msgs::BodyVelocityReqPtr TDOASSControl::step(const auv_msgs::NavSts& ref,
       // TODO check at which frequncy perturbation is set. (probably to low. add
       // flag
       // which updates )
-      // surgeSpeedControl(center_ref, delta, cost,
-      //                  etaFilterStep(delta, yaw_rate));
+      surgeSpeedControl(center_ref, delta, cost,
+                        etaFilterStep(delta, yaw_rate));
     }
-    auv_msgs::BodyVelocityReq vel_req = allocateSpeed(center_ref);
-  }
-  // if((count++)%20 == 0){
- // int t_step = esc_Ts / Ts;
-  // if(newRange){
-  //if ((count++) % t_step == 0)
- // {
-  //  newRange = false;
-
-    Eigen::Vector2d out, in, tmp;
-    Eigen::Matrix2d R;
-
-    // in = esc_controller.step(ref.data*ref.data);
-//    tmp = es_controller.step(ref.data);
-
-    // ROS_ERROR("cost:");
-    // ROS_ERROR_STREAM(ref.data);
-    // ROS_ERROR("control:");
-    // ROS_ERROR_STREAM(tmp);
-
     auv_msgs::BodyVelocityReqPtr nu(new auv_msgs::BodyVelocityReq());
+    *nu = allocateSpeed(center_ref);
     nu->header.stamp = ros::Time::now();
     nu->goal.requester = "tdoass_controller";
     labust::tools::vectorToDisableAxis(disable_axis, nu->disable_axis);
-
-    in[0] = tmp[1];
-    in[1] = tmp[0];
-
-    double yaw = state[MASTER].orientation.yaw;
-    R << cos(yaw), -sin(yaw), sin(yaw), cos(yaw);
-    out = R.transpose() * in;
-
-    // Switched axes !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    nu->twist.linear.x = out[x];
-    nu->twist.linear.y = out[y];
-
-    //nu_past = nu;
     return nu;
-//  }
- // else
- // {
- //   ROS_ERROR("PAST");
- //   return nu_past;
- // }
+  }
 }
 
 bool TDOASSControl::setAsMaster(bool flag)
@@ -338,15 +269,15 @@ double TDOASSControl::etaFilterStep(double delta, double yaw_rate)
 void TDOASSControl::onVeh1State(const auv_msgs::NavSts::ConstPtr& msg)
 {
   state[MASTER] = *msg;
-  //if (isMaster()){}
-    //step();
+  // if (isMaster()){}
+  // step();
 }
 
 void TDOASSControl::onVeh2State(const auv_msgs::NavSts::ConstPtr& msg)
 {
   state[SLAVE] = *msg;
-  //if (!isMaster()){}
-    //step();
+  // if (!isMaster()){}
+  // step();
 }
 
 void TDOASSControl::onVeh1Toa(const std_msgs::Time::ConstPtr& msg)
