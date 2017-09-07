@@ -47,9 +47,13 @@
 #include <auv_msgs/BodyVelocityReq.h>
 #include <auv_msgs/NavSts.h>
 #include <geometry_msgs/TransformStamped.h>
+#include <geometry_msgs/PointStamped.h>
 #include <ros/ros.h>
 #include <std_msgs/Float64.h>
+#include <std_msgs/Float32.h>
 #include <std_msgs/Time.h>
+#include <std_msgs/Bool.h>
+#include <std_srvs/Trigger.h>
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_ros/transform_broadcaster.h>
 #include <tf2_ros/transform_listener.h>
@@ -63,6 +67,8 @@
 #include <labust/tools/conversions.hpp>
 #include <map>
 #include <string>
+#include <misc_msgs/DynamicPositioningPrimitiveService.h>
+
 
 namespace labust
 {
@@ -118,6 +124,8 @@ private:
   double getNormalizedDifferenceOfArrivalMeters();
   ///
   auv_msgs::BodyVelocityReq allocateSpeed(auv_msgs::BodyVelocityReq req);
+  ///
+  auv_msgs::NavSts calculateSlaveReference();
   /// Calculate and broadcast trasform.
   void broadcastTransform(auv_msgs::NavSts& state, std::string& frame_id,
                           std::string& child_frame_id);
@@ -137,10 +145,20 @@ private:
   void onVeh1Toa(const std_msgs::Time::ConstPtr& msg);
   ///
   void onVeh2Toa(const std_msgs::Time::ConstPtr& msg);
+  ///
+  void onSlaveRef(const auv_msgs::NavSts::ConstPtr& msg);
+  ///
+  void onMasterActive(const std_msgs::Bool::ConstPtr& msg);  
   /// Transform broadcaster.
   tf2_ros::TransformBroadcaster transform_broadcaster;
   ///
+  tf2_ros::Buffer tf_buffer;
+  ///
+  tf2_ros::TransformListener tf_listener;
+  ///
   labust::control::esc::EscClassic es_controller;
+  ///
+  ros::ServiceClient dp_srv;
   ///
   ros::Subscriber sub_veh1_state;
   ///
@@ -150,9 +168,17 @@ private:
   ///
   ros::Subscriber sub_veh2_toa;
   ///
+  ros::Subscriber sub_veh2_ref; 
+  ///
+  ros::Subscriber sub_master_active;  
+  ///
   ros::Publisher pub_veh1_ref;
   ///
   ros::Publisher pub_veh2_ref;
+  ///
+  ros::Publisher pub_veh2_pos_ref;
+  ///
+  ros::Publisher pub_veh2_hdg_ref;  
   ///
   ros::Publisher pub_tdoa;
   ///
@@ -185,6 +211,8 @@ private:
   double w1, w2, k1;
   ///
   int veh_type;
+  ///
+  bool master_active_flag;
 };
 }
 }

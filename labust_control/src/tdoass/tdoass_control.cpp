@@ -62,6 +62,8 @@ TDOASSControl::TDOASSControl()
   , w2(1)
   , k1(1)
   , center_ref(auv_msgs::BodyVelocityReq())
+  , tf_listener(tf_buffer)
+  , master_active_flag(false)
 {
   init();
 }
@@ -84,6 +86,10 @@ void TDOASSControl::init()
       nh.subscribe("veh2/state", 1, &TDOASSControl::onVeh2State, this);
   sub_veh1_toa = nh.subscribe("veh1/toa", 1, &TDOASSControl::onVeh1Toa, this);
   sub_veh2_toa = nh.subscribe("veh2/toa", 1, &TDOASSControl::onVeh2Toa, this);
+  sub_veh2_ref =
+      nh.subscribe("veh2/state_ref", 1, &TDOASSControl::onSlaveRef, this);
+  sub_master_active =
+      nh.subscribe("master/active", 1, &TDOASSControl::onMasterActive, this);
 
   pub_veh1_ref = nh.advertise<auv_msgs::NavSts>("veh1/state_ref", 1);
   pub_veh2_ref = nh.advertise<auv_msgs::NavSts>("veh2/state_ref", 1);
@@ -98,6 +104,19 @@ void TDOASSControl::init()
   link_names[CENTER] = "center_frame";
   link_names[MASTER] = "master_frame";
   link_names[SLAVE] = "slave_frame";
+
+  if (isMaster())
+  {
+    initializeController();
+  }
+  else
+  {
+    dp_srv = nh.serviceClient<misc_msgs::DynamicPositioningPrimitiveService>(
+        "commander/primitive/dynamic_positioning");
+  pub_veh2_pos_ref =
+      nh.advertise<geometry_msgs::PointStamped>("veh2/pos_ref", 1);
+  pub_veh2_hdg_ref = nh.advertise<std_msgs::Float32>("veh2/hdg_ref", 1);        
+  }
 }
 
 void TDOASSControl::initializeController()
@@ -151,7 +170,6 @@ auv_msgs::BodyVelocityReqPtr TDOASSControl::step(
     // TODO decide what executes at higher frequncy.
     if (calcluateTimeDifferenceOfArrival())
     {
-      ROS_ERROR("DEBUG");
       double delta = getNormalizedDifferenceOfArrivalMeters();
       double cost = std::pow(delta, 2);
       double yaw_rate = state[MASTER].orientation_rate.yaw;
@@ -178,7 +196,14 @@ auv_msgs::BodyVelocityReqPtr TDOASSControl::step(
     nu->header.stamp = ros::Time::now();
     nu->goal.requester = "tdoass_controller";
     labust::tools::vectorToDisableAxis(disable_axis, nu->disable_axis);
+
+    // TODO Check if one step estimate is needed.
+    calculateSlaveReference();
     return nu;
+  }
+  else
+  {
+    // Slave actions.
   }
 }
 
@@ -238,6 +263,20 @@ TDOASSControl::allocateSpeed(auv_msgs::BodyVelocityReq req)
   return master_ref;
 }
 
+auv_msgs::NavSts TDOASSControl::calculateSlaveReference()
+{
+  geometry_msgs::TransformStamped transformStamped;
+  try
+  {
+    transformStamped = tf_buffer.lookupTransform(
+        link_names[SLAVE], link_names[MASTER], ros::Time(0));
+  }
+  catch (tf2::TransformException& ex)
+  {
+    ROS_WARN("%s", ex.what());
+  }
+}
+
 void TDOASSControl::surgeSpeedControl(auv_msgs::BodyVelocityReq& req,
                                       double delta, double cost, double eta)
 {
@@ -288,6 +327,37 @@ void TDOASSControl::onVeh1Toa(const std_msgs::Time::ConstPtr& msg)
 void TDOASSControl::onVeh2Toa(const std_msgs::Time::ConstPtr& msg)
 {
   toa2 = msg->data;
+}
+
+void TDOASSControl::onSlaveRef(const auv_msgs::NavSts::ConstPtr& msg)
+{
+  if (!isMaster())
+  { 
+    //geometry_msgs::Point
+    //msg->position.    
+  }
+}
+
+void TDOASSControl::onMasterActive(const std_msgs::Bool::ConstPtr& msg)
+{
+  if (master_active_flag != msg->data)
+  {
+    master_active_flag = msg->data;
+    if (master_active_flag) {
+          misc_msgs::DynamicPositioningPrimitiveService srv;
+          srv.request.north_enable = true;
+          srv.request.east_enable = true;
+          srv.request.heading_enable = true;
+          srv.request.target_topic_enable = true;
+          srv.request.track_heading_enable = true;
+          srv.request.target_topic = "/slave/pos_ref";
+          srv.request.heading_topic = "/slave/hdg_ref";
+          dp_srv.call(srv);
+    } else {
+      std_srvs::Trigger srv;
+      ros::service::call("commander/stop_mission", srv);
+    }
+  }
 }
 
 void TDOASSControl::broadcastTransform(auv_msgs::NavSts& state,
