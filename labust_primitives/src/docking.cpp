@@ -189,7 +189,7 @@ namespace labust
 
 
 					/*** If goal is completed ***/
-					if(size_meas>1200)
+					if(vertical_meas<-0.4 && size_meas>5)
 					{
 						/*** Publish reference for docking arm ***/
 						std_msgs::Float32MultiArray docking_arm_ref;
