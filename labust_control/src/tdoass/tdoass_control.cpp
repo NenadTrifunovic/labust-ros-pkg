@@ -113,9 +113,9 @@ void TDOASSControl::init()
   {
     dp_srv = nh.serviceClient<misc_msgs::DynamicPositioningPrimitiveService>(
         "commander/primitive/dynamic_positioning");
-  pub_veh2_pos_ref =
-      nh.advertise<geometry_msgs::PointStamped>("veh2/pos_ref", 1);
-  pub_veh2_hdg_ref = nh.advertise<std_msgs::Float32>("veh2/hdg_ref", 1);        
+    pub_slave_pos_ref =
+        nh.advertise<geometry_msgs::PointStamped>("veh2/pos_ref", 1);
+    pub_slave_hdg_ref = nh.advertise<std_msgs::Float32>("veh2/hdg_ref", 1);
   }
 }
 
@@ -332,9 +332,14 @@ void TDOASSControl::onVeh2Toa(const std_msgs::Time::ConstPtr& msg)
 void TDOASSControl::onSlaveRef(const auv_msgs::NavSts::ConstPtr& msg)
 {
   if (!isMaster())
-  { 
-    //geometry_msgs::Point
-    //msg->position.    
+  {
+    geometry_msgs::PointStamped pos_ref;
+    std_msgs::Float32 hdg_ref;
+    pos_ref.point.x = msg->position.north;
+    pos_ref.point.y = msg->position.east;
+    hdg_ref.data = msg->orientation.yaw;
+    pub_slave_pos_ref.publish(pos_ref);
+    pub_slave_hdg_ref.publish(hdg_ref);
   }
 }
 
@@ -343,17 +348,20 @@ void TDOASSControl::onMasterActive(const std_msgs::Bool::ConstPtr& msg)
   if (master_active_flag != msg->data)
   {
     master_active_flag = msg->data;
-    if (master_active_flag) {
-          misc_msgs::DynamicPositioningPrimitiveService srv;
-          srv.request.north_enable = true;
-          srv.request.east_enable = true;
-          srv.request.heading_enable = true;
-          srv.request.target_topic_enable = true;
-          srv.request.track_heading_enable = true;
-          srv.request.target_topic = "/slave/pos_ref";
-          srv.request.heading_topic = "/slave/hdg_ref";
-          dp_srv.call(srv);
-    } else {
+    if (master_active_flag)
+    {
+      misc_msgs::DynamicPositioningPrimitiveService srv;
+      srv.request.north_enable = true;
+      srv.request.east_enable = true;
+      srv.request.heading_enable = true;
+      srv.request.target_topic_enable = true;
+      srv.request.track_heading_enable = true;
+      srv.request.target_topic = "/slave/pos_ref";
+      srv.request.heading_topic = "/slave/hdg_ref";
+      dp_srv.call(srv);
+    }
+    else
+    {
       std_srvs::Trigger srv;
       ros::service::call("commander/stop_mission", srv);
     }

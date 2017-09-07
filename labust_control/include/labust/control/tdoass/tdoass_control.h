@@ -176,9 +176,9 @@ private:
   ///
   ros::Publisher pub_veh2_ref;
   ///
-  ros::Publisher pub_veh2_pos_ref;
+  ros::Publisher pub_slave_pos_ref;
   ///
-  ros::Publisher pub_veh2_hdg_ref;  
+  ros::Publisher pub_slave_hdg_ref;  
   ///
   ros::Publisher pub_tdoa;
   ///
