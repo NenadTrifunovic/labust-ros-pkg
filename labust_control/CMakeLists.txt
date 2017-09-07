@@ -6,6 +6,7 @@ find_package(catkin REQUIRED COMPONENTS
   auv_msgs
   navcon_msgs
   sensor_msgs
+  misc_msgs
   dynamic_reconfigure
   roscpp
   snippets
