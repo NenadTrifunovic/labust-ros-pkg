@@ -97,6 +97,8 @@ namespace labust
 				controllers.name[hdg] = "HDG_enable";
 
 				pub_docking_arm = nh.advertise<std_msgs::Float32MultiArray>("dock_out",1);
+			
+				size_flag=0;
 			}
 
 			void onGoal()
@@ -189,8 +191,11 @@ namespace labust
 
 
 					/*** If goal is completed ***/
-					if(size_meas>1200)
+					//if (size_meas>20000) size_flag++;
+					//if (size_meas>size_max) size_max=size_meas;
+					if ((vertical_meas<0.4) && (size_meas>5))
 					{
+						ROS_ERROR("Closing docking arm.");
 						/*** Publish reference for docking arm ***/
 						std_msgs::Float32MultiArray docking_arm_ref;
 						docking_arm_ref.data.push_back(0.0);
@@ -208,15 +213,10 @@ namespace labust
 						return;
 					}
 
+					//size_last=size_meas;
 					/*** Publish primitive feedback ***/
 					Feedback feedback;
 					aserver->publishFeedback(feedback);
-				}
-				else if (goal != 0)
-				{
-						goal.reset();
-						ROS_INFO("docking: Stopping controllers.");
-						controllers.state.assign(numcnt, false);
 						this->updateControllers();
 				}
 				lastState = *estimate;
@@ -241,7 +241,7 @@ namespace labust
 
 			auv_msgs::BodyVelocityReqPtr searchState()
 			{
-				double search_yaw_speed = 0.02;
+				double search_yaw_speed = 0.01;
 				auv_msgs::BodyVelocityReqPtr ref(new auv_msgs::BodyVelocityReq());
 				ref->twist.linear.x = 0;
 				ref->twist.linear.y = 0;
@@ -312,7 +312,7 @@ namespace labust
 			double vertical_meas, horizontal_meas, size_meas;
 			bool new_meas;
 			ros::Time new_meas_time;
-			int docking_state, last_direction;
+			int docking_state, last_direction, size_flag, size_max;
 		};
 	}
 }
