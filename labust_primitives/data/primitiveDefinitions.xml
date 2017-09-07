@@ -114,7 +114,12 @@
   <!-- ========================================================= -->
 
   <primitive name="docking">
-  
+    <param type="bool">docking_action</param> <!--  -->
+		<param type="double">docking_slot</param> <!--  -->
+		<param type="double">search_yaw_rate</param> <!--  -->
+		<param type="double">max_yaw_rate</param> <!--  -->
+		<param type="double">max_surge_speed</param> <!--  -->
+		<param type="double">surge_stdev</param> <!--  -->
   </primitive>
 
 

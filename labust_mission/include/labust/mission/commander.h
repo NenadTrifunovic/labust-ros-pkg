@@ -53,6 +53,7 @@
 #include <misc_msgs/PointerPrimitiveService.h>
 #include <misc_msgs/DynamicPositioningPrimitiveService.h>
 #include <misc_msgs/DockingPrimitiveService.h>
+#include <misc_msgs/DockingService.h>
 #include <misc_msgs/LawnmoverService.h>
 #include <misc_msgs/StartParser.h>
 
@@ -101,6 +102,8 @@ namespace labust
 
 			bool lawnmoverService(misc_msgs::LawnmoverService::Request &req, misc_msgs::LawnmoverService::Response &res);
 
+			bool dockingService(misc_msgs::DockingService::Request &req, misc_msgs::DockingService::Response &res);
+
 			/*****************************************************************
 			 ***  General services
 			 ****************************************************************/
@@ -140,11 +143,11 @@ namespace labust
 			//ros::ServiceServer srvCourseKeeping;
 			ros::ServiceServer srvDockingPrimitive;
 
-
 			/*** Masked service calls ***/
 			ros::ServiceServer srvGo2point;
 			ros::ServiceServer srvDepth;
 			ros::ServiceServer srvLawnmover;
+			ros::ServiceServer srvDocking;			
 
 			/*** Control service calls ***/
 			ros::ServiceServer srvStop;
@@ -185,7 +188,8 @@ namespace labust
 			srvGo2point = nh.advertiseService("commander/go2point", &Commander::go2pointService,this);
 			srvDepth = nh.advertiseService("commander/go2depth", &Commander::go2depthService,this);
 			srvLawnmover = nh.advertiseService("commander/lawnmover", &Commander::lawnmoverService,this);
-
+			srvDocking = nh.advertiseService("commander/docking", &Commander::dockingService,this);
+			
 			srvStop = nh.advertiseService("commander/stop_mission", &Commander::stopService,this);
 			srvPause = nh.advertiseService("commander/pause_mission", &Commander::pauseService,this);
 			srvContinue = nh.advertiseService("commander/continue_mission", &Commander::continueService,this);
@@ -222,6 +226,27 @@ namespace labust
 			res.status = true;
 			return true;
 		}
+		
+	  bool Commander::dockingService(misc_msgs::DockingService::Request &req, misc_msgs::DockingService::Response &res)
+		{
+      /*** Generate mission xml file ***/
+      MG.writeXML.addMission();
+      MG.generateDocking(
+                      req.docking_action,
+                      req.docking_slot,
+											0.01, // search_yaw_rate
+											0.1,  // max_yaw_rate
+											0.2,  // max_surge_speed
+											0.1   // surge_stdev
+						);
+
+      /*** Request mission execution ***/
+      saveAndRequestAction("docking");
+
+      res.status = true;
+      return true;			
+		}
+		
 
 		/*** go2point service ***/
 		bool Commander::go2pointPrimitiveService(misc_msgs::Go2pointPrimitiveService::Request &req, misc_msgs::Go2pointPrimitiveService::Response &res)
@@ -307,8 +332,12 @@ namespace labust
             /*** Generate mission xml file ***/
             MG.writeXML.addMission();
             MG.generateDocking(
-                            //req.north,
-                            //req.east,
+                            req.docking_action,
+                            req.docking_slot,
+														req.search_yaw_rate,
+														req.max_yaw_rate,
+														req.max_surge_speed,
+														req.surge_stdev
   								);
 
             /*** Request mission execution ***/

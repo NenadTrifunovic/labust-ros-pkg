@@ -241,7 +241,7 @@ namespace labust
 
 			auv_msgs::BodyVelocityReqPtr searchState()
 			{
-				double search_yaw_speed = 0.02;
+				double search_yaw_speed = goal->search_yaw_rate;
 				auv_msgs::BodyVelocityReqPtr ref(new auv_msgs::BodyVelocityReq());
 				ref->twist.linear.x = 0;
 				ref->twist.linear.y = 0;
@@ -253,9 +253,9 @@ namespace labust
 
 			auv_msgs::BodyVelocityReqPtr approachState()
 			{
-				double gain = 0.2;
-				double surge_gain = 0.1;
-				double stdev = 0.1;
+				double gain = goal->max_yaw_rate;
+				double surge_gain = goal->max_surge_speed;
+				double stdev = goal->surge_stdev;
 				auv_msgs::BodyVelocityReqPtr ref(new auv_msgs::BodyVelocityReq());
 				ref->twist.linear.x = surge_gain*std::exp(-(std::pow(horizontal_meas,2))/(2*std::pow(stdev,2)));
 				ref->twist.linear.y = 0;
