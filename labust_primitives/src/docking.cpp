@@ -99,18 +99,28 @@ namespace labust
 				pub_docking_arm = nh.advertise<std_msgs::Float32MultiArray>("dock_out",1);
 				pub_kinect_servo = nh.advertise<std_msgs::Float32>("kinect_out",1);
 				
-				std_msgs::Float32MultiArray docking_arm_ref = std_msgs::Float32MultiArray();
-				std_msgs::Float32 servo_ref = std_msgs::Float32();
+				//std_msgs::Float32MultiArray docking_arm_ref = std_msgs::Float32MultiArray();
+				//std_msgs::Float32 servo_ref = std_msgs::Float32();
 				
 				docking_arm_ref.data.push_back(0.0);
 				docking_arm_ref.data.push_back(0.0);
 				docking_arm_ref.data.push_back(0.0);
 				docking_arm_ref.data.push_back(0.0);
+
+				struct timespec timeOut,remains;
+                                timeOut.tv_sec = 0;
+                                timeOut.tv_nsec = 50000000; /* 50 milliseconds */
+				servo_ref.data=0.0;
+				for (int i=0;i<10;i++)
+                                                {
+                                                pub_kinect_servo.publish(servo_ref);
+                                                nanosleep(&timeOut, &remains);
+                                                }
+
+				kinect_reached=false;
 				
-				
-				
-				kinect_servo_pos[0]=0.0;
-				kinect_servo_pos[1]=0.34;
+				kinect_servo_pos[0]=0.1;
+				kinect_servo_pos[1]=0.44;
 				kinect_servo_pos[2]=0.72;
 				kinect_servo_pos[3]=1.0;
 				ROS_ERROR("DOCKING SERVO VALUES INITED %f, %f, %f, %f", kinect_servo_pos[0],kinect_servo_pos[1],kinect_servo_pos[2],kinect_servo_pos[3]);
@@ -151,14 +161,25 @@ namespace labust
 
 				/*** Update reference ***/
 				//stateRef.publish(step(lastState));
-				
+				struct timespec timeOut,remains;
+                                timeOut.tv_sec = 0;
+                                timeOut.tv_nsec = 50000000; /* 50 milliseconds */
 				slot=static_cast<int>(goal->docking_slot);
                                 ROS_ERROR("SLOT %d",slot);
                                 //ROS_ERROR("SERVO %f", kinect_servo_pos.data);
                                 servo_ref.data=kinect_servo_pos[slot];
 				ROS_ERROR("SERVO VAL %f %d",servo_ref.data, slot);
-                                pub_kinect_servo.publish(servo_ref);
+				kinect_reached=false;
+				for (int i=0;i<10;i++) 
+                                                {
+                                                pub_kinect_servo.publish(servo_ref);
+                                                nanosleep(&timeOut, &remains);
+                                                }
 
+                                pub_kinect_servo.publish(servo_ref);
+				timeOut.tv_nsec=500000000;
+				nanosleep(&timeOut,&remains);
+				kinect_reached=true;
 				
 				/*** Enable controllers depending on the primitive subtype ***/
 				controllers.state[hdg] = false; //&& goal->axis_enable.x && goal->axis_enable.y;;
@@ -198,7 +219,10 @@ namespace labust
 			{
 				/*** Enable mutex ***/
 				boost::mutex::scoped_lock l(state_mux);
-
+				struct timespec timeOut,remains;
+				timeOut.tv_sec = 0;
+				timeOut.tv_nsec = 50000000; /* 50 milliseconds */
+				//nanosleep(&timeOut, &remains);
 				if(aserver->isActive())
 				{
 					/*** Publish reference for high-level controller ***/
@@ -212,6 +236,13 @@ namespace labust
 						
 						docking_arm_ref.data.at(slot) = 1.0;
 						pub_docking_arm.publish(docking_arm_ref);
+						for (int i=0;i<10;i++) 
+						{
+						pub_docking_arm.publish(docking_arm_ref);
+						nanosleep(&timeOut, &remains);
+						}
+						pub_docking_arm.publish(docking_arm_ref);
+
 						ROS_ERROR("Published arm ref");
 						/*** Move backwards to dislodge mussel ***/	
 						start_time = ros::Time::now();
@@ -230,25 +261,38 @@ namespace labust
 					nuRef.publish(step(*estimate));
 					
 					/*** Publish reference for docking arm ***/
-					docking_arm_ref.data[slot] = 1.0;
+					docking_arm_ref.data.at(slot) = 1.0;
 					pub_docking_arm.publish(docking_arm_ref);
+					for (int i=0;i<10;i++) 
+                                                {
+                                                pub_docking_arm.publish(docking_arm_ref);
+                                                nanosleep(&timeOut, &remains);
+                                                }
+
 
 				    /*** Check if goal (docking) is achieved ***/
 
 
 					/*** If goal is completed ***/
-					if(vertical_meas<-0.4 && size_meas>5)
+					if(vertical_meas>0.8 && kinect_reached)
 					{
 						/*** Publish reference for docking arm ***/
-						docking_arm_ref.data[slot] = 0.0;
+						docking_arm_ref.data.at(slot) = 0.0;
 						pub_docking_arm.publish(docking_arm_ref);
-
+						for (int i=0;i<10;i++) 
+                                                {
+                                                pub_docking_arm.publish(docking_arm_ref);
+                                                nanosleep(&timeOut, &remains);
+                                                }
+						ROS_ERROR("VERTICAL DOCKING THESHOLD REACHED");
 						//result.distance = distVictory;
 						aserver->setSucceeded(result);
 						goal.reset();
 						ROS_INFO("docking: Goal completed. Stopping controllers.");
 						controllers.state.assign(numcnt, false);
 						this->updateControllers();
+
+						pub_docking_arm.publish(docking_arm_ref);
 						return;
 					}
 
@@ -268,7 +312,7 @@ namespace labust
 
 			auv_msgs::BodyVelocityReqPtr step(const auv_msgs::NavSts& state)
 			{
-				if((ros::Time::now()-new_meas_time).toSec() < 1  && new_meas == true)
+				if((ros::Time::now()-new_meas_time).toSec() < 1  && new_meas == true && kinect_reached == true)
 				{
 					docking_state == APPROACH;
 					ROS_ERROR("Approach state.");
@@ -311,7 +355,7 @@ namespace labust
 				R<<cos(M_PI),-sin(M_PI),sin(M_PI),cos(M_PI);
 				out = R*out;
 				
-				if((ros::Time::now()-start_time).toSec() < 2)
+				if((ros::Time::now()-start_time).toSec() < 5)
 				{
 					ROS_ERROR("Pullback started.");
 					ref->twist.linear.x = out[0];
@@ -334,6 +378,7 @@ namespace labust
 				double gain = goal->max_yaw_rate;
 				double surge_gain = goal->max_surge_speed;
 				double stdev = goal->surge_stdev;
+				stdev=0.2;
 				auv_msgs::BodyVelocityReqPtr ref(new auv_msgs::BodyVelocityReq());
 				double angle = goal->docking_slot*M_PI/2;
 				double surge_val = surge_gain*std::exp(-(std::pow(horizontal_meas,2))/(2*std::pow(stdev,2)));
@@ -401,7 +446,7 @@ namespace labust
 			ros::Publisher pub_docking_arm, pub_kinect_servo;
 
 			double vertical_meas, horizontal_meas, size_meas;
-			bool new_meas;
+			bool new_meas, kinect_reached;
 			ros::Time new_meas_time, start_time;
 			int docking_state, last_direction, slot;
 		};
