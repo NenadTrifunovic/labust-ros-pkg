@@ -130,10 +130,8 @@ namespace labust{
 
 			Base::vector Base::controllerGain(vector postFiltered){
 
-			//	ROS_ERROR("GAIN:");
-			//	ROS_ERROR_STREAM(gain_);
-
 				control_ = gain_.cwiseProduct(postFiltered);
+			
 				return control_;
 			}
 

@@ -96,7 +96,7 @@ public:
   void windup(const auv_msgs::BodyForceReq& tauAch){};
   ///
   void idle(const auv_msgs::NavSts& ref, const auv_msgs::NavSts& state,
-            const auv_msgs::BodyVelocityReq& track){};
+            const auv_msgs::BodyVelocityReq& track);
   ///
   void reset(const auv_msgs::NavSts& ref, const auv_msgs::NavSts& state){};
 
@@ -105,7 +105,8 @@ private:
   enum
   {
     x = 0,
-    y
+    y = 1,
+    yaw = 5
   };
   ///
   enum
@@ -183,6 +184,8 @@ private:
   ros::Publisher pub_tdoa;
   ///
   ros::Publisher pub_delta;
+  ///
+  ros::Publisher pub_master_active;  
   ///
   std::map<int, auv_msgs::NavSts> state;
   ///
