@@ -97,6 +97,22 @@ namespace labust
 				controllers.name[hdg] = "HDG_enable";
 
 				pub_docking_arm = nh.advertise<std_msgs::Float32MultiArray>("dock_out",1);
+				pub_kinect_servo = nh.advertise<std_msgs::Float32>("kinect_out",1);
+				
+				std_msgs::Float32MultiArray docking_arm_ref = std_msgs::Float32MultiArray();
+				std_msgs::Float32MultiArray kinect_servo_pos = std_msgs::Float32MultiArray();
+				
+				docking_arm_ref.data.push_back(0.0);
+				docking_arm_ref.data.push_back(0.0);
+				docking_arm_ref.data.push_back(0.0);
+				docking_arm_ref.data.push_back(0.0);
+				
+				kinect_servo_pos.data.push_back(0.0);
+				kinect_servo_pos.data.push_back(0.34);
+				kinect_servo_pos.data.push_back(0.72);
+				kinect_servo_pos.data.push_back(1.0);
+				
+				pub_kinect_servo.publish(kinect_servo_pos.data[goal->docking_slot]);
 			}
 
 			void onGoal()
@@ -173,16 +189,33 @@ namespace labust
 				{
 					/*** Publish reference for high-level controller ***/
 					//stateRef.publish(step(*estimate));
-
+			
+					/*** If desired action is undocking ***/
+					if(!goal->docking_action)
+					{
+						/*** Publish reference for docking arm ***/
+						
+						docking_arm_ref.data[goal->docking_slot] = 1.0;
+						pub_docking_arm.publish(docking_arm_ref);
+						
+						/*** Move backwards to dislodge mussel ***/	
+						start_time = ros::Time::now();
+						nuRef.publish(pullbackState());
+						
+						//result.distance = distVictory;
+						aserver->setSucceeded(result);
+						goal.reset();
+						ROS_INFO("docking: Goal completed. Stopping controllers.");
+						controllers.state.assign(numcnt, false);
+						this->updateControllers();
+						return;
+					}
+					
 					/*** Publish reference for low-level controller ***/
 					nuRef.publish(step(*estimate));
-
+					
 					/*** Publish reference for docking arm ***/
-					std_msgs::Float32MultiArray docking_arm_ref;
-					docking_arm_ref.data.push_back(1.0);
-					docking_arm_ref.data.push_back(0.0);
-					docking_arm_ref.data.push_back(0.0);
-					docking_arm_ref.data.push_back(0.0);
+					docking_arm_ref.data[goal->docking_slot] = 1.0;
 					pub_docking_arm.publish(docking_arm_ref);
 
 				    /*** Check if goal (docking) is achieved ***/
@@ -192,11 +225,7 @@ namespace labust
 					if(vertical_meas<-0.4 && size_meas>5)
 					{
 						/*** Publish reference for docking arm ***/
-						std_msgs::Float32MultiArray docking_arm_ref;
-						docking_arm_ref.data.push_back(0.0);
-						docking_arm_ref.data.push_back(0.0);
-						docking_arm_ref.data.push_back(0.0);
-						docking_arm_ref.data.push_back(0.0);
+						docking_arm_ref.data[goal->docking_slot] = 0.0;
 						pub_docking_arm.publish(docking_arm_ref);
 
 						//result.distance = distVictory;
@@ -250,6 +279,38 @@ namespace labust
 				ref->header.stamp = ros::Time::now();
 				return ref;
 			}
+			
+			auv_msgs::BodyVelocityReqPtr pullbackState()
+			{
+				
+				double surge_gain = goal->max_surge_speed;
+				auv_msgs::BodyVelocityReqPtr ref(new auv_msgs::BodyVelocityReq());
+				double angle = goal->docking_slot*M_PI/2;
+				double surge_val = surge_gain*0.1;
+				
+				Eigen::Vector2f out, in;
+				Eigen::Matrix2f R;
+				in<<surge_val,0;
+				R<<cos(angle),-sin(angle),sin(angle),cos(angle);
+				out = R*in;
+				R<<cos(M_PI),-sin(M_PI),sin(M_PI),cos(M_PI);
+				out = R*out;
+				
+				if((ros::Time::now()-start_time).toSec() < 2)
+				{
+					ref->twist.linear.x = out[0];
+					ref->twist.linear.y = out[1];
+				}
+				else
+				{
+					ref->twist.linear.x = 0.0;
+					ref->twist.linear.y = 0.0;
+				}
+				
+				ref->header.frame_id = tf_prefix + "local";
+				ref->header.stamp = ros::Time::now();
+				return ref;
+			}
 
 			auv_msgs::BodyVelocityReqPtr approachState()
 			{
@@ -257,10 +318,19 @@ namespace labust
 				double surge_gain = goal->max_surge_speed;
 				double stdev = goal->surge_stdev;
 				auv_msgs::BodyVelocityReqPtr ref(new auv_msgs::BodyVelocityReq());
-				ref->twist.linear.x = surge_gain*std::exp(-(std::pow(horizontal_meas,2))/(2*std::pow(stdev,2)));
-				ref->twist.linear.y = 0;
+				double angle = goal->docking_slot*M_PI/2;
+				double surge_val = surge_gain*std::exp(-(std::pow(horizontal_meas,2))/(2*std::pow(stdev,2)));
+				
+				Eigen::Vector2f out, in;
+				Eigen::Matrix2f R;
+				in<<surge_val,0;
+				R<<cos(angle),-sin(angle),sin(angle),cos(angle);
+				out = R*in;
+				
 				//ref->twist.angular.z = gain*horizontal_meas;
 				ref->twist.angular.z = gain*std::tanh(horizontal_meas);
+				ref->twist.linear.x = out[0];
+				ref->twist.linear.y = out[1];
 
 				ref->header.frame_id = tf_prefix + "local";
 				ref->header.stamp = ros::Time::now();
@@ -305,13 +375,15 @@ namespace labust
 			boost::mutex state_mux;
 			navcon_msgs::ControllerSelectRequest controllers;
 			bool processNewGoal;
+			std_msgs::Float32MultiArray docking_arm_ref;
+			std_msgs::Float32MultiArray kinect_servo_pos;
 
 			ros::Subscriber sub_vertical, sub_horizontal, sub_size;
-			ros::Publisher pub_docking_arm;
+			ros::Publisher pub_docking_arm, pub_kinect_servo;
 
 			double vertical_meas, horizontal_meas, size_meas;
 			bool new_meas;
-			ros::Time new_meas_time;
+			ros::Time new_meas_time, start_time;
 			int docking_state, last_direction;
 		};
 	}
