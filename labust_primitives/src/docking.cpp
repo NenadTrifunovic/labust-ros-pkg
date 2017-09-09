@@ -121,7 +121,7 @@ namespace labust
                                                 }
 				
 				kinect_servo_pos[0]=0.1;
-				kinect_servo_pos[1]=0.47;
+				kinect_servo_pos[1]=0.46;
 				kinect_servo_pos[2]=0.75;
 				kinect_servo_pos[3]=1.0;
 				ROS_ERROR("DOCKING SERVO VALUES INITED %f, %f, %f, %f", kinect_servo_pos[0],kinect_servo_pos[1],kinect_servo_pos[2],kinect_servo_pos[3]);
@@ -191,6 +191,7 @@ namespace labust
 				timeOut.tv_nsec=900000000;
 				for (int i=0;i<15;i++) nanosleep(&timeOut,&remains);
 				kinect_reached=true;
+				new_meas=false;
 				start_time=ros::Time::now();
 				ROS_ERROR("Kinect timeout over. Ready to start.");
 				/*** Enable controllers depending on the primitive subtype ***/
@@ -296,7 +297,7 @@ namespace labust
 
 
 					/*** If goal is completed ***/
-					if(vertical_meas>0.8 && kinect_reached)
+					if(vertical_meas>0.8 && vertical_meas<0.9 && kinect_reached)
 					{
 						/*** Publish reference for docking arm ***/
 						docking_arm_ref.data.at(slot) = 0.0;
@@ -449,6 +450,7 @@ namespace labust
 				new_meas = true;
 				new_meas_time = ros::Time::now();
 				last_direction = labust::math::sgn(horizontal_meas);
+				last_direction = 1;
 				ROS_ERROR("Received horizontal measurement: %f", horizontal_meas);
 				}
 			}
@@ -457,7 +459,7 @@ namespace labust
 			{
 				if (kinect_reached) 
 				{
-				size_meas = data->data;
+				//size_meas = data->data;
 				//new_meas = true;
 				//new_meas_time = ros::Time::now();
 				//last_direction = labust::math::sgn(horizontal_meas);
