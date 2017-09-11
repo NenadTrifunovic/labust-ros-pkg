@@ -57,6 +57,7 @@
 #include <tf2_ros/static_transform_broadcaster.h>
 
 #include <std_msgs/Float32.h>
+#include <std_msgs/Bool.h>
 #include <std_msgs/Float32MultiArray.h>
 #include <auv_msgs/BodyVelocityReq.h>
 
@@ -156,6 +157,7 @@ namespace labust
 				sub_vertical = nh.subscribe<std_msgs::Float32>("docking_vertical",1,&Docking::onVerticalMeasurement,this);
 				sub_horizontal = nh.subscribe<std_msgs::Float32>("docking_horizontal",1,&Docking::onHorizontalMeasurement,this);
 				sub_size = nh.subscribe<std_msgs::Float32>("size",1,&Docking::onSizeMeasurement,this);
+				sub_manual = nh.subscribe<std_msgs::Bool>("manual",1,&Docking::onManual,this);
 
 
 
@@ -236,8 +238,11 @@ namespace labust
 				timeOut.tv_sec = 0;
 				timeOut.tv_nsec = 50000000; /* 50 milliseconds */
 				//nanosleep(&timeOut, &remains);
-				pub_kinect_servo.publish(servo_ref);
-				pub_docking_arm.publish(docking_arm_ref);
+				if (!manual_on)
+				{
+					pub_kinect_servo.publish(servo_ref);
+					pub_docking_arm.publish(docking_arm_ref);
+				}
 				if(aserver->isActive())
 				{
 					/*** Publish reference for high-level controller ***/
@@ -253,7 +258,7 @@ namespace labust
 						//pub_docking_arm.publish(docking_arm_ref);
 						//for (int i=0;i<10;i++) 
 						//{
-						pub_docking_arm.publish(docking_arm_ref);
+						//pub_docking_arm.publish(docking_arm_ref);
 						//nanosleep(&timeOut, &remains);
 						//}
 						//pub_docking_arm.publish(docking_arm_ref);
@@ -266,7 +271,7 @@ namespace labust
 						{
 						//result.distance = distVictory;
 						docking_arm_ref.data.at(slot)=0.0;
-						pub_docking_arm.publish(docking_arm_ref);
+						//pub_docking_arm.publish(docking_arm_ref);
 						aserver->setSucceeded(result);
 						goal.reset();
 						new_meas=false;
@@ -288,7 +293,7 @@ namespace labust
 					//pub_docking_arm.publish(docking_arm_ref);
 					//for (int i=0;i<10;i++) 
                                         //        {
-                                                pub_docking_arm.publish(docking_arm_ref);
+                                                //pub_docking_arm.publish(docking_arm_ref);
                                         //        nanosleep(&timeOut, &remains);
                                         //       }
 
@@ -301,7 +306,7 @@ namespace labust
 					{
 						/*** Publish reference for docking arm ***/
 						docking_arm_ref.data.at(slot) = 0.0;
-						pub_docking_arm.publish(docking_arm_ref);
+						//pub_docking_arm.publish(docking_arm_ref);
 						//for (int i=0;i<10;i++) 
                                                 //{
                                                 //pub_docking_arm.publish(docking_arm_ref);
@@ -466,6 +471,12 @@ namespace labust
 				ROS_ERROR("Received size measurement: %f", size_meas);
 				}
 			}
+			
+			void onManual(const std_msgs::Bool::ConstPtr& data)
+			{
+				manual_on = data->data;
+				ROS_ERROR("Received manual on: %d", manual_on);
+			}
 
 			Result result;
 
@@ -483,11 +494,11 @@ namespace labust
 			float kinect_servo_pos[4];
 			std_msgs::Float32 servo_ref;
 
-			ros::Subscriber sub_vertical, sub_horizontal, sub_size;
+			ros::Subscriber sub_vertical, sub_horizontal, sub_size, sub_manual;
 			ros::Publisher pub_docking_arm, pub_kinect_servo;
 
 			double vertical_meas, horizontal_meas, size_meas;
-			bool new_meas, kinect_reached, pullback_done;
+			bool new_meas, kinect_reached, pullback_done, manual_on;
 			ros::Time new_meas_time, start_time, initial_timeout;
 			int docking_state, last_direction, slot;
 		};
