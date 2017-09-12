@@ -213,7 +213,7 @@ private:
   ///
   double epsilon;
   ///
-  double w1, w2, k1;
+  double w1, w2, k1, u0;
   ///
   int veh_type;
   ///
