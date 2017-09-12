@@ -113,7 +113,9 @@ private:
   {
     MASTER = 0,
     SLAVE,
-    CENTER
+    CENTER,
+    SLAVE_REF,
+    NED
   };
   /// Caluculate Time difference of arrival
   bool calcluateTimeDifferenceOfArrival();
@@ -126,7 +128,7 @@ private:
   ///
   auv_msgs::BodyVelocityReq allocateSpeed(auv_msgs::BodyVelocityReq req);
   ///
-  auv_msgs::NavSts calculateSlaveReference();
+  bool calculateSlaveReference(auv_msgs::NavSts& slave_ref);
   /// Calculate and broadcast trasform.
   void broadcastTransform(auv_msgs::NavSts& state, std::string& frame_id,
                           std::string& child_frame_id);
@@ -216,6 +218,8 @@ private:
   int veh_type;
   ///
   bool master_active_flag;
+  ///
+  bool controller_active;
 };
 }
 }
