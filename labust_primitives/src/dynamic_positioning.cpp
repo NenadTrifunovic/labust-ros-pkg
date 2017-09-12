@@ -100,13 +100,13 @@ namespace labust
 				if(goal->track_heading_enable)
 				{
 					ros::NodeHandle nh;
-					sub_heading = nh.subscribe("dynamic_positioning_heading_topic",1,&DynamicPositionining::onHeading,this);
+					sub_heading = nh.subscribe(goal->heading_topic,1,&DynamicPositionining::onHeading,this);
 				}
 
 				if(goal->target_topic_enable)
 				{
 					ros::NodeHandle nh;
-					sub_heading = nh.subscribe("dynamic_positioning_target_topic",1,&DynamicPositionining::onTargetPoint,this);
+					sub_target = nh.subscribe(goal->target_topic,1,&DynamicPositionining::onTargetPoint,this);
 				}
 
 				/*** Update reference ***/
@@ -162,13 +162,13 @@ namespace labust
 
 					/*** Check if goal (victory radius) is achieved ***/
 					Eigen::Vector3d distance;
-					distance<<goal->T1.point.x-estimate->position.north, goal->T1.point.y-estimate->position.east, 0;
+					distance<<((goal->target_topic_enable)?target_reference.x:goal->T1.point.x)-estimate->position.north, ((goal->target_topic_enable)?target_reference.y:goal->T1.point.y)-estimate->position.east, 0;
 
 					/*** Calculate bearing to endpoint ***/
 					Eigen::Vector3d T1,T2;
 					labust::math::Line bearing_to_endpoint;
 					T1 << estimate->position.north, estimate->position.east, 0;
-					T2 << goal->T1.point.x, goal->T1.point.y, 0;
+					T2 << ((goal->target_topic_enable)?target_reference.x:goal->T1.point.x), ((goal->target_topic_enable)?target_reference.y:goal->T1.point.y), 0;
 					bearing_to_endpoint.setLine(T1,T2);
 
 					/*** Publish primitive feedback ***/
