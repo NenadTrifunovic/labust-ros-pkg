@@ -46,13 +46,14 @@
 #include <auv_msgs/BodyForceReq.h>
 #include <auv_msgs/BodyVelocityReq.h>
 #include <auv_msgs/NavSts.h>
-#include <geometry_msgs/TransformStamped.h>
 #include <geometry_msgs/PointStamped.h>
+#include <geometry_msgs/TransformStamped.h>
+#include <misc_msgs/DynamicPositioningPrimitiveService.h>
 #include <ros/ros.h>
-#include <std_msgs/Float64.h>
-#include <std_msgs/Float32.h>
-#include <std_msgs/Time.h>
 #include <std_msgs/Bool.h>
+#include <std_msgs/Float32.h>
+#include <std_msgs/Float64.h>
+#include <std_msgs/Time.h>
 #include <std_srvs/Trigger.h>
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_ros/transform_broadcaster.h>
@@ -67,8 +68,6 @@
 #include <labust/tools/conversions.hpp>
 #include <map>
 #include <string>
-#include <misc_msgs/DynamicPositioningPrimitiveService.h>
-
 
 namespace labust
 {
@@ -113,7 +112,9 @@ private:
   {
     MASTER = 0,
     SLAVE,
-    CENTER
+    CENTER,
+    SLAVE_REF,
+    NED
   };
   /// Caluculate Time difference of arrival
   bool calcluateTimeDifferenceOfArrival();
@@ -126,7 +127,8 @@ private:
   ///
   auv_msgs::BodyVelocityReq allocateSpeed(auv_msgs::BodyVelocityReq req);
   ///
-  auv_msgs::NavSts calculateSlaveReference();
+  bool calculateSlaveReference(auv_msgs::NavSts& slave_ref,
+                               const auv_msgs::BodyVelocityReq& center_ref);
   /// Calculate and broadcast trasform.
   void broadcastTransform(auv_msgs::NavSts& state, std::string& frame_id,
                           std::string& child_frame_id);
@@ -149,7 +151,7 @@ private:
   ///
   void onSlaveRef(const auv_msgs::NavSts::ConstPtr& msg);
   ///
-  void onMasterActive(const std_msgs::Bool::ConstPtr& msg);  
+  void onMasterActive(const std_msgs::Bool::ConstPtr& msg);
   /// Transform broadcaster.
   tf2_ros::TransformBroadcaster transform_broadcaster;
   ///
@@ -169,9 +171,9 @@ private:
   ///
   ros::Subscriber sub_veh2_toa;
   ///
-  ros::Subscriber sub_veh2_ref; 
+  ros::Subscriber sub_veh2_ref;
   ///
-  ros::Subscriber sub_master_active;  
+  ros::Subscriber sub_master_active;
   ///
   ros::Publisher pub_veh1_ref;
   ///
@@ -179,13 +181,17 @@ private:
   ///
   ros::Publisher pub_slave_pos_ref;
   ///
-  ros::Publisher pub_slave_hdg_ref;  
+  ros::Publisher pub_slave_hdg_ref;
+  ///
+  ros::Publisher pub_slave_ff_ref;
   ///
   ros::Publisher pub_tdoa;
   ///
   ros::Publisher pub_delta;
   ///
-  ros::Publisher pub_master_active;  
+  ros::Publisher pub_master_active;
+  ///
+  ros::Publisher pub_eta;
   ///
   std::map<int, auv_msgs::NavSts> state;
   ///
@@ -211,11 +217,13 @@ private:
   ///
   double epsilon;
   ///
-  double w1, w2, k1;
+  double w1, w2, k1, u0;
   ///
   int veh_type;
   ///
   bool master_active_flag;
+  ///
+  bool controller_active;
 };
 }
 }

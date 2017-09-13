@@ -52,18 +52,20 @@ TDOASSControl::TDOASSControl()
   , speed_of_sound(1500.0)
   , veh_type(SLAVE)
   , baseline(5.0)
-  , m(1.0)
-  , epsilon(1.0)
+  , m(10.0)
+  , epsilon(0.5)
   , es_controller(1, 0.1)
   , eta_filter_state_k0(2, 0)
   , eta_filter_state_k1(2, 0)
-  , ts(0.1)
+  , ts(1.0)
   , w1(1)
-  , w2(1)
-  , k1(1)
+  , w2(0.4)
+  , k1(1000)
+  , u0(0.25)
   , center_ref(auv_msgs::BodyVelocityReq())
   , tf_listener(tf_buffer)
   , master_active_flag(false)
+  , controller_active(false)
 {
 }
 
@@ -86,6 +88,8 @@ void TDOASSControl::init()
   link_names[CENTER] = "center_frame";
   link_names[MASTER] = "master_frame";
   link_names[SLAVE] = "slave_frame";
+  link_names[SLAVE_REF] = "slave_ref_frame";
+  link_names[NED] = "master/local";
 
   sub_veh1_state =
       nh.subscribe("veh1/state", 1, &TDOASSControl::onVeh1State, this);
@@ -93,8 +97,6 @@ void TDOASSControl::init()
       nh.subscribe("veh2/state", 1, &TDOASSControl::onVeh2State, this);
   sub_veh1_toa = nh.subscribe("veh1/toa", 1, &TDOASSControl::onVeh1Toa, this);
   sub_veh2_toa = nh.subscribe("veh2/toa", 1, &TDOASSControl::onVeh2Toa, this);
-  sub_veh2_ref =
-      nh.subscribe("veh2/state_ref", 1, &TDOASSControl::onSlaveRef, this);
 
   if (isMaster())
   {
@@ -103,6 +105,7 @@ void TDOASSControl::init()
 
     pub_tdoa = nh.advertise<std_msgs::Float64>("tdoa", 1);
     pub_delta = nh.advertise<std_msgs::Float64>("delta", 1);
+    pub_eta = nh.advertise<std_msgs::Float64>("eta", 1);
     pub_master_active = nh.advertise<std_msgs::Bool>("master/active", 1);
 
     initializeController();
@@ -115,7 +118,11 @@ void TDOASSControl::init()
         nh.subscribe("master/active", 1, &TDOASSControl::onMasterActive, this);
     pub_slave_pos_ref =
         nh.advertise<geometry_msgs::PointStamped>("slave/pos_ref", 1);
+pub_slave_ff_ref =
+    nh.advertise<auv_msgs::NavSts>("slave/ff_ref", 1);        
     pub_slave_hdg_ref = nh.advertise<std_msgs::Float32>("slave/hdg_ref", 1);
+    sub_veh2_ref =
+        nh.subscribe("veh2/state_ref", 1, &TDOASSControl::onSlaveRef, this);
   }
 }
 
@@ -125,10 +132,10 @@ void TDOASSControl::initializeController()
 
   ros::NodeHandle nh;
 
-  double sin_amp = 0.1;
-  double sin_freq = 2 * M_PI / 16;
-  double corr_gain = -1;
-  double high_pass_pole = 3 / 16;
+  double sin_amp = 0.05;
+  double sin_freq = 2 * M_PI / 32;
+  double corr_gain = -0.25;
+  double high_pass_pole = 3 / 32;
   double low_pass_pole = 0;
   double comp_zero = 0;
   double comp_pole = 0;
@@ -156,9 +163,16 @@ void TDOASSControl::initializeController()
   ROS_ERROR("Extremum seeking controller initialized.");
 }
 
-void TDOASSControl::idle(const auv_msgs::NavSts& ref, const auv_msgs::NavSts& state,
-          const auv_msgs::BodyVelocityReq& track)
+void TDOASSControl::idle(const auv_msgs::NavSts& ref,
+                         const auv_msgs::NavSts& state,
+                         const auv_msgs::BodyVelocityReq& track)
 {
+  if (controller_active && !isMaster())
+  {
+    std_srvs::Trigger srv;
+    ros::service::call("commander/stop_mission", srv);
+  }
+  controller_active = false;
   if (isMaster())
   {
     std_msgs::Bool flag;
@@ -170,6 +184,7 @@ void TDOASSControl::idle(const auv_msgs::NavSts& ref, const auv_msgs::NavSts& st
 auv_msgs::BodyVelocityReqPtr TDOASSControl::step(
     const auv_msgs::NavSts& ref, const auv_msgs::NavSts& state_hat)
 {
+  controller_active = true;
   if (isMaster())
   {
     std_msgs::Bool flag;
@@ -206,7 +221,13 @@ auv_msgs::BodyVelocityReqPtr TDOASSControl::step(
                         etaFilterStep(delta, yaw_rate));
     }
     // TODO Check if one step estimate is needed.
-    // calculateSlaveReference();
+
+    auv_msgs::NavSts slave_ref;
+    if (calculateSlaveReference(slave_ref, center_ref))
+    {
+      slave_ref.header.stamp = ros::Time::now();
+      pub_veh2_ref.publish(slave_ref);
+    }
 
     auv_msgs::BodyVelocityReqPtr nu(new auv_msgs::BodyVelocityReq());
     *nu = allocateSpeed(center_ref);
@@ -219,7 +240,6 @@ auv_msgs::BodyVelocityReqPtr TDOASSControl::step(
   else
   {
     // Slave actions.
-    ROS_ERROR("DEBUG_slave");
     // TODO check this.
     disable_axis[x] = 1;
     disable_axis[y] = 1;
@@ -280,17 +300,25 @@ TDOASSControl::allocateSpeed(auv_msgs::BodyVelocityReq req)
   auv_msgs::BodyVelocityReq master_ref;
   double yaw = state[MASTER].orientation.yaw;
   double u_ref = req.twist.linear.x;
+  bool use_meas(true);
   double yaw_rate_ref = req.twist.angular.z;
+  double yaw_rate = use_meas?state[MASTER].orientation_rate.yaw:yaw_rate_ref;
+
+  ROS_ERROR("u_ref: %f, yaw_rate_ref: %f", u_ref, yaw_rate_ref);
 
   Eigen::Vector2d out, in;
   Eigen::Matrix2d R;
 
-  in[0] = (u_ref - baseline / 2 * yaw_rate_ref) * std::cos(yaw);
-  in[1] = (u_ref + baseline / 2 * yaw_rate_ref) * std::sin(yaw);
+  // NED frame
+  in[0] = (u_ref - baseline / 2 * yaw_rate) * std::cos(yaw);
+  in[1] = (u_ref + baseline / 2 * yaw_rate) * std::sin(yaw);
 
   R << cos(yaw), -sin(yaw), sin(yaw), cos(yaw);
   out = R.transpose() * in;
 
+  ROS_ERROR("x_ref: %f, y_ref: %f", out[0], out[1]);
+
+  // Body frame
   master_ref.twist.linear.x = out[0];
   master_ref.twist.linear.y = out[1];
   master_ref.twist.angular.z = yaw_rate_ref;
@@ -298,19 +326,45 @@ TDOASSControl::allocateSpeed(auv_msgs::BodyVelocityReq req)
   return master_ref;
 }
 
-auv_msgs::NavSts TDOASSControl::calculateSlaveReference()
+bool TDOASSControl::calculateSlaveReference(auv_msgs::NavSts& slave_ref,
+                                            const auv_msgs::BodyVelocityReq& center_ref)
 {
-  // geometry_msgs::TransformStamped transformStamped;
-  // try
-  // {
-  //   transformStamped = tf_buffer.lookupTransform(
-  //       link_names[SLAVE], link_names[MASTER], ros::Time(0));
-  // }
-  // catch (tf2::TransformException& ex)
-  // {
-  //   ROS_WARN("%s", ex.what());
-  // }
-  return auv_msgs::NavSts();
+  geometry_msgs::TransformStamped transformStamped;
+  try
+  {
+    transformStamped = tf_buffer.lookupTransform(
+        link_names[MASTER], link_names[SLAVE], ros::Time(0));
+
+    double yaw = state[MASTER].orientation.yaw;
+
+    Eigen::Vector2d out, in;
+    Eigen::Matrix2d R;
+
+    // Body frame offset
+    in[0] = transformStamped.transform.translation.x;
+    in[1] = transformStamped.transform.translation.y;
+
+    R << cos(yaw), -sin(yaw), sin(yaw), cos(yaw);
+    out = R * in;
+
+    slave_ref.position.north = state[MASTER].position.north + out[0];
+    slave_ref.position.east = state[MASTER].position.east + out[1];
+    slave_ref.position.depth = state[MASTER].position.depth;
+    slave_ref.orientation.roll = 0;
+    slave_ref.orientation.pitch = 0;
+    slave_ref.orientation.yaw = state[MASTER].orientation.yaw;
+    // TODO account for yaw rate influence.
+    slave_ref.body_velocity.x = center_ref.twist.linear.x;
+    // TODO can be done with http://wiki.ros.org/tf2_geometry_msgs.
+    broadcastTransform(slave_ref, link_names[NED], link_names[SLAVE_REF]);
+
+    return true;
+  }
+  catch (tf2::TransformException& ex)
+  {
+    ROS_WARN("%s", ex.what());
+    return false;
+  }
 }
 
 void TDOASSControl::surgeSpeedControl(auv_msgs::BodyVelocityReq& req,
@@ -319,9 +373,17 @@ void TDOASSControl::surgeSpeedControl(auv_msgs::BodyVelocityReq& req,
   const int n = 3;
   double u_amp, u_zeta, u_dir;
   u_dir = labust::math::sgn(eta);
-  u_zeta = std::pow(std::abs(eta), n) / std::pow(std::abs(eta) + epsilon, n);
+  u_zeta = std::pow(std::fabs(eta), n) / std::pow(std::fabs(eta) + epsilon, n);
   u_amp = (1 - std::tanh(m * cost));
-  req.twist.linear.x = u_amp * u_zeta * u_dir;
+
+  ROS_ERROR("eta: %f, u_amp: %f, u_zeta: %f, u_dir: %f", eta, u_amp, u_zeta,
+            u_dir);
+
+  std_msgs::Float64 data;
+  data.data = eta;
+  pub_eta.publish(data);
+
+  req.twist.linear.x = u0 * u_amp * u_zeta * u_dir;
 }
 
 void TDOASSControl::yawRateControl(auv_msgs::BodyVelocityReq& req, double delta,
@@ -333,6 +395,7 @@ void TDOASSControl::yawRateControl(auv_msgs::BodyVelocityReq& req, double delta,
 
 double TDOASSControl::etaFilterStep(double delta, double yaw_rate)
 {
+  /// TODO scale yaw_Rate
   // Calculated using Euler method.
   eta_filter_state_k0 = eta_filter_state_k1;
   eta_filter_state_k1[0] += ts * (-w1 * eta_filter_state_k0[0] + delta);
@@ -372,11 +435,15 @@ void TDOASSControl::onSlaveRef(const auv_msgs::NavSts::ConstPtr& msg)
   {
     geometry_msgs::PointStamped pos_ref;
     std_msgs::Float32 hdg_ref;
+    auv_msgs::NavSts ff_ref;    
     pos_ref.point.x = msg->position.north;
     pos_ref.point.y = msg->position.east;
     hdg_ref.data = msg->orientation.yaw;
+    ff_ref.body_velocity.x = msg->body_velocity.x;
+    ff_ref.body_velocity.y = msg->body_velocity.y;
     pub_slave_pos_ref.publish(pos_ref);
     pub_slave_hdg_ref.publish(hdg_ref);
+    pub_slave_ff_ref.publish(ff_ref);    
   }
 }
 
@@ -384,25 +451,28 @@ void TDOASSControl::onMasterActive(const std_msgs::Bool::ConstPtr& msg)
 {
   if (!isMaster())
   {
-    if (master_active_flag != msg->data)
+    if (controller_active)
     {
-      master_active_flag = msg->data;
-      if (master_active_flag)
+      if (master_active_flag != msg->data)
       {
-        misc_msgs::DynamicPositioningPrimitiveService srv;
-        srv.request.north_enable = true;
-        srv.request.east_enable = true;
-        srv.request.heading_enable = true;
-        srv.request.target_topic_enable = true;
-        srv.request.track_heading_enable = true;
-        srv.request.target_topic = "/slave/pos_ref";
-        srv.request.heading_topic = "/slave/hdg_ref";
-        dp_srv.call(srv);
-      }
-      else
-      {
-        std_srvs::Trigger srv;
-        ros::service::call("commander/stop_mission", srv);
+        master_active_flag = msg->data;
+        if (master_active_flag)
+        {
+          misc_msgs::DynamicPositioningPrimitiveService srv;
+          srv.request.north_enable = true;
+          srv.request.east_enable = true;
+          srv.request.heading_enable = true;
+          srv.request.target_topic_enable = true;
+          srv.request.track_heading_enable = true;
+          srv.request.target_topic = "/slave/pos_ref";
+          srv.request.heading_topic = "/slave/hdg_ref";
+          dp_srv.call(srv);
+        }
+        else
+        {
+          std_srvs::Trigger srv;
+          ros::service::call("commander/stop_mission", srv);
+        }
       }
     }
   }

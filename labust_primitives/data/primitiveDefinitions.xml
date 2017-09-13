@@ -59,8 +59,9 @@
 		<param type="bool">altitude_enable</param> <!-- Altitude control if true (bool) -->
 
 		<param type="bool">target_topic_enable</param>
-		<param type="bool">track_heading_enable</param>
-                <!--Enables dynamic positioning with independent heading topic reference. -->
+		<param type="bool">track_heading_enable</param><!--Enables dynamic positioning with independent heading topic reference. -->
+
+		<param type="bool">point_to_target</param><!-- Heading points to the target. -->
 
 		<param type="string">target_topic</param>
 		<param type="string">heading_topic</param>		
