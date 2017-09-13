@@ -99,6 +99,9 @@ namespace labust
 
 				kinect_reached=false;
 				pullback_done=false;
+				last_direction=1;
+				manual_on=true;
+				sub_manual = nh.subscribe<std_msgs::Bool>("manual",1,&Docking::onManual,this);
 
 				pub_docking_arm = nh.advertise<std_msgs::Float32MultiArray>("dock_out",1);
 				pub_kinect_servo = nh.advertise<std_msgs::Float32>("kinect_out",1);
@@ -157,7 +160,7 @@ namespace labust
 				sub_vertical = nh.subscribe<std_msgs::Float32>("docking_vertical",1,&Docking::onVerticalMeasurement,this);
 				sub_horizontal = nh.subscribe<std_msgs::Float32>("docking_horizontal",1,&Docking::onHorizontalMeasurement,this);
 				sub_size = nh.subscribe<std_msgs::Float32>("size",1,&Docking::onSizeMeasurement,this);
-				sub_manual = nh.subscribe<std_msgs::Bool>("manual",1,&Docking::onManual,this);
+				//sub_manual = nh.subscribe<std_msgs::Bool>("manual",1,&Docking::onManual,this);
 
 
 
@@ -165,37 +168,35 @@ namespace labust
 
 				/*** Update reference ***/
 				//stateRef.publish(step(lastState));
-				struct timespec timeOut,remains;
-                                timeOut.tv_sec = 0;
-                                timeOut.tv_nsec = 900000000; /* 90 milliseconds */
-				//kinect_reached=false;
-				servo_ref.data=0.0;
-                                for (int i=0;i<15;i++)
+				slot=static_cast<int>(goal->docking_slot);
+				if(goal->docking_action)
+				{
+					struct timespec timeOut,remains;
+                                	timeOut.tv_sec = 0;
+                                	timeOut.tv_nsec = 900000000; /* 90 milliseconds */
+					//kinect_reached=false;
+					servo_ref.data=0.0;
+                                	for (int i=0;i<14;i++)
                                                 {
                                                 pub_kinect_servo.publish(servo_ref);
                                                 nanosleep(&timeOut, &remains);
                                                 }
-				timeOut.tv_nsec = 200000000;
-				nanosleep(&timeOut, &remains);
-				slot=static_cast<int>(goal->docking_slot);
-                                ROS_ERROR("SLOT %d",slot);
-                                //ROS_ERROR("SERVO %f", kinect_servo_pos.data);
-                                servo_ref.data=kinect_servo_pos[slot];
-				ROS_ERROR("SERVO VAL %f %d",servo_ref.data, slot);
-				//kinect_reached=false;
-				//for (int i=0;i<10;i++) 
-                                //                {
-                                                pub_kinect_servo.publish(servo_ref);
-                                //                nanosleep(&timeOut, &remains);
-                                //                }
-
-                                //pub_kinect_servo.publish(servo_ref);
-				timeOut.tv_nsec=900000000;
-				for (int i=0;i<15;i++) nanosleep(&timeOut,&remains);
-				kinect_reached=true;
-				new_meas=false;
+					timeOut.tv_nsec = 200000000;
+					nanosleep(&timeOut, &remains);
+					//slot=static_cast<int>(goal->docking_slot);
+                                	ROS_ERROR("SLOT %d",slot);
+                                	//ROS_ERROR("SERVO %f", kinect_servo_pos.data);
+                                	servo_ref.data=kinect_servo_pos[slot];
+					ROS_ERROR("SERVO VAL %f %d",servo_ref.data, slot);
+					pub_kinect_servo.publish(servo_ref);
+                                        timeOut.tv_nsec=900000000;
+					for (int i=0;i<13;i++) nanosleep(&timeOut,&remains);
+					kinect_reached=true;
+					new_meas=false;
+					//start_time=ros::Time::now();
+					ROS_ERROR("Kinect timeout over. Ready to start.");
+				}
 				start_time=ros::Time::now();
-				ROS_ERROR("Kinect timeout over. Ready to start.");
 				/*** Enable controllers depending on the primitive subtype ***/
 				controllers.state[hdg] = false; //&& goal->axis_enable.x && goal->axis_enable.y;;
 				this->updateControllers();
@@ -376,7 +377,7 @@ namespace labust
 				double surge_gain = goal->max_surge_speed;
 				auv_msgs::BodyVelocityReqPtr ref(new auv_msgs::BodyVelocityReq());
 				double angle = goal->docking_slot*M_PI/2+M_PI;
-				double surge_val = 0.1;
+				double surge_val = 0.3;
 				ROS_ERROR("Pulling back from mussel");
 				Eigen::Vector2f out, in;
 				Eigen::Matrix2f R;
