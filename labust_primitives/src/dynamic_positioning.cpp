@@ -107,6 +107,8 @@ namespace labust
 				{
 					ros::NodeHandle nh;
 					sub_target = nh.subscribe(goal->target_topic,1,&DynamicPositionining::onTargetPoint,this);
+					sub_ff = nh.subscribe("/slave/ff_ref",1,&DynamicPositionining::onFeedForward,this);
+				
 				}
 
 				/*** Update reference ***/
@@ -196,6 +198,8 @@ namespace labust
 				ref->position.north = (goal->target_topic_enable)?target_reference.x:goal->T1.point.x;
 				ref->position.east = (goal->target_topic_enable)?target_reference.y:goal->T1.point.y;
 				ref->orientation.yaw = (goal->track_heading_enable)?heading_reference:goal->yaw;
+				ref->body_velocity.x = feed_forward.body_velocity.x;
+				ref->body_velocity.y = feed_forward.body_velocity.y;				
 				ref->header.frame_id = tf_prefix + "local";
 				ref->header.stamp = ros::Time::now();
 
@@ -206,6 +210,12 @@ namespace labust
 			{
 				target_reference = point->point;
 			}
+			
+			void onFeedForward(const auv_msgs::NavSts::ConstPtr& msg)
+			{
+				feed_forward.body_velocity.x = msg->body_velocity.x;
+				feed_forward.body_velocity.y = msg->body_velocity.y;				
+			}			
 
 			void onHeading(const std_msgs::Float32::ConstPtr& heading)
 			{
@@ -226,8 +236,9 @@ namespace labust
 
 			geometry_msgs::Point target_reference;
 			double heading_reference;
+			auv_msgs::NavSts feed_forward;
 
-			ros::Subscriber sub_target, sub_heading;
+			ros::Subscriber sub_target, sub_heading, sub_ff;
 		};
 	}
 }

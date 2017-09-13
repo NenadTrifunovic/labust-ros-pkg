@@ -52,16 +52,16 @@ TDOASSControl::TDOASSControl()
   , speed_of_sound(1500.0)
   , veh_type(SLAVE)
   , baseline(5.0)
-  , m(1.0)
-  , epsilon(0.05)
+  , m(10.0)
+  , epsilon(0.5)
   , es_controller(1, 0.1)
   , eta_filter_state_k0(2, 0)
   , eta_filter_state_k1(2, 0)
   , ts(1.0)
   , w1(1)
-  , w2(1)
+  , w2(0.4)
   , k1(1000)
-  , u0(0.5)
+  , u0(0.25)
   , center_ref(auv_msgs::BodyVelocityReq())
   , tf_listener(tf_buffer)
   , master_active_flag(false)
@@ -105,6 +105,7 @@ void TDOASSControl::init()
 
     pub_tdoa = nh.advertise<std_msgs::Float64>("tdoa", 1);
     pub_delta = nh.advertise<std_msgs::Float64>("delta", 1);
+    pub_eta = nh.advertise<std_msgs::Float64>("eta", 1);
     pub_master_active = nh.advertise<std_msgs::Bool>("master/active", 1);
 
     initializeController();
@@ -117,6 +118,8 @@ void TDOASSControl::init()
         nh.subscribe("master/active", 1, &TDOASSControl::onMasterActive, this);
     pub_slave_pos_ref =
         nh.advertise<geometry_msgs::PointStamped>("slave/pos_ref", 1);
+pub_slave_ff_ref =
+    nh.advertise<auv_msgs::NavSts>("slave/ff_ref", 1);        
     pub_slave_hdg_ref = nh.advertise<std_msgs::Float32>("slave/hdg_ref", 1);
     sub_veh2_ref =
         nh.subscribe("veh2/state_ref", 1, &TDOASSControl::onSlaveRef, this);
@@ -129,7 +132,7 @@ void TDOASSControl::initializeController()
 
   ros::NodeHandle nh;
 
-  double sin_amp = 0.01;
+  double sin_amp = 0.05;
   double sin_freq = 2 * M_PI / 32;
   double corr_gain = -0.25;
   double high_pass_pole = 3 / 32;
@@ -220,7 +223,7 @@ auv_msgs::BodyVelocityReqPtr TDOASSControl::step(
     // TODO Check if one step estimate is needed.
 
     auv_msgs::NavSts slave_ref;
-    if (calculateSlaveReference(slave_ref))
+    if (calculateSlaveReference(slave_ref, center_ref))
     {
       slave_ref.header.stamp = ros::Time::now();
       pub_veh2_ref.publish(slave_ref);
@@ -297,7 +300,9 @@ TDOASSControl::allocateSpeed(auv_msgs::BodyVelocityReq req)
   auv_msgs::BodyVelocityReq master_ref;
   double yaw = state[MASTER].orientation.yaw;
   double u_ref = req.twist.linear.x;
+  bool use_meas(true);
   double yaw_rate_ref = req.twist.angular.z;
+  double yaw_rate = use_meas?state[MASTER].orientation_rate.yaw:yaw_rate_ref;
 
   ROS_ERROR("u_ref: %f, yaw_rate_ref: %f", u_ref, yaw_rate_ref);
 
@@ -305,8 +310,8 @@ TDOASSControl::allocateSpeed(auv_msgs::BodyVelocityReq req)
   Eigen::Matrix2d R;
 
   // NED frame
-  in[0] = (u_ref - baseline / 2 * yaw_rate_ref) * std::cos(yaw);
-  in[1] = (u_ref + baseline / 2 * yaw_rate_ref) * std::sin(yaw);
+  in[0] = (u_ref - baseline / 2 * yaw_rate) * std::cos(yaw);
+  in[1] = (u_ref + baseline / 2 * yaw_rate) * std::sin(yaw);
 
   R << cos(yaw), -sin(yaw), sin(yaw), cos(yaw);
   out = R.transpose() * in;
@@ -321,7 +326,8 @@ TDOASSControl::allocateSpeed(auv_msgs::BodyVelocityReq req)
   return master_ref;
 }
 
-bool TDOASSControl::calculateSlaveReference(auv_msgs::NavSts& slave_ref)
+bool TDOASSControl::calculateSlaveReference(auv_msgs::NavSts& slave_ref,
+                                            const auv_msgs::BodyVelocityReq& center_ref)
 {
   geometry_msgs::TransformStamped transformStamped;
   try
@@ -347,7 +353,8 @@ bool TDOASSControl::calculateSlaveReference(auv_msgs::NavSts& slave_ref)
     slave_ref.orientation.roll = 0;
     slave_ref.orientation.pitch = 0;
     slave_ref.orientation.yaw = state[MASTER].orientation.yaw;
-
+    // TODO account for yaw rate influence.
+    slave_ref.body_velocity.x = center_ref.twist.linear.x;
     // TODO can be done with http://wiki.ros.org/tf2_geometry_msgs.
     broadcastTransform(slave_ref, link_names[NED], link_names[SLAVE_REF]);
 
@@ -368,8 +375,13 @@ void TDOASSControl::surgeSpeedControl(auv_msgs::BodyVelocityReq& req,
   u_dir = labust::math::sgn(eta);
   u_zeta = std::pow(std::fabs(eta), n) / std::pow(std::fabs(eta) + epsilon, n);
   u_amp = (1 - std::tanh(m * cost));
-  
-  ROS_ERROR("eta: %f, u_amp: %f, u_zeta: %f, u_dir: %f", eta, u_amp, u_zeta, u_dir);
+
+  ROS_ERROR("eta: %f, u_amp: %f, u_zeta: %f, u_dir: %f", eta, u_amp, u_zeta,
+            u_dir);
+
+  std_msgs::Float64 data;
+  data.data = eta;
+  pub_eta.publish(data);
 
   req.twist.linear.x = u0 * u_amp * u_zeta * u_dir;
 }
@@ -383,6 +395,7 @@ void TDOASSControl::yawRateControl(auv_msgs::BodyVelocityReq& req, double delta,
 
 double TDOASSControl::etaFilterStep(double delta, double yaw_rate)
 {
+  /// TODO scale yaw_Rate
   // Calculated using Euler method.
   eta_filter_state_k0 = eta_filter_state_k1;
   eta_filter_state_k1[0] += ts * (-w1 * eta_filter_state_k0[0] + delta);
@@ -422,11 +435,15 @@ void TDOASSControl::onSlaveRef(const auv_msgs::NavSts::ConstPtr& msg)
   {
     geometry_msgs::PointStamped pos_ref;
     std_msgs::Float32 hdg_ref;
+    auv_msgs::NavSts ff_ref;    
     pos_ref.point.x = msg->position.north;
     pos_ref.point.y = msg->position.east;
     hdg_ref.data = msg->orientation.yaw;
+    ff_ref.body_velocity.x = msg->body_velocity.x;
+    ff_ref.body_velocity.y = msg->body_velocity.y;
     pub_slave_pos_ref.publish(pos_ref);
     pub_slave_hdg_ref.publish(hdg_ref);
+    pub_slave_ff_ref.publish(ff_ref);    
   }
 }
 
