@@ -118,7 +118,7 @@ void TDOASSControl::init()
     initializeController();
     config.__fromServer__(ph);
     server.setConfigDefault(config);
-    updateDynRecConfig();
+    //updateDynRecConfig();
   }
   else
   {
@@ -147,7 +147,7 @@ void TDOASSControl::reconfigureCallback(
   u0 = config.u0;
 
   double es_controller_enabled = config.esc_enabled;
-  double esc_high_pass_pole = 3 * config.esc_sin_freq / (2 * M_PI);
+  double esc_high_pass_pole = 3 / config.esc_sin_period;
   double esc_Ts = config.esc_sampling_time;
 
   ROS_INFO("Reconfigure Request: baseline:%f, m:%f, epsilon:%f, w1:%f, w2:%f, "
@@ -158,15 +158,15 @@ void TDOASSControl::reconfigureCallback(
   ROS_INFO("Reconfigure Request: a_pert:%f, a_demod:%f, T:%f, k:%f, hp:%f, "
            "lp:%f zc:%f pc:%f Ts:%f",
            config.esc_sin_amp, config.esc_sin_demodulation_amp,
-           2 * M_PI / config.esc_sin_freq, config.esc_corr_gain,
-           esc_high_pass_pole, config.esc_low_pass_pole, config.esc_comp_zero,
-           config.esc_comp_pole, config.esc_sampling_time);
+           config.esc_sin_period, config.esc_corr_gain, esc_high_pass_pole,
+           config.esc_low_pass_pole, config.esc_comp_zero, config.esc_comp_pole,
+           config.esc_sampling_time);
 
   es_controller.initController(
       config.esc_sin_amp, config.esc_sin_demodulation_amp,
-      2 * M_PI / config.esc_sin_freq, config.esc_corr_gain, esc_high_pass_pole,
-      config.esc_low_pass_pole, config.esc_comp_zero, config.esc_comp_pole,
-      config.esc_sampling_time);
+      2 * M_PI / config.esc_sin_period, config.esc_corr_gain,
+      esc_high_pass_pole, config.esc_low_pass_pole, config.esc_comp_zero,
+      config.esc_comp_pole, config.esc_sampling_time);
 
   ROS_INFO("Extremum seeking controller reconfigured. Extremum seeking %s",
            es_controller_enabled ? "enabled" : "disabled");
@@ -219,7 +219,7 @@ void TDOASSControl::initializeController()
   //                              comp_pole, sampling_time);
 
   disable_axis[x] = 0;
-  disable_axis[y] = 0;
+  disable_axis[y] = 1;
   disable_axis[yaw] = 0;
 
   ROS_ERROR("Extremum seeking controller initialized.");
@@ -374,7 +374,7 @@ TDOASSControl::allocateSpeed(auv_msgs::BodyVelocityReq req)
 
   // NED frame
   in[0] = (u_ref - baseline / 2 * yaw_rate) * std::cos(yaw);
-  in[1] = (u_ref + baseline / 2 * yaw_rate) * std::sin(yaw);
+  in[1] = (u_ref - baseline / 2 * yaw_rate) * std::sin(yaw);
 
   R << cos(yaw), -sin(yaw), sin(yaw), cos(yaw);
   out = R.transpose() * in;
@@ -382,8 +382,10 @@ TDOASSControl::allocateSpeed(auv_msgs::BodyVelocityReq req)
   // ROS_ERROR("x_ref: %f, y_ref: %f", out[0], out[1]);
 
   // Body frame
-  master_ref.twist.linear.x = out[0];
-  master_ref.twist.linear.y = out[1];
+  // master_ref.twist.linear.x = out[0];
+  // master_ref.twist.linear.y = out[1];
+  master_ref.twist.linear.x = u_ref - baseline / 2 * yaw_rate;
+  master_ref.twist.linear.y = 0;
   master_ref.twist.angular.z = yaw_rate_ref;
 
   return master_ref;
