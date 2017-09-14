@@ -46,8 +46,10 @@
 #include <auv_msgs/BodyForceReq.h>
 #include <auv_msgs/BodyVelocityReq.h>
 #include <auv_msgs/NavSts.h>
+#include <dynamic_reconfigure/server.h>
 #include <geometry_msgs/PointStamped.h>
 #include <geometry_msgs/TransformStamped.h>
+#include <labust_control/TDOASSControlConfig.h>
 #include <misc_msgs/DynamicPositioningPrimitiveService.h>
 #include <ros/ros.h>
 #include <std_msgs/Bool.h>
@@ -116,6 +118,11 @@ private:
     SLAVE_REF,
     NED
   };
+  ///
+  void reconfigureCallback(labust_control::TDOASSControlConfig& config,
+                           uint32_t level);
+  ///
+  void updateDynRecConfig();
   /// Caluculate Time difference of arrival
   bool calcluateTimeDifferenceOfArrival();
   /// Get time difference of arrival
@@ -152,6 +159,12 @@ private:
   void onSlaveRef(const auv_msgs::NavSts::ConstPtr& msg);
   ///
   void onMasterActive(const std_msgs::Bool::ConstPtr& msg);
+  /// Dynamic reconfigure
+  dynamic_reconfigure::Server<labust_control::TDOASSControlConfig> server;
+  dynamic_reconfigure::Server<labust_control::TDOASSControlConfig>::CallbackType
+      f;
+  /// The dynamic reconfigure parameters.
+  labust_control::TDOASSControlConfig config;
   /// Transform broadcaster.
   tf2_ros::TransformBroadcaster transform_broadcaster;
   ///
