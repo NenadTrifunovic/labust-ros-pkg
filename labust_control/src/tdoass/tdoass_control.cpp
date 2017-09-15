@@ -40,6 +40,8 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 #include <labust/control/tdoass/tdoass_control.h>
+#include <misc_msgs/RosbagControl.h>
+#include <navcon_msgs/EnableControl.h>
 
 using namespace labust::control;
 
@@ -65,7 +67,9 @@ TDOASSControl::TDOASSControl()
   , center_ref(auv_msgs::BodyVelocityReq())
   , tf_listener(tf_buffer)
   , master_active_flag(false)
+  , slave_active_flag(false)
   , controller_active(false)
+  , logging_flag(false)
 {
 }
 
@@ -118,7 +122,7 @@ void TDOASSControl::init()
     initializeController();
     config.__fromServer__(ph);
     server.setConfigDefault(config);
-    //updateDynRecConfig();
+    // updateDynRecConfig();
   }
   else
   {
@@ -138,6 +142,39 @@ void TDOASSControl::init()
 void TDOASSControl::reconfigureCallback(
     labust_control::TDOASSControlConfig& config, uint32_t level)
 {
+  if (isMaster())
+  {
+    if (logging_flag != config.logging)
+    {
+      logging_flag = config.logging;
+      misc_msgs::RosbagControl srv;
+      srv.request.action = logging_flag ? "start" : "stop";
+      srv.request.bag_name = "master_" + config.log_name;
+      ros::service::call("/master/rosbag_record", srv);
+      srv.request.bag_name = "slave_" + config.log_name;
+      ros::service::call("/slave/rosbag_record", srv);
+      ROS_INFO("Logging %s.", logging_flag ? "enabled" : "disabled");
+    }
+
+    if (master_active_flag != config.master_enable)
+    {
+      //master_active_flag = config.master_enable;
+      //navcon_msgs::EnableControl srv;
+      //srv.request.enable = master_active_flag;
+      //ros::service::call("/usv/TDOASS_master_enable", srv);
+      //ROS_INFO("Master %s.", master_active_flag ? "enabled" : "disabled");
+    }
+
+    if (slave_active_flag != config.slave_enable)
+    {
+      slave_active_flag = config.slave_enable;
+      navcon_msgs::EnableControl srv;
+      srv.request.enable = slave_active_flag;
+      ros::service::call("/usv/TDOASS_slave_enable", srv);
+      ROS_INFO("Slave %s.", slave_active_flag ? "enabled" : "disabled");
+    }
+  }
+
   baseline = config.baseline;
   m = config.m;
   epsilon = config.epsilon;
@@ -219,7 +256,7 @@ void TDOASSControl::initializeController()
   //                              comp_pole, sampling_time);
 
   disable_axis[x] = 0;
-  disable_axis[y] = 1;
+  disable_axis[y] = 0;
   disable_axis[yaw] = 0;
 
   ROS_ERROR("Extremum seeking controller initialized.");
@@ -441,6 +478,7 @@ void TDOASSControl::surgeSpeedControl(auv_msgs::BodyVelocityReq& req,
   u_zeta = std::pow(std::fabs(eta), n) / std::pow(std::fabs(eta) + epsilon, n);
   u_amp = (1 - std::tanh(m * cost));
 
+  ROS_ERROR("delta: %f", delta);
   ROS_ERROR("eta: %f, u_amp: %f, u_zeta: %f, u_dir: %f", eta, u_amp, u_zeta,
             u_dir);
 
@@ -455,7 +493,6 @@ void TDOASSControl::yawRateControl(auv_msgs::BodyVelocityReq& req, double delta,
                                    double cost)
 {
   req.twist.angular.z = (es_controller.step(cost))[0];
-  ROS_ERROR("YAW_REF: %f", req.twist.angular.z);
 }
 
 double TDOASSControl::etaFilterStep(double delta, double yaw_rate)

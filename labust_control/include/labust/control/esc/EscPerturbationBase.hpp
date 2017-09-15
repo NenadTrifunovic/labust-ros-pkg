@@ -113,8 +113,6 @@ namespace labust{
 					 old_vals_initialized_ = true;
 					 cycle_count_++;
 					 
-					 ROS_ERROR_STREAM(controlInput);
-
 					 return controlInput;
 				 }
 

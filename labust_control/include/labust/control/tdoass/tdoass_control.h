@@ -236,7 +236,11 @@ private:
   ///
   bool master_active_flag;
   ///
+  bool slave_active_flag;  
+  ///
   bool controller_active;
+  ///
+  bool logging_flag;
 };
 }
 }
