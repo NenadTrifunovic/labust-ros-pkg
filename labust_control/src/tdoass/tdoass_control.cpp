@@ -142,6 +142,8 @@ void TDOASSControl::init()
 void TDOASSControl::reconfigureCallback(
     labust_control::TDOASSControlConfig& config, uint32_t level)
 {
+  this->config = config;
+  // config.__toServer__(ph);
   if (isMaster())
   {
     if (logging_flag != config.logging)
