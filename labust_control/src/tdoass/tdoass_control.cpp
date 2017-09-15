@@ -158,11 +158,11 @@ void TDOASSControl::reconfigureCallback(
 
     if (master_active_flag != config.master_enable)
     {
-      //master_active_flag = config.master_enable;
-      //navcon_msgs::EnableControl srv;
-      //srv.request.enable = master_active_flag;
-      //ros::service::call("/usv/TDOASS_master_enable", srv);
-      //ROS_INFO("Master %s.", master_active_flag ? "enabled" : "disabled");
+      // master_active_flag = config.master_enable;
+      // navcon_msgs::EnableControl srv;
+      // srv.request.enable = master_active_flag;
+      // ros::service::call("/usv/TDOASS_master_enable", srv);
+      // ROS_INFO("Master %s.", master_active_flag ? "enabled" : "disabled");
     }
 
     if (slave_active_flag != config.slave_enable)
@@ -183,16 +183,15 @@ void TDOASSControl::reconfigureCallback(
   k1 = config.k1;
   u0 = config.u0;
 
-  double es_controller_enabled = config.esc_enabled;
   double esc_high_pass_pole = 3 / config.esc_sin_period;
   double esc_Ts = config.esc_sampling_time;
 
-  ROS_INFO("Reconfigure Request: baseline:%f, m:%f, epsilon:%f, w1:%f, w2:%f, "
+  ROS_INFO("Reconfigure Request: ");
+  ROS_INFO("baseline:%f, m:%f, epsilon:%f, w1:%f, w2:%f, "
            "k1:%f u0:%f",
            config.baseline, config.m, config.epsilon, config.w1, config.w2,
            config.k1, config.u0);
-
-  ROS_INFO("Reconfigure Request: a_pert:%f, a_demod:%f, T:%f, k:%f, hp:%f, "
+  ROS_INFO("a_pert:%f, a_demod:%f, T:%f, k:%f, hp:%f, "
            "lp:%f zc:%f pc:%f Ts:%f",
            config.esc_sin_amp, config.esc_sin_demodulation_amp,
            config.esc_sin_period, config.esc_corr_gain, esc_high_pass_pole,
@@ -204,9 +203,6 @@ void TDOASSControl::reconfigureCallback(
       2 * M_PI / config.esc_sin_period, config.esc_corr_gain,
       esc_high_pass_pole, config.esc_low_pass_pole, config.esc_comp_zero,
       config.esc_comp_pole, config.esc_sampling_time);
-
-  ROS_INFO("Extremum seeking controller reconfigured. Extremum seeking %s",
-           es_controller_enabled ? "enabled" : "disabled");
 }
 
 void TDOASSControl::updateDynRecConfig()
@@ -493,6 +489,11 @@ void TDOASSControl::yawRateControl(auv_msgs::BodyVelocityReq& req, double delta,
                                    double cost)
 {
   req.twist.angular.z = (es_controller.step(cost))[0];
+  // Saturate yaw rate reference.
+  if (req.twist.angular.z < config.max_yaw_rate)
+    req.twist.angular.z = -config.max_yaw_rate;
+  else if (req.twist.angular.z > config.max_yaw_rate)
+    req.twist.angular.z = config.max_yaw_rate;
 }
 
 double TDOASSControl::etaFilterStep(double delta, double yaw_rate)
