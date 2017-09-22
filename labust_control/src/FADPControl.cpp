@@ -38,6 +38,7 @@
 #include <labust/control/EnablePolicy.hpp>
 #include <labust/control/WindupPolicy.hpp>
 #include <labust/control/PIFFController.h>
+#include <labust/control/PFFController.h>
 #include <labust/control/IPFFController.h>
 #include <labust/math/NumberManipulation.hpp>
 #include <labust/tools/MatrixLoader.hpp>
@@ -57,7 +58,7 @@ namespace labust
 		{
 			enum {x=0,y};
 
-			FADPControl():Ts(0.1),use_gvel(false),manRefNorthFlag(true),manRefEastFlag(true){};
+			FADPControl():Ts(0.1),use_gvel(false),manRefNorthFlag(true),manRefEastFlag(true),use_pff(false){};
 
 			void init()
 			{
@@ -108,8 +109,17 @@ namespace labust
 				yaw = ref.orientation.yaw;
 				R<<cos(yaw),-sin(yaw),sin(yaw),cos(yaw);
 				out = R*in;
+				if(use_pff)
+				{
+				PFF_ffIdle(&con[x],Ts, float(out(x)));
+				PFF_ffIdle(&con[y],Ts, float(out(y)));					
+				}
+				else
+				{
 				PIFF_ffIdle(&con[x],Ts, float(out(x)));
-				PIFF_ffIdle(&con[y],Ts, float(out(y)));
+				PIFF_ffIdle(&con[y],Ts, float(out(y)));					
+				}
+
 			};
 
 			void reset(const auv_msgs::NavSts& ref, const auv_msgs::NavSts& state)
@@ -153,21 +163,33 @@ namespace labust
 
 				if(manRefNorthFlag)
 				{
+					if(use_pff)
+					PFF_ffStep(&con[x], Ts, float(out(x)));					
+					else
 					PIFF_ffStep(&con[x], Ts, float(out(x)));
 					tmp_output_x = con[x].output;
 				}
 				else
 				{
+					if(use_pff)
+					PFF_ffIdle(&con[x], Ts, float(out(x)));					
+					else					
 					PIFF_ffIdle(&con[x],Ts, float(out(x)));
 					tmp_output_x = out(x);
 				}
 
 				if(manRefEastFlag){
+					if(use_pff)
+					PFF_ffStep(&con[y], Ts, float(out(y)));					
+					else					
 					PIFF_ffStep(&con[y], Ts, float(out(y)));
 					tmp_output_y = con[y].output;
 				}
 				else
 				{
+					if(use_pff)
+					PFF_ffIdle(&con[y], Ts, float(out(y)));					
+					else						
 					PIFF_ffIdle(&con[y],Ts, float(out(y)));
 					tmp_output_y = out(y);
 				}
@@ -193,6 +215,7 @@ namespace labust
 				Eigen::Vector3d closedLoopFreq(Eigen::Vector3d::Ones());
 				labust::tools::getMatrixParam(nh,"dp_controller/closed_loop_freq", closedLoopFreq);
 				nh.param("dp_controller/sampling",Ts,Ts);
+				nh.param("dp_controller/use_pff",use_pff,use_pff);				
 				nh.param("velocity_controller/use_ground_vel", use_gvel, use_gvel);
 
 				disable_axis[x] = 0;
@@ -201,9 +224,13 @@ namespace labust
 				for (size_t i=0; i<2;++i)
 				{
 					PIDBase_init(&con[i]);
+					if (use_pff)
+					PFF_tune(&con[i], float(closedLoopFreq(i)));
+					else
 					PIFF_tune(&con[i], float(closedLoopFreq(i)));
 				}
 
+        if (use_pff) ROS_INFO("Using PFF controller.");
 				ROS_INFO("Dynamic positioning controller initialized.");
 			}
 
@@ -211,6 +238,7 @@ namespace labust
 			PIDBase con[2];
 			double Ts;
 			bool use_gvel;
+			bool use_pff;
 			ros::Subscriber manRefNorthSub, manRefEastSub;
 			bool manRefNorthFlag, manRefEastFlag;
 
