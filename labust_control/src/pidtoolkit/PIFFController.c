@@ -46,7 +46,7 @@ void PIFF_modelTune(PIDBase* self,
 
 	//The empirical parameter for overshoot ~5%
 	self->b = a*self->Ki/(self->Kp*w);
-	ROS_ERROR("b-value dyn: %f %f",self->b,w);
+	ROS_DEBUG("b-value dyn: %f %f",self->b,w);
 	//self->b = 1;
 
 	self->model.alpha = model->alpha;
@@ -64,7 +64,7 @@ void PIFF_tune(PIDBase* self, float w, float a)
 	//The empirical parameter for overshoot ~5%
 	self->b = a*self->Ki/(self->Kp*w);
 	//self->b = 1;
-	ROS_ERROR("b-value kin: %f %f",self->b,w);
+	ROS_DEBUG("b-value kin: %f %f",self->b,w);
 
 	self->w = w;
 }
