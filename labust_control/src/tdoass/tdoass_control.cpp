@@ -184,6 +184,7 @@ void TDOASSControl::reconfigureCallback(
   w2 = config.w2;
   k1 = config.k1;
   u0 = config.u0;
+  speed_of_sound = config.speed_of_sound;
 
   double esc_high_pass_pole = 3 / config.esc_sin_period;
   double esc_Ts = config.esc_sampling_time;
@@ -368,7 +369,7 @@ bool TDOASSControl::calcluateTimeDifferenceOfArrival()
   // TODO Add timeout in case one measurement does not arrive.
   if (toa1 != toa1_old && toa2 != toa2_old)
   {
-    tdoa = (toa1 - toa2).toSec();
+    tdoa = (toa1 - toa2).toSec() + config.tdoa_offset;
     toa1_old = toa1;
     toa2_old = toa2;
     return true;
