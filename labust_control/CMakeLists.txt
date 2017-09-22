@@ -42,6 +42,7 @@ include_directories(
 add_library(pidtoolkit2
    src/pidtoolkit/PIDBase.c
    src/pidtoolkit/PIFFController.c
+   src/pidtoolkit/PFFController.c   
    src/pidtoolkit/PSatDController.c
    src/pidtoolkit/IPFFController.c
    src/pidtoolkit/PIDFFController.c
@@ -51,6 +52,7 @@ add_library(pidtoolkit2
 set_source_files_properties(
    src/pidtoolkit/PIDBase.c
    src/pidtoolkit/PIFFController.c
+   src/pidtoolkit/PFFController.c   
    src/pidtoolkit/PSatDController.c 
    src/pidtoolkit/IPFFController.c
    src/pidtoolkit/PIDFFController.c
