@@ -369,6 +369,13 @@ bool TDOASSControl::calcluateTimeDifferenceOfArrival()
   // TODO Add timeout in case one measurement does not arrive.
   if (toa1 != toa1_old && toa2 != toa2_old)
   {
+    if (std::fabs((toa1 - toa2).toSec()) > config.tdoa_timeout)
+    { 
+      // Discard measurements and wait for the new ones.
+      toa1_old = toa1;
+      toa2_old = toa2;
+      return false;
+    }
     tdoa = (toa1 - toa2).toSec() + config.tdoa_offset;
     toa1_old = toa1;
     toa2_old = toa2;
