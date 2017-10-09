@@ -23,7 +23,7 @@ namespace labust{
 
 				~EscClassic();
 
-				 void initController(double sin_amp, double sin_freq, double corr_gain, double high_pass_pole, double low_pass_pole, double comp_zero, double comp_pole, double period);
+				 void initController(double sin_amp, double sin_demodulation_amp, double sin_freq, double corr_gain, double high_pass_pole, double low_pass_pole, double comp_zero, double comp_pole, double period);
 
 				 numericprecission preFiltering(numericprecission cost_signal);
 
@@ -39,7 +39,7 @@ namespace labust{
 				 * K - gain
 				 * A0 - perturbation amplitude
 				 */
-				vector sin_amp_, sin_freq_, corr_gain_, low_pass_pole_, comp_pole_, comp_zero_;
+				vector sin_amp_, sin_demodulation_amp_, sin_freq_, corr_gain_, low_pass_pole_, comp_pole_, comp_zero_;
 				vector control_ref_, signal_demodulated_old_, lpf_out_old_,corr_signal_, phase_shift_,comp_old_;
 				/*** Controlled state */
 				vector state_;

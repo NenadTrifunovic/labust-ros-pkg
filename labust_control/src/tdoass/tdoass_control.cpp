@@ -40,6 +40,8 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 #include <labust/control/tdoass/tdoass_control.h>
+#include <misc_msgs/RosbagControl.h>
+#include <navcon_msgs/EnableControl.h>
 
 using namespace labust::control;
 
@@ -52,7 +54,7 @@ TDOASSControl::TDOASSControl()
   , speed_of_sound(1500.0)
   , veh_type(SLAVE)
   , baseline(5.0)
-  , m(10.0)
+  , m(100.0)
   , epsilon(0.5)
   , es_controller(1, 0.1)
   , eta_filter_state_k0(2, 0)
@@ -65,7 +67,9 @@ TDOASSControl::TDOASSControl()
   , center_ref(auv_msgs::BodyVelocityReq())
   , tf_listener(tf_buffer)
   , master_active_flag(false)
+  , slave_active_flag(false)
   , controller_active(false)
+  , logging_flag(false)
 {
 }
 
@@ -104,11 +108,22 @@ void TDOASSControl::init()
     pub_veh2_ref = nh.advertise<auv_msgs::NavSts>("veh2/state_ref", 1);
 
     pub_tdoa = nh.advertise<std_msgs::Float64>("tdoa", 1);
+    pub_tdoa_range = nh.advertise<std_msgs::Float64>("tdoa_range", 1);    
     pub_delta = nh.advertise<std_msgs::Float64>("delta", 1);
     pub_eta = nh.advertise<std_msgs::Float64>("eta", 1);
     pub_master_active = nh.advertise<std_msgs::Bool>("master/active", 1);
 
+    /*** Dynamic reconfigure server ***/
+    f = boost::bind(&TDOASSControl::reconfigureCallback, this, _1, _2);
+    server.setCallback(f);
+
+    /*** Read params ***/
+    // ph.param("max_speed",max_speed, max_speed);
+
     initializeController();
+    config.__fromServer__(ph);
+    server.setConfigDefault(config);
+    // updateDynRecConfig();
   }
   else
   {
@@ -118,43 +133,127 @@ void TDOASSControl::init()
         nh.subscribe("master/active", 1, &TDOASSControl::onMasterActive, this);
     pub_slave_pos_ref =
         nh.advertise<geometry_msgs::PointStamped>("slave/pos_ref", 1);
-pub_slave_ff_ref =
-    nh.advertise<auv_msgs::NavSts>("slave/ff_ref", 1);        
+    pub_slave_ff_ref = nh.advertise<auv_msgs::NavSts>("slave/ff_ref", 1);
     pub_slave_hdg_ref = nh.advertise<std_msgs::Float32>("slave/hdg_ref", 1);
     sub_veh2_ref =
         nh.subscribe("veh2/state_ref", 1, &TDOASSControl::onSlaveRef, this);
   }
 }
 
+void TDOASSControl::reconfigureCallback(
+    labust_control::TDOASSControlConfig& config, uint32_t level)
+{
+  this->config = config;
+  // config.__toServer__(ph);
+  if (isMaster())
+  {
+    if (logging_flag != config.logging)
+    {
+      logging_flag = config.logging;
+      misc_msgs::RosbagControl srv;
+      srv.request.action = logging_flag ? "start" : "stop";
+      srv.request.bag_name = "master_" + config.log_name;
+      ros::service::call("/master/rosbag_record", srv);
+      srv.request.bag_name = "slave_" + config.log_name;
+      ros::service::call("/slave/rosbag_record", srv);
+      ROS_INFO("Logging %s.", logging_flag ? "enabled" : "disabled");
+    }
+
+    if (master_active_flag != config.master_enable)
+    {
+      // master_active_flag = config.master_enable;
+      // navcon_msgs::EnableControl srv;
+      // srv.request.enable = master_active_flag;
+      // ros::service::call("/usv/TDOASS_master_enable", srv);
+      // ROS_INFO("Master %s.", master_active_flag ? "enabled" : "disabled");
+    }
+
+    if (slave_active_flag != config.slave_enable)
+    {
+      slave_active_flag = config.slave_enable;
+      navcon_msgs::EnableControl srv;
+      srv.request.enable = slave_active_flag;
+      ros::service::call("/usv/TDOASS_slave_enable", srv);
+      ROS_INFO("Slave %s.", slave_active_flag ? "enabled" : "disabled");
+    }
+  }
+
+  baseline = config.baseline;
+  m = config.m;
+  epsilon = config.epsilon;
+  w1 = config.w1;
+  w2 = config.w2;
+  k1 = config.k1;
+  u0 = config.u0;
+  speed_of_sound = config.speed_of_sound;
+
+  double esc_high_pass_pole = 3 / config.esc_sin_period;
+  double esc_Ts = config.esc_sampling_time;
+
+  ROS_INFO("Reconfigure Request: ");
+  ROS_INFO("baseline:%f, m:%f, epsilon:%f, w1:%f, w2:%f, "
+           "k1:%f u0:%f",
+           config.baseline, config.m, config.epsilon, config.w1, config.w2,
+           config.k1, config.u0);
+  ROS_INFO("a_pert:%f, a_demod:%f, T:%f, k:%f, hp:%f, "
+           "lp:%f zc:%f pc:%f Ts:%f",
+           config.esc_sin_amp, config.esc_sin_demodulation_amp,
+           config.esc_sin_period, config.esc_corr_gain, esc_high_pass_pole,
+           config.esc_low_pass_pole, config.esc_comp_zero, config.esc_comp_pole,
+           config.esc_sampling_time);
+
+  es_controller.initController(
+      config.esc_sin_amp, config.esc_sin_demodulation_amp,
+      2 * M_PI / config.esc_sin_period, config.esc_corr_gain,
+      esc_high_pass_pole, config.esc_low_pass_pole, config.esc_comp_zero,
+      config.esc_comp_pole, config.esc_sampling_time);
+}
+
+void TDOASSControl::updateDynRecConfig()
+{
+  ROS_INFO("Updating the dynamic reconfigure parameters.");
+
+  // config.Surge_mode = axis_control[u];
+  // config.Sway_mode = axis_control[v];
+  // config.Heave_mode = axis_control[w];
+  // config.Roll_mode = axis_control[p];
+  // config.Pitch_mode = axis_control[q];
+  // config.Yaw_mode = axis_control[r];
+  //
+  // config.High_level_controller="0 - None\n 1 - DP";
+
+  server.updateConfig(config);
+}
+
 void TDOASSControl::initializeController()
 {
   ROS_INFO("Initializing extremum seeking controller...");
 
-  ros::NodeHandle nh;
-
-  double sin_amp = 0.05;
-  double sin_freq = 2 * M_PI / 32;
-  double corr_gain = -0.25;
-  double high_pass_pole = 3 / 32;
-  double low_pass_pole = 0;
-  double comp_zero = 0;
-  double comp_pole = 0;
-  double sampling_time = 1.0;
-
-  nh.param("esc/sin_amp", sin_amp, sin_amp);
-  nh.param("esc/sin_freq", sin_freq, sin_freq);
-  nh.param("esc/corr_gain", corr_gain, corr_gain);
-  nh.param("esc/high_pass_pole", high_pass_pole, high_pass_pole);
-  nh.param("esc/low_pass_pole", low_pass_pole, low_pass_pole);
-  nh.param("esc/comp_zero", comp_zero, comp_zero);
-  nh.param("esc/comp_pole", comp_pole, comp_pole);
-  nh.param("esc/sampling_time", sampling_time, sampling_time);
-
-  // esc_Ts = sampling_time;
-
-  es_controller.initController(sin_amp, sin_freq, corr_gain, high_pass_pole,
-                               low_pass_pole, comp_zero, comp_pole,
-                               sampling_time);
+  // ros::NodeHandle nh;
+  //
+  // double sin_amp = 0.05;
+  // double sin_freq = 2 * M_PI / 32;
+  // double corr_gain = -0.25;
+  // double high_pass_pole = 3 / 32;
+  // double low_pass_pole = 0;
+  // double comp_zero = 0;
+  // double comp_pole = 0;
+  // double sampling_time = 1.0;
+  //
+  // nh.param("esc/sin_amp", sin_amp, sin_amp);
+  // nh.param("esc/sin_freq", sin_freq, sin_freq);
+  // nh.param("esc/corr_gain", corr_gain, corr_gain);
+  // nh.param("esc/high_pass_pole", high_pass_pole, high_pass_pole);
+  // nh.param("esc/low_pass_pole", low_pass_pole, low_pass_pole);
+  // nh.param("esc/comp_zero", comp_zero, comp_zero);
+  // nh.param("esc/comp_pole", comp_pole, comp_pole);
+  // nh.param("esc/sampling_time", sampling_time, sampling_time);
+  //
+  // // esc_Ts = sampling_time;
+  //
+  // es_controller.initController(sin_amp, sin_amp, sin_freq, corr_gain,
+  //                              high_pass_pole, low_pass_pole, comp_zero,
+  //                              comp_pole, sampling_time);
 
   disable_axis[x] = 0;
   disable_axis[y] = 0;
@@ -210,6 +309,8 @@ auv_msgs::BodyVelocityReqPtr TDOASSControl::step(
         std_msgs::Float64 data;
         data.data = getTimeDifferenceOfArrival();
         pub_tdoa.publish(data);
+        data.data = getDifferenceOfArrivalMeters();
+        pub_tdoa_range.publish(data);        
         data.data = delta;
         pub_delta.publish(data);
       }
@@ -271,7 +372,14 @@ bool TDOASSControl::calcluateTimeDifferenceOfArrival()
   // TODO Add timeout in case one measurement does not arrive.
   if (toa1 != toa1_old && toa2 != toa2_old)
   {
-    tdoa = (toa1 - toa2).toSec();
+    if (std::fabs((toa1 - toa2).toSec()) > config.tdoa_timeout)
+    { 
+      // Discard measurements and wait for the new ones.
+      toa1_old = toa1;
+      toa2_old = toa2;
+      return false;
+    }
+    tdoa = (toa1 - toa2).toSec() + config.tdoa_offset;
     toa1_old = toa1;
     toa2_old = toa2;
     return true;
@@ -302,32 +410,35 @@ TDOASSControl::allocateSpeed(auv_msgs::BodyVelocityReq req)
   double u_ref = req.twist.linear.x;
   bool use_meas(true);
   double yaw_rate_ref = req.twist.angular.z;
-  double yaw_rate = use_meas?state[MASTER].orientation_rate.yaw:yaw_rate_ref;
+  double yaw_rate =
+      use_meas ? state[MASTER].orientation_rate.yaw : yaw_rate_ref;
 
-  ROS_ERROR("u_ref: %f, yaw_rate_ref: %f", u_ref, yaw_rate_ref);
+  // ROS_ERROR("u_ref: %f, yaw_rate_ref: %f", u_ref, yaw_rate_ref);
 
   Eigen::Vector2d out, in;
   Eigen::Matrix2d R;
 
   // NED frame
   in[0] = (u_ref - baseline / 2 * yaw_rate) * std::cos(yaw);
-  in[1] = (u_ref + baseline / 2 * yaw_rate) * std::sin(yaw);
+  in[1] = (u_ref - baseline / 2 * yaw_rate) * std::sin(yaw);
 
   R << cos(yaw), -sin(yaw), sin(yaw), cos(yaw);
   out = R.transpose() * in;
 
-  ROS_ERROR("x_ref: %f, y_ref: %f", out[0], out[1]);
+  // ROS_ERROR("x_ref: %f, y_ref: %f", out[0], out[1]);
 
   // Body frame
-  master_ref.twist.linear.x = out[0];
-  master_ref.twist.linear.y = out[1];
+  // master_ref.twist.linear.x = out[0];
+  // master_ref.twist.linear.y = out[1];
+  master_ref.twist.linear.x = u_ref - baseline / 2 * yaw_rate;
+  master_ref.twist.linear.y = 0;
   master_ref.twist.angular.z = yaw_rate_ref;
 
   return master_ref;
 }
 
-bool TDOASSControl::calculateSlaveReference(auv_msgs::NavSts& slave_ref,
-                                            const auv_msgs::BodyVelocityReq& center_ref)
+bool TDOASSControl::calculateSlaveReference(
+    auv_msgs::NavSts& slave_ref, const auv_msgs::BodyVelocityReq& center_ref)
 {
   geometry_msgs::TransformStamped transformStamped;
   try
@@ -376,6 +487,7 @@ void TDOASSControl::surgeSpeedControl(auv_msgs::BodyVelocityReq& req,
   u_zeta = std::pow(std::fabs(eta), n) / std::pow(std::fabs(eta) + epsilon, n);
   u_amp = (1 - std::tanh(m * cost));
 
+  ROS_ERROR("delta: %f", delta);
   ROS_ERROR("eta: %f, u_amp: %f, u_zeta: %f, u_dir: %f", eta, u_amp, u_zeta,
             u_dir);
 
@@ -390,7 +502,11 @@ void TDOASSControl::yawRateControl(auv_msgs::BodyVelocityReq& req, double delta,
                                    double cost)
 {
   req.twist.angular.z = (es_controller.step(cost))[0];
-  ROS_ERROR("YAW_REF: %f", req.twist.angular.z);
+  // Saturate yaw rate reference.
+  if (req.twist.angular.z < config.max_yaw_rate)
+    req.twist.angular.z = -config.max_yaw_rate;
+  else if (req.twist.angular.z > config.max_yaw_rate)
+    req.twist.angular.z = config.max_yaw_rate;
 }
 
 double TDOASSControl::etaFilterStep(double delta, double yaw_rate)
@@ -435,7 +551,7 @@ void TDOASSControl::onSlaveRef(const auv_msgs::NavSts::ConstPtr& msg)
   {
     geometry_msgs::PointStamped pos_ref;
     std_msgs::Float32 hdg_ref;
-    auv_msgs::NavSts ff_ref;    
+    auv_msgs::NavSts ff_ref;
     pos_ref.point.x = msg->position.north;
     pos_ref.point.y = msg->position.east;
     hdg_ref.data = msg->orientation.yaw;
@@ -443,7 +559,7 @@ void TDOASSControl::onSlaveRef(const auv_msgs::NavSts::ConstPtr& msg)
     ff_ref.body_velocity.y = msg->body_velocity.y;
     pub_slave_pos_ref.publish(pos_ref);
     pub_slave_hdg_ref.publish(hdg_ref);
-    pub_slave_ff_ref.publish(ff_ref);    
+    pub_slave_ff_ref.publish(ff_ref);
   }
 }
 
