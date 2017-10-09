@@ -200,6 +200,8 @@ private:
   ///
   ros::Publisher pub_tdoa;
   ///
+  ros::Publisher pub_tdoa_range;  
+  ///
   ros::Publisher pub_delta;
   ///
   ros::Publisher pub_master_active;

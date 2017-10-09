@@ -108,6 +108,7 @@ void TDOASSControl::init()
     pub_veh2_ref = nh.advertise<auv_msgs::NavSts>("veh2/state_ref", 1);
 
     pub_tdoa = nh.advertise<std_msgs::Float64>("tdoa", 1);
+    pub_tdoa_range = nh.advertise<std_msgs::Float64>("tdoa_range", 1);    
     pub_delta = nh.advertise<std_msgs::Float64>("delta", 1);
     pub_eta = nh.advertise<std_msgs::Float64>("eta", 1);
     pub_master_active = nh.advertise<std_msgs::Bool>("master/active", 1);
@@ -308,6 +309,8 @@ auv_msgs::BodyVelocityReqPtr TDOASSControl::step(
         std_msgs::Float64 data;
         data.data = getTimeDifferenceOfArrival();
         pub_tdoa.publish(data);
+        data.data = getDifferenceOfArrivalMeters();
+        pub_tdoa_range.publish(data);        
         data.data = delta;
         pub_delta.publish(data);
       }
