@@ -70,6 +70,8 @@ TDOASSControl::TDOASSControl()
   , slave_active_flag(false)
   , controller_active(false)
   , logging_flag(false)
+  , last_meas_time(ros::Time::now())
+  , control_timeout(5.0)
 {
 }
 
@@ -108,7 +110,7 @@ void TDOASSControl::init()
     pub_veh2_ref = nh.advertise<auv_msgs::NavSts>("veh2/state_ref", 1);
 
     pub_tdoa = nh.advertise<std_msgs::Float64>("tdoa", 1);
-    pub_tdoa_range = nh.advertise<std_msgs::Float64>("tdoa_range", 1);    
+    pub_tdoa_range = nh.advertise<std_msgs::Float64>("tdoa_range", 1);
     pub_delta = nh.advertise<std_msgs::Float64>("delta", 1);
     pub_eta = nh.advertise<std_msgs::Float64>("eta", 1);
     pub_master_active = nh.advertise<std_msgs::Bool>("master/active", 1);
@@ -299,6 +301,7 @@ auv_msgs::BodyVelocityReqPtr TDOASSControl::step(
     // TODO decide what executes at higher frequncy.
     if (calcluateTimeDifferenceOfArrival())
     {
+      last_meas_time = ros::Time::now();
       double delta = getNormalizedDifferenceOfArrivalMeters();
       double cost = std::pow(delta, 2);
       double yaw_rate = state[MASTER].orientation_rate.yaw;
@@ -310,7 +313,7 @@ auv_msgs::BodyVelocityReqPtr TDOASSControl::step(
         data.data = getTimeDifferenceOfArrival();
         pub_tdoa.publish(data);
         data.data = getDifferenceOfArrivalMeters();
-        pub_tdoa_range.publish(data);        
+        pub_tdoa_range.publish(data);
         data.data = delta;
         pub_delta.publish(data);
       }
@@ -332,6 +335,12 @@ auv_msgs::BodyVelocityReqPtr TDOASSControl::step(
 
     auv_msgs::BodyVelocityReqPtr nu(new auv_msgs::BodyVelocityReq());
     *nu = allocateSpeed(center_ref);
+    if ((ros::Time::now() - last_meas_time).toSec() > control_timeout)
+    {
+      nu->twist.linear.x = 0;
+      nu->twist.linear.y = 0;
+      nu->twist.angular.z = 0;
+    }
     nu->header.stamp = ros::Time::now();
     nu->goal.requester = "tdoass_controller";
     labust::tools::vectorToDisableAxis(disable_axis, nu->disable_axis);
@@ -373,7 +382,7 @@ bool TDOASSControl::calcluateTimeDifferenceOfArrival()
   if (toa1 != toa1_old && toa2 != toa2_old)
   {
     if (std::fabs((toa1 - toa2).toSec()) > config.tdoa_timeout)
-    { 
+    {
       // Discard measurements and wait for the new ones.
       toa1_old = toa1;
       toa2_old = toa2;
@@ -408,7 +417,7 @@ TDOASSControl::allocateSpeed(auv_msgs::BodyVelocityReq req)
   auv_msgs::BodyVelocityReq master_ref;
   double yaw = state[MASTER].orientation.yaw;
   double u_ref = req.twist.linear.x;
-  bool use_meas(false);
+  bool use_meas(true);
   double yaw_rate_ref = req.twist.angular.z;
   double yaw_rate =
       use_meas ? state[MASTER].orientation_rate.yaw : yaw_rate_ref;
