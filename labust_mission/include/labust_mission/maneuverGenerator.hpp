@@ -151,6 +151,12 @@ namespace labust {
 					std::string radius_topic);
 
 			void generateDocking(
+				  bool docking_action,
+				  double docking_slot,
+          double search_yaw_rate,
+          double max_yaw_rate,
+          double max_surge_speed,
+          double surge_stdev					
 								);
 
 
@@ -343,19 +349,21 @@ namespace labust {
 		}
 
 		void ManeuverGenerator::generateDocking(
+				  bool docking_action,
+				  double docking_slot,
+          double search_yaw_rate,
+          double max_yaw_rate,
+          double max_surge_speed,
+          double surge_stdev				
 		)
 		{
 			std::vector<std::string> data;
-//			data.push_back(boost::lexical_cast<std::string>(radius));
-//			data.push_back(boost::lexical_cast<std::string>(vertical_offset));
-//			data.push_back(boost::lexical_cast<std::string>(guidance_target_x));
-//			data.push_back(boost::lexical_cast<std::string>(guidance_target_y));
-//			data.push_back(boost::lexical_cast<std::string>(guidance_target_z));
-//			data.push_back(boost::lexical_cast<std::string>(double(guidance_enable)));
-//			data.push_back(boost::lexical_cast<std::string>(double(wrapping_enable)));
-//			data.push_back(boost::lexical_cast<std::string>(double(streamline_orientation)));
-//			data.push_back("#"+guidance_topic);
-//			data.push_back("#"+radius_topic);
+			data.push_back(boost::lexical_cast<std::string>(docking_action));
+			data.push_back(boost::lexical_cast<std::string>(docking_slot));
+			data.push_back(boost::lexical_cast<std::string>(search_yaw_rate));
+			data.push_back(boost::lexical_cast<std::string>(max_yaw_rate));
+			data.push_back(boost::lexical_cast<std::string>(max_surge_speed));
+			data.push_back(boost::lexical_cast<std::string>(surge_stdev));
 			writeXML.addPrimitive(docking,data);
 		}
 

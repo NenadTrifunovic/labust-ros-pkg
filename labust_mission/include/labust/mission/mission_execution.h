@@ -408,7 +408,12 @@ status_handler_("Mission execution","mission_execution")
 				setTimeout(primitiveMap["timeout"]);
 			/** Activate primitive */
 			PM.docking(
-
+					primitiveBoolMap["docking_action"],
+					primitiveMap["docking_slot"],
+					primitiveMap["search_yaw_rate"],
+					primitiveMap["max_yaw_rate"],
+					primitiveMap["max_surge_speed"],
+					primitiveMap["surge_stdev"]
 					);
 
 			//oldPosition.north = primitiveMap["north"];

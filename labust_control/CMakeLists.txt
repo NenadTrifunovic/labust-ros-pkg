@@ -6,6 +6,7 @@ find_package(catkin REQUIRED COMPONENTS
   auv_msgs
   navcon_msgs
   sensor_msgs
+  misc_msgs
   dynamic_reconfigure
   roscpp
   snippets
@@ -13,6 +14,10 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 find_package(rosdoc_lite)
+
+## Generate dynamic reconfigure
+generate_dynamic_reconfigure_options(
+    cfg/TDOASSControl.cfg)
 
 ###################################
 ## catkin specific configuration ##
@@ -37,6 +42,7 @@ include_directories(
 add_library(pidtoolkit2
    src/pidtoolkit/PIDBase.c
    src/pidtoolkit/PIFFController.c
+   src/pidtoolkit/PFFController.c   
    src/pidtoolkit/PSatDController.c
    src/pidtoolkit/IPFFController.c
    src/pidtoolkit/PIDFFController.c
@@ -46,10 +52,15 @@ add_library(pidtoolkit2
 set_source_files_properties(
    src/pidtoolkit/PIDBase.c
    src/pidtoolkit/PIFFController.c
+   src/pidtoolkit/PFFController.c   
    src/pidtoolkit/PSatDController.c 
    src/pidtoolkit/IPFFController.c
    src/pidtoolkit/PIDFFController.c
    src/pidtoolkit/IPDFFController.c PROPERTIES LANGUAGE CXX)
+
+add_library(esctoolkit
+   src/esctoolkit/esc_classic.cpp
+)
 
 ## Manual control 
 add_executable(manual_control src/manual_control/manual_control.cpp)
@@ -99,18 +110,23 @@ add_dependencies(ualf_controller auv_msgs_gencpp navcon_msgs_gencpp)
 target_link_libraries(ualf_controller pidtoolkit2 ${catkin_LIBRARIES})
 
 ## Extremum seeking control
-add_executable(esc_uv src/esc/ESCControlClassic_UV.cpp src/esctoolkit/esc_classic.cpp)
-add_dependencies(esc_uv auv_msgs_gencpp navcon_msgs_gencpp)
-target_link_libraries(esc_uv  ${catkin_LIBRARIES})
-add_executable(esc_ekf_uv src/esc/ESControlEKF_UV.cpp src/esctoolkit/esc_ekf_grad.cpp)
-add_dependencies(esc_ekf_uv auv_msgs_gencpp navcon_msgs_gencpp)
-target_link_libraries(esc_ekf_uv  ${catkin_LIBRARIES})
-add_executable(esc_ekf_model_uv src/esc/ESControlEKF_MODEL_UV.cpp src/esctoolkit/esc_ekf_grad_model.cpp)
-add_dependencies(esc_ekf_model_uv auv_msgs_gencpp navcon_msgs_gencpp)
-target_link_libraries(esc_ekf_model_uv  ${catkin_LIBRARIES})
-add_executable(esc_bounded_uv src/esc/ESControlBounded_UV.cpp src/esctoolkit/esc_bounded.cpp)
-add_dependencies(esc_bounded_uv auv_msgs_gencpp navcon_msgs_gencpp)
-target_link_libraries(esc_bounded_uv  ${catkin_LIBRARIES})
+#add_executable(esc_uv src/esc/ESCControlClassic_UV.cpp src/esctoolkit/esc_classic.cpp)
+#add_dependencies(esc_uv auv_msgs_gencpp navcon_msgs_gencpp)
+#target_link_libraries(esc_uv  ${catkin_LIBRARIES})
+#add_executable(esc_ekf_uv src/esc/ESControlEKF_UV.cpp src/esctoolkit/esc_ekf_grad.cpp)
+#add_dependencies(esc_ekf_uv auv_msgs_gencpp navcon_msgs_gencpp)
+#target_link_libraries(esc_ekf_uv  ${catkin_LIBRARIES})
+#add_executable(esc_ekf_model_uv src/esc/ESControlEKF_MODEL_UV.cpp src/esctoolkit/esc_ekf_grad_model.cpp)
+#add_dependencies(esc_ekf_model_uv auv_msgs_gencpp navcon_msgs_gencpp)
+#target_link_libraries(esc_ekf_model_uv  ${catkin_LIBRARIES})
+#add_executable(esc_bounded_uv src/esc/ESControlBounded_UV.cpp src/esctoolkit/esc_bounded.cpp)
+#add_dependencies(esc_bounded_uv auv_msgs_gencpp navcon_msgs_gencpp)
+#target_link_libraries(esc_bounded_uv  ${catkin_LIBRARIES})
+
+## TDOASS node
+add_executable(tdoass_control src/tdoass/tdoass_control.cpp)
+#add_dependencies(tdoass_control)
+target_link_libraries(tdoass_control ${catkin_LIBRARIES} esctoolkit)
 
 ## Tools
 add_executable(async_merger src/AsyncMerger.cpp)

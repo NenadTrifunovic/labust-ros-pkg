@@ -189,7 +189,12 @@ namespace labust
 			/** Docking primitive */
 			void docking_disable();
 			void docking(
-
+				  bool docking_action,
+				  double docking_slot,
+          double search_yaw_rate,
+          double max_yaw_rate,
+          double max_surge_speed,
+          double surge_stdev				
 					);
 
 			/*********************************************************
@@ -498,12 +503,22 @@ void PrimitiveManager::docking_disable()
 	LLcfg.LL_VELconfigure(true,1,1,1,1,1,1);
 }
 void PrimitiveManager::docking(
-)
+	  bool docking_action,
+	  double docking_slot,
+    double search_yaw_rate,
+    double max_yaw_rate,
+    double max_surge_speed,
+    double surge_stdev					
+		)
 {
 	typedef navcon_msgs::DockingGoal Goal;
 	Goal goal;
-
-
+	goal.docking_action = docking_action;
+	goal.docking_slot = docking_slot;
+	goal.search_yaw_rate = search_yaw_rate;
+	goal.max_yaw_rate = max_yaw_rate;
+	goal.max_surge_speed = max_surge_speed;
+	goal.surge_stdev = surge_stdev;
 
 	LLcfg.LL_VELconfigure(true,2,2,1,1,1,2);
 	Docking.start(goal);

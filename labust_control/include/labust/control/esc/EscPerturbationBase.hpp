@@ -112,7 +112,7 @@ namespace labust{
 
 					 old_vals_initialized_ = true;
 					 cycle_count_++;
-
+					 
 					 return controlInput;
 				 }
 

@@ -31,12 +31,12 @@
 *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 *  POSSIBILITY OF SUCH DAMAGE.
 *********************************************************************/
-#include <labust/control/PIFFController.h>
+#include <labust/control/PFFController.h>
 #include <labust/math/NumberManipulation.hpp>
 #include <math.h>
 #include <ros/ros.h>
 
-void PIFF_modelTune(PIDBase* self,
+void PFF_modelTune(PIDBase* self,
 		const PT1Model* const model,
 		float w, float a)
 {
@@ -56,20 +56,18 @@ void PIFF_modelTune(PIDBase* self,
 	self->w = w;
 }
 
-void PIFF_tune(PIDBase* self, float w, float a)
+void PFF_tune(PIDBase* self, float w, float a)
 {
 	self->Kp = 2*w;
-	self->Ki = w*w;
+	self->Ki = 0;	
 	self->Kd = self->Kt = self->Tf = 0;
-	//The empirical parameter for overshoot ~5%
-	self->b = a*self->Ki/(self->Kp*w);
-	//self->b = 1;
+	self->b = 1;
 	ROS_DEBUG("b-value kin: %f %f",self->b,w);
 
 	self->w = w;
 }
 
-void PIFF_wffIdle(PIDBase* self, float Ts, float error, float perror, float ff)
+void PFF_wffIdle(PIDBase* self, float Ts, float error, float perror, float ff)
 {
 	self->lastError = error;
 	self->lastPError = perror;
@@ -82,7 +80,7 @@ void PIFF_wffIdle(PIDBase* self, float Ts, float error, float perror, float ff)
 	self->output = self->internalState = self->track;
 }
 
-//void PIFF_wffStep(PIDBase* self, float Ts, float error, float perror, float ff)
+//void PFF_wffStep(PIDBase* self, float Ts, float error, float perror, float ff)
 //{
 //	//Perform windup test if automatic mode is enabled.
 //	if (self->autoWindup == 1)
@@ -121,7 +119,7 @@ void PIFF_wffIdle(PIDBase* self, float Ts, float error, float perror, float ff)
 //	self->lastFF = ff;
 //}
 
-void PIFF_wffStep(PIDBase* self, float Ts, float error, float perror, float ff)
+void PFF_wffStep(PIDBase* self, float Ts, float error, float perror, float ff)
 {
 	//Perform windup test if automatic mode is enabled.
 	if (self->autoWindup == 1)
