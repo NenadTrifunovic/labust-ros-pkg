@@ -125,9 +125,9 @@ namespace labust
                                                 }
 				
 				kinect_servo_pos[0]=0.1;
-				kinect_servo_pos[1]=0.46;
-				kinect_servo_pos[2]=0.75;
-				kinect_servo_pos[3]=1.0;
+				kinect_servo_pos[1]=0.44;
+				kinect_servo_pos[2]=0.74;
+				kinect_servo_pos[3]=0.99;
 				ROS_ERROR("DOCKING SERVO VALUES INITED %f, %f, %f, %f", kinect_servo_pos[0],kinect_servo_pos[1],kinect_servo_pos[2],kinect_servo_pos[3]);
 			}
 
@@ -137,7 +137,6 @@ namespace labust
 				boost::mutex::scoped_lock l(state_mux);
 				/*** Set the flag to avoid disabling controllers on preemption ***/
 				processNewGoal = true;
-				ROS_ERROR("INIT GOAL");
 				Goal::Ptr new_goal = boost::make_shared<Goal>(*(aserver->acceptNewGoal()));
 				processNewGoal = false;
 				/*** Display goal info ***/
@@ -184,18 +183,22 @@ namespace labust
 					timeOut.tv_nsec = 200000000;
 					nanosleep(&timeOut, &remains);
 					//slot=static_cast<int>(goal->docking_slot);
-                                	ROS_ERROR("SLOT %d",slot);
+                                	//ROS_ERROR("SLOT %d",slot);
                                 	//ROS_ERROR("SERVO %f", kinect_servo_pos.data);
                                 	servo_ref.data=kinect_servo_pos[slot];
-					ROS_ERROR("SERVO VAL %f %d",servo_ref.data, slot);
+					//ROS_ERROR("SERVO VAL %f %d",servo_ref.data, slot);
 					pub_kinect_servo.publish(servo_ref);
                                         timeOut.tv_nsec=900000000;
-					for (int i=0;i<13;i++) nanosleep(&timeOut,&remains);
-					kinect_reached=true;
-					new_meas=false;
+					for (int i=0;i<((slot+1)*3);i++) nanosleep(&timeOut,&remains);
+					//kinect_reached=true;
+					//new_meas=false;
 					//start_time=ros::Time::now();
-					ROS_ERROR("Kinect timeout over. Ready to start.");
+					//ROS_ERROR("Kinect timeout over. Ready to start.");
+					
 				}
+				ROS_ERROR("Kinect timeout over. Ready to start.");
+				kinect_reached=true;
+				new_meas=false;
 				start_time=ros::Time::now();
 				/*** Enable controllers depending on the primitive subtype ***/
 				controllers.state[hdg] = false; //&& goal->axis_enable.x && goal->axis_enable.y;;
@@ -414,8 +417,7 @@ namespace labust
 			{
 				double gain = goal->max_yaw_rate;
 				double surge_gain = goal->max_surge_speed;
-				double stdev = goal->surge_stdev;
-				stdev=0.2;
+				double stdev = goal->surge_stdev;;
 				auv_msgs::BodyVelocityReqPtr ref(new auv_msgs::BodyVelocityReq());
 				double angle = goal->docking_slot*M_PI/2;
 				double surge_val = surge_gain*std::exp(-(std::pow(horizontal_meas,2))/(2*std::pow(stdev,2)));
@@ -456,7 +458,7 @@ namespace labust
 				new_meas = true;
 				new_meas_time = ros::Time::now();
 				last_direction = labust::math::sgn(horizontal_meas);
-				last_direction = 1;
+				//last_direction = 1;
 				ROS_ERROR("Received horizontal measurement: %f", horizontal_meas);
 				}
 			}
