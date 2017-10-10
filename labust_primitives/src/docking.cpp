@@ -126,7 +126,7 @@ namespace labust
 				
 				kinect_servo_pos[0]=0.1;
 				kinect_servo_pos[1]=0.44;
-				kinect_servo_pos[2]=0.74;
+				kinect_servo_pos[2]=0.72;
 				kinect_servo_pos[3]=0.99;
 				ROS_ERROR("DOCKING SERVO VALUES INITED %f, %f, %f, %f", kinect_servo_pos[0],kinect_servo_pos[1],kinect_servo_pos[2],kinect_servo_pos[3]);
 			}
