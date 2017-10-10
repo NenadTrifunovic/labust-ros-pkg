@@ -159,7 +159,7 @@ namespace labust {
 			 *** Helper functions
 			 ********************************************************/
 
-		private:
+		public:
 
 			void writePrimitives(int primitiveID, std::vector<Eigen::Vector4d> points, double depth, double heading, double speed, double victoryRadius);
 
@@ -185,6 +185,10 @@ namespace labust {
 			 ********************************************************/
 		public:
 			WriteXML writeXML;
+            
+            //modified:
+            std::vector<Eigen::Vector4d> generatedNedWaypoints;
+
 		};
 
 
@@ -215,10 +219,15 @@ namespace labust {
 			{
 				Eigen::Vector4d vTmp = *it;
 				vTmp[X] += north;
-				vTmp[Y] += east;
+                                vTmp[Y] += east;
 
-				*it = vTmp;
+                                *it = vTmp;
 			}
+
+                        generatedNedWaypoints = std::vector<Eigen::Vector4d>(tmpPoints);
+
+
+
 
 			writePrimitives(go2point, tmpPoints, depth, 0, speed, victory_radius); /* heading, speed, victoryRadius */
 		}
