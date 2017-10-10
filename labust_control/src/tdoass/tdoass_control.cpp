@@ -408,7 +408,7 @@ TDOASSControl::allocateSpeed(auv_msgs::BodyVelocityReq req)
   auv_msgs::BodyVelocityReq master_ref;
   double yaw = state[MASTER].orientation.yaw;
   double u_ref = req.twist.linear.x;
-  bool use_meas(true);
+  bool use_meas(false);
   double yaw_rate_ref = req.twist.angular.z;
   double yaw_rate =
       use_meas ? state[MASTER].orientation_rate.yaw : yaw_rate_ref;
@@ -503,7 +503,7 @@ void TDOASSControl::yawRateControl(auv_msgs::BodyVelocityReq& req, double delta,
 {
   req.twist.angular.z = (es_controller.step(cost))[0];
   // Saturate yaw rate reference.
-  if (req.twist.angular.z < config.max_yaw_rate)
+  if (req.twist.angular.z < -config.max_yaw_rate)
     req.twist.angular.z = -config.max_yaw_rate;
   else if (req.twist.angular.z > config.max_yaw_rate)
     req.twist.angular.z = config.max_yaw_rate;
