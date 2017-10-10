@@ -216,9 +216,13 @@ private:
   ///
   ros::Time toa2, toa2_old;
   ///
+  ros::Time last_meas_time;
+  ///
   auv_msgs::BodyVelocityReq center_ref;
   ///
   std::vector<double> eta_filter_state_k0, eta_filter_state_k1;
+  ///
+  double control_timeout;
   ///
   double ts;
   ///
