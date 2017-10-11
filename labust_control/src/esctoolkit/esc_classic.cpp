@@ -85,9 +85,23 @@ Base::numericprecission Base::preFiltering(numericprecission cost_signal)
   if (high_pass_pole_ == 0)
     filtered_cost = cost_signal;
   else
-    filtered_cost = (-(Ts_ * high_pass_pole_ - 2) * pre_filter_output_old_ +
-                     2 * cost_signal - 2 * pre_filter_input_old_) /
-                    (2 + high_pass_pole_ * Ts_);
+  {
+    bool alternative_version(true);
+    if (alternative_version)
+    {
+      filtered_cost = (-(Ts_ * high_pass_pole_ - 2) * pre_filter_output_old_ +
+                       2 * cost_signal - 2 * pre_filter_input_old_) /
+                      (2 + high_pass_pole_ * Ts_);
+    }
+    else
+    {
+      pre_filter_output_old_ = -pre_filter_output_old_ + pre_filter_input_old_;
+      filtered_cost = cost_signal - (((2.0 - high_pass_pole_ * Ts_) * pre_filter_output_old_ +
+                          high_pass_pole_ * Ts_ * cost_signal +
+                          high_pass_pole_ * Ts_ * pre_filter_input_old_) /
+                         (2.0 + high_pass_pole_ * Ts_));
+    }
+  }
   return filtered_cost;
 }
 
