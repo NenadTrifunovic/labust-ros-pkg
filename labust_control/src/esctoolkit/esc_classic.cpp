@@ -92,14 +92,21 @@ Base::numericprecission Base::preFiltering(numericprecission cost_signal)
       filtered_cost = (-(Ts_ * high_pass_pole_ - 2) * pre_filter_output_old_ +
                        2 * cost_signal - 2 * pre_filter_input_old_) /
                       (2 + high_pass_pole_ * Ts_);
+      std::cerr << "Using standard prefilter filter. high-pass pole: "
+                << high_pass_pole_ << ", cost_signal: " << cost_signal
+                << ", filtered_cost: " << filtered_cost << std::endl;
     }
     else
     {
       pre_filter_output_old_ = -pre_filter_output_old_ + pre_filter_input_old_;
-      filtered_cost = cost_signal - (((2.0 - high_pass_pole_ * Ts_) * pre_filter_output_old_ +
-                          high_pass_pole_ * Ts_ * cost_signal +
-                          high_pass_pole_ * Ts_ * pre_filter_input_old_) /
-                         (2.0 + high_pass_pole_ * Ts_));
+      filtered_cost = cost_signal -
+                      (((2.0 - high_pass_pole_ * Ts_) * pre_filter_output_old_ +
+                        high_pass_pole_ * Ts_ * cost_signal +
+                        high_pass_pole_ * Ts_ * pre_filter_input_old_) /
+                       (2.0 + high_pass_pole_ * Ts_));
+      std::cerr << "Using alternative  prefilter filter. high-pass pole: "
+                << high_pass_pole_ << ", cost_signal: " << cost_signal
+                << ", filtered_cost: " << filtered_cost << std::endl;
     }
   }
   return filtered_cost;
