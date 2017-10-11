@@ -195,6 +195,7 @@ void TDOASSControl::reconfigureCallback(
   speed_of_sound = config.speed_of_sound;
 
   double esc_high_pass_pole = 3 / config.esc_sin_period;
+  //double esc_high_pass_pole = 0;
   double esc_Ts = config.esc_sampling_time;
 
   ROS_INFO("Reconfigure Request: ");

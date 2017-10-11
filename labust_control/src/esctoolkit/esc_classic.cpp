@@ -87,7 +87,7 @@ Base::numericprecission Base::preFiltering(numericprecission cost_signal)
   else
   {
     bool alternative_version(true);
-    if (alternative_version)
+    if (!alternative_version)
     {
       filtered_cost = (-(Ts_ * high_pass_pole_ - 2) * pre_filter_output_old_ +
                        2 * cost_signal - 2 * pre_filter_input_old_) /
