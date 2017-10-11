@@ -200,13 +200,14 @@ private:
   ///
   ros::Publisher pub_tdoa;
   ///
-  ros::Publisher pub_tdoa_range;  
+  ros::Publisher pub_tdoa_range;
   ///
   ros::Publisher pub_delta;
   ///
   ros::Publisher pub_master_active;
   ///
-  ros::Publisher pub_eta;
+  ros::Publisher pub_eta, pub_baseline, pub_surge_speed_ref, pub_yaw_rate_ref,
+      pub_delta_norm;
   ///
   std::map<int, auv_msgs::NavSts> state;
   ///
@@ -242,7 +243,7 @@ private:
   ///
   bool master_active_flag;
   ///
-  bool slave_active_flag;  
+  bool slave_active_flag;
   ///
   bool controller_active;
   ///

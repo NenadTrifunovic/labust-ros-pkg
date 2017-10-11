@@ -108,12 +108,17 @@ void TDOASSControl::init()
   {
     pub_veh1_ref = nh.advertise<auv_msgs::NavSts>("veh1/state_ref", 1);
     pub_veh2_ref = nh.advertise<auv_msgs::NavSts>("veh2/state_ref", 1);
+    pub_master_active = nh.advertise<std_msgs::Bool>("master/active", 1);
 
     pub_tdoa = nh.advertise<std_msgs::Float64>("tdoa", 1);
     pub_tdoa_range = nh.advertise<std_msgs::Float64>("tdoa_range", 1);
     pub_delta = nh.advertise<std_msgs::Float64>("delta", 1);
     pub_eta = nh.advertise<std_msgs::Float64>("eta", 1);
-    pub_master_active = nh.advertise<std_msgs::Bool>("master/active", 1);
+
+    pub_baseline = nh.advertise<std_msgs::Float64>("baseline", 1);
+    pub_surge_speed_ref = nh.advertise<std_msgs::Float64>("surge_speed_ref", 1);
+    pub_yaw_rate_ref = nh.advertise<std_msgs::Float64>("yaw_rate_ref", 1);
+    pub_delta_norm = nh.advertise<std_msgs::Float64>("delta_norm", 1);
 
     /*** Dynamic reconfigure server ***/
     f = boost::bind(&TDOASSControl::reconfigureCallback, this, _1, _2);
@@ -314,8 +319,10 @@ auv_msgs::BodyVelocityReqPtr TDOASSControl::step(
         pub_tdoa.publish(data);
         data.data = getDifferenceOfArrivalMeters();
         pub_tdoa_range.publish(data);
-        data.data = delta;
-        pub_delta.publish(data);
+        data.data = getNormalizedDifferenceOfArrivalMeters();
+        pub_delta_norm.publish(data);
+        data.data = baseline;
+        pub_baseline.publish(data);
       }
       yawRateControl(center_ref, delta, cost);
       // TODO check at which frequncy perturbation is set. (probably to low. add
@@ -381,7 +388,9 @@ bool TDOASSControl::calcluateTimeDifferenceOfArrival()
   // TODO Add timeout in case one measurement does not arrive.
   if (toa1 != toa1_old && toa2 != toa2_old)
   {
-    if (std::fabs((toa1 - toa2).toSec()) > config.tdoa_timeout)
+    long double tout = (long double)baseline / (long double)speed_of_sound;
+    if (std::fabs((toa1 - toa2).toSec()) >
+        (tout + (long double)config.tdoa_timeout))
     {
       // Discard measurements and wait for the new ones.
       toa1_old = toa1;
@@ -442,6 +451,12 @@ TDOASSControl::allocateSpeed(auv_msgs::BodyVelocityReq req)
   master_ref.twist.linear.x = u_ref - baseline / 2 * yaw_rate;
   master_ref.twist.linear.y = 0;
   master_ref.twist.angular.z = yaw_rate_ref;
+
+  std_msgs::Float64 data;
+  data.data = u_ref;
+  pub_surge_speed_ref.publish(data);
+  data.data = yaw_rate_ref;
+  pub_yaw_rate_ref.publish(data);
 
   return master_ref;
 }
