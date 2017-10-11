@@ -131,6 +131,8 @@ void TDOASSControl::init()
     config.__fromServer__(ph);
     server.setConfigDefault(config);
     // updateDynRecConfig();
+    server.updateConfig(config);
+
   }
   else
   {

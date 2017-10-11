@@ -30,6 +30,7 @@ Base::EscClassic(int ctrlNum, numericprecission Ts)
   sin_freq_.resize(controlNum);
   gain_.resize(controlNum);
   control_.resize(controlNum);
+  high_pass_pole_ = 0;   
   low_pass_pole_.resize(controlNum);
   comp_pole_.resize(controlNum);
   comp_zero_.resize(controlNum);
