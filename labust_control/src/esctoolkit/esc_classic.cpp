@@ -30,7 +30,7 @@ Base::EscClassic(int ctrlNum, numericprecission Ts)
   sin_freq_.resize(controlNum);
   gain_.resize(controlNum);
   control_.resize(controlNum);
-  high_pass_pole_ = 0;   
+  high_pass_pole_ = 0;
   low_pass_pole_.resize(controlNum);
   comp_pole_.resize(controlNum);
   comp_zero_.resize(controlNum);
@@ -90,9 +90,9 @@ Base::numericprecission Base::preFiltering(numericprecission cost_signal)
     bool alternative_version(true);
     if (!alternative_version)
     {
-      filtered_cost = (-(Ts_ * high_pass_pole_ - 2) * pre_filter_output_old_ +
-                       2 * cost_signal - 2 * pre_filter_input_old_) /
-                      (2 + high_pass_pole_ * Ts_);
+      filtered_cost = (-(Ts_ * high_pass_pole_ - 2L) * pre_filter_output_old_ +
+                       2L * cost_signal - 2L * pre_filter_input_old_) /
+                      (2L + high_pass_pole_ * Ts_);
       std::cerr << "Using standard prefilter filter. high-pass pole: "
                 << high_pass_pole_ << ", cost_signal: " << cost_signal
                 << ", filtered_cost: " << filtered_cost << std::endl;
@@ -100,14 +100,20 @@ Base::numericprecission Base::preFiltering(numericprecission cost_signal)
     else
     {
       pre_filter_output_old_ = -pre_filter_output_old_ + pre_filter_input_old_;
-      filtered_cost = cost_signal -
-                      (((2.0 - high_pass_pole_ * Ts_) * pre_filter_output_old_ +
-                        high_pass_pole_ * Ts_ * cost_signal +
-                        high_pass_pole_ * Ts_ * pre_filter_input_old_) /
-                       (2.0 + high_pass_pole_ * Ts_));
+      filtered_cost =
+          cost_signal -
+          ((long double)((long double)(2.0L - high_pass_pole_ * Ts_) *
+                             pre_filter_output_old_ +
+                         (long double)high_pass_pole_ * Ts_ * cost_signal +
+                         (long double)high_pass_pole_ * Ts_ *
+                             pre_filter_input_old_) /
+           (long double)(2.0L + high_pass_pole_ * Ts_));
       std::cerr << "Using alternative  prefilter filter. high-pass pole: "
                 << high_pass_pole_ << ", cost_signal: " << cost_signal
                 << ", filtered_cost: " << filtered_cost << std::endl;
+      std::cerr << ", pre_filter_output_old_: " << pre_filter_output_old_
+                << ", pre_filter_input_old_: " << pre_filter_input_old_
+                << ", Ts_" << Ts_ << std::endl;
     }
   }
   return filtered_cost;
