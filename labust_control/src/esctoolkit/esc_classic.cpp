@@ -102,29 +102,14 @@ Base::numericprecission Base::preFiltering(numericprecission cost_signal)
     else
     {
       pre_filter_output_old_ = -pre_filter_output_old_ + pre_filter_input_old_;
-     // std::cerr << "pre_filter_output_old_: " << pre_filter_output_old_ << std::endl; 
-     // std::cerr << "pre_filter_input_old_: " << pre_filter_input_old_ << std::endl; 
-
-     // long double  num_tmp1 = (2.0L - high_pass_pole_ * Ts_) * pre_filter_output_old_;
-     // std::cerr << "num_tmp1: " << num_tmp1 << std::endl; 
-     // long double num_tmp2 = high_pass_pole_ * Ts_ *( cost_signal + pre_filter_input_old_);
-
-     // std::cerr << "num_tmp2: " << num_tmp2 << std::endl; 
-     // long double den_tmp1 = 2.0L + high_pass_pole_ * Ts_;
-
-     // std::cerr << "den_tmp1: " << den_tmp1 << std::endl; 
-     // long double term_temp1 = (num_tmp1+num_tmp2)/den_tmp1;
-      
-     // std::cerr << "term_temp1: " << term_temp1 << std::endl; 
-     // filtered_cost = cost_signal - term_temp1;
-     filtered_cost =
-         cost_signal -
-         ((long double)((long double)(2.0L - high_pass_pole_ * Ts_) *
-                            pre_filter_output_old_ +
-                        (long double)high_pass_pole_ * Ts_ * cost_signal +
-                        (long double)high_pass_pole_ * Ts_ *
-                            pre_filter_input_old_) /
-          (long double)(2.0L + high_pass_pole_ * Ts_));
+      filtered_cost =
+          cost_signal -
+          ((long double)((long double)(2.0L - high_pass_pole_ * Ts_) *
+                             pre_filter_output_old_ +
+                         (long double)high_pass_pole_ * Ts_ * cost_signal +
+                         (long double)high_pass_pole_ * Ts_ *
+                             pre_filter_input_old_) /
+           (long double)(2.0L + high_pass_pole_ * Ts_));
       std::cerr << "Using alternative  prefilter filter. high-pass pole: "
                 << high_pass_pole_ << ", cost_signal: " << cost_signal
                 << ", filtered_cost: " << filtered_cost << std::endl;

@@ -96,14 +96,16 @@ namespace labust{
 
 				 virtual vector superimposePerturbation(vector control) = 0;
 
-				 virtual vector step(numericprecission cost_signal, vector additional_input = vector::Zero(2) ){
+				 virtual vector step(numericprecission cost_signal, bool update_control = true, vector additional_input = vector::Zero(2) ){
 
 					 numericprecission filtered_cost =  preFiltering(cost_signal);
 
 					 vector estimated_gradient = gradientEstimation(filtered_cost, additional_input);
+					 
+					 vector control = vector::Zero(controlNum);
 
-					 vector control = controllerGain(postFiltering(estimated_gradient));
-
+           if (update_control) vector control = controllerGain(postFiltering(estimated_gradient));
+			
 					 vector controlInput =  superimposePerturbation(control);
 
 					 pre_filter_input_old_ = cost_signal;
