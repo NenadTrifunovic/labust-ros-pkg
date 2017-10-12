@@ -72,6 +72,8 @@ TDOASSControl::TDOASSControl()
   , logging_flag(false)
   , last_meas_time(ros::Time::now())
   , control_timeout(5.0)
+  , update(false)
+  , counter(0)
 {
 }
 
@@ -132,7 +134,6 @@ void TDOASSControl::init()
     server.setConfigDefault(config);
     // updateDynRecConfig();
     server.updateConfig(config);
-
   }
   else
   {
@@ -197,7 +198,7 @@ void TDOASSControl::reconfigureCallback(
   speed_of_sound = config.speed_of_sound;
 
   double esc_high_pass_pole = 3 / config.esc_sin_period;
-  //double esc_high_pass_pole = 0;
+  // double esc_high_pass_pole = 0;
   double esc_Ts = config.esc_sampling_time;
 
   ROS_INFO("Reconfigure Request: ");
@@ -304,15 +305,18 @@ auv_msgs::BodyVelocityReqPtr TDOASSControl::step(
     offset.position.east = -baseline / 2;
     broadcastTransform(offset, link_names[MASTER], link_names[CENTER]);
     broadcastTransform(offset, link_names[CENTER], link_names[SLAVE]);
-
     // TODO check if new state and toa measurements are used.
     // TODO decide what executes at higher frequncy.
-    if (calcluateTimeDifferenceOfArrival())
+    double delta(0.0);
+    double cost(0.0);
+    double yaw_rate(0.0);
+    if (update = calcluateTimeDifferenceOfArrival())
     {
+      counter = 0;
       last_meas_time = ros::Time::now();
-      double delta = getNormalizedDifferenceOfArrivalMeters();
-      double cost = std::pow(delta, 2);
-      double yaw_rate = state[MASTER].orientation_rate.yaw;
+      delta = getNormalizedDifferenceOfArrivalMeters();
+      cost = std::pow(delta, 2);
+      yaw_rate = state[MASTER].orientation_rate.yaw;
 
       bool publish_flag(true);
       if (publish_flag)
@@ -327,15 +331,20 @@ auv_msgs::BodyVelocityReqPtr TDOASSControl::step(
         data.data = baseline;
         pub_baseline.publish(data);
       }
+    }
+
+    if (++counter % 21 == 0 || update)
+    {
+      if (update)
+        surgeSpeedControl(center_ref, delta, cost,
+                          etaFilterStep(delta, yaw_rate));
+
       yawRateControl(center_ref, delta, cost);
       // TODO check at which frequncy perturbation is set. (probably to low. add
       // flag
       // which updates )
-      surgeSpeedControl(center_ref, delta, cost,
-                        etaFilterStep(delta, yaw_rate));
+      // TODO Check if one step estimate is needed.
     }
-    // TODO Check if one step estimate is needed.
-
     auv_msgs::NavSts slave_ref;
     if (calculateSlaveReference(slave_ref, center_ref))
     {
@@ -429,7 +438,7 @@ TDOASSControl::allocateSpeed(auv_msgs::BodyVelocityReq req)
   auv_msgs::BodyVelocityReq master_ref;
   double yaw = state[MASTER].orientation.yaw;
   double u_ref = req.twist.linear.x;
-  bool use_meas(true);
+  bool use_meas(false);
   double yaw_rate_ref = req.twist.angular.z;
   double yaw_rate =
       use_meas ? state[MASTER].orientation_rate.yaw : yaw_rate_ref;
@@ -528,7 +537,7 @@ void TDOASSControl::surgeSpeedControl(auv_msgs::BodyVelocityReq& req,
 void TDOASSControl::yawRateControl(auv_msgs::BodyVelocityReq& req, double delta,
                                    double cost)
 {
-  req.twist.angular.z = (es_controller.step(cost))[0];
+  req.twist.angular.z = (es_controller.step(cost, update))[0];
   // Saturate yaw rate reference.
   if (req.twist.angular.z < -config.max_yaw_rate)
     req.twist.angular.z = -config.max_yaw_rate;

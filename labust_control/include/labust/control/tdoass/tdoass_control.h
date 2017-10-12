@@ -248,6 +248,11 @@ private:
   bool controller_active;
   ///
   bool logging_flag;
+  ///
+  bool update;
+  ///
+  unsigned int counter;
+
 };
 }
 }

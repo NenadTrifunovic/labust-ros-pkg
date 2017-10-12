@@ -104,7 +104,7 @@ namespace labust{
 					 
 					 vector control = vector::Zero(controlNum);
 
-           if (update_control) vector control = controllerGain(postFiltering(estimated_gradient));
+           if (update_control) control = controllerGain(postFiltering(estimated_gradient));
 			
 					 vector controlInput =  superimposePerturbation(control);
 
