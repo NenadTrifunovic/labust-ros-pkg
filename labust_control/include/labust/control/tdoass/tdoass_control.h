@@ -132,7 +132,14 @@ private:
   ///
   double getNormalizedDifferenceOfArrivalMeters();
   ///
+  void initBaselinePos();
+  ///
+  void baselineStep(auv_msgs::BodyVelocityReq req);
+  ///
   auv_msgs::BodyVelocityReq allocateSpeed(auv_msgs::BodyVelocityReq req);
+  ///
+  bool calculateMasterReference(auv_msgs::NavSts& master_ref,
+                               const auv_msgs::BodyVelocityReq& center_ref);  
   ///
   bool calculateSlaveReference(auv_msgs::NavSts& slave_ref,
                                const auv_msgs::BodyVelocityReq& center_ref);
@@ -198,15 +205,22 @@ private:
   ///
   ros::Publisher pub_slave_ff_ref;
   ///
+  ros::Publisher pub_master_pos_ref;
+  ///
+  ros::Publisher pub_master_hdg_ref;
+  ///
+  ros::Publisher pub_master_ff_ref;  
+  ///
   ros::Publisher pub_tdoa;
   ///
-  ros::Publisher pub_tdoa_range;  
+  ros::Publisher pub_tdoa_range;
   ///
   ros::Publisher pub_delta;
   ///
   ros::Publisher pub_master_active;
   ///
-  ros::Publisher pub_eta;
+  ros::Publisher pub_eta, pub_baseline, pub_surge_speed_ref, pub_yaw_rate_ref,
+      pub_delta_norm;
   ///
   std::map<int, auv_msgs::NavSts> state;
   ///
@@ -242,11 +256,20 @@ private:
   ///
   bool master_active_flag;
   ///
-  bool slave_active_flag;  
+  bool slave_active_flag;
   ///
   bool controller_active;
   ///
+  bool dp_controller_active;  
+  ///
   bool logging_flag;
+  ///
+  bool update;
+  ///
+  unsigned int counter;
+  ///
+  bool use_position_control;
+
 };
 }
 }
