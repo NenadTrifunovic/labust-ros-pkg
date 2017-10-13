@@ -57,6 +57,7 @@
 #include <tf2_ros/static_transform_broadcaster.h>
 
 #include <std_msgs/Float32.h>
+#include <std_msgs/Int32.h>
 #include <std_msgs/Bool.h>
 #include <std_msgs/Float32MultiArray.h>
 #include <auv_msgs/BodyVelocityReq.h>
@@ -100,11 +101,13 @@ namespace labust
 				kinect_reached=false;
 				pullback_done=false;
 				last_direction=1;
-				manual_on=true;
+				manual_on=false;
 				sub_manual = nh.subscribe<std_msgs::Bool>("manual",1,&Docking::onManual,this);
 
 				pub_docking_arm = nh.advertise<std_msgs::Float32MultiArray>("dock_out",1);
 				pub_kinect_servo = nh.advertise<std_msgs::Float32>("kinect_out",1);
+				pub_docking_status = nh.advertise<std_msgs::Int32>("docking_status",1);
+
 				
 				//std_msgs::Float32MultiArray docking_arm_ref = std_msgs::Float32MultiArray();
 				//std_msgs::Float32 servo_ref = std_msgs::Float32();
@@ -118,6 +121,8 @@ namespace labust
                                 timeOut.tv_sec = 0;
                                 timeOut.tv_nsec = 50000000; /* 50 milliseconds */
 				servo_ref.data=0.0;
+				mission_status.data=0;
+				pub_docking_status.publish(mission_status);
 				for (int i=0;i<10;i++)
                                                 {
                                                 pub_kinect_servo.publish(servo_ref);
@@ -126,14 +131,16 @@ namespace labust
 				
 				kinect_servo_pos[0]=0.1;
 				kinect_servo_pos[1]=0.44;
-				kinect_servo_pos[2]=0.72;
-				kinect_servo_pos[3]=0.99;
+				kinect_servo_pos[2]=0.74;
+				kinect_servo_pos[3]=1.0;
 				ROS_ERROR("DOCKING SERVO VALUES INITED %f, %f, %f, %f", kinect_servo_pos[0],kinect_servo_pos[1],kinect_servo_pos[2],kinect_servo_pos[3]);
 			}
 
 			void onGoal()
 			{
 				kinect_reached=false;
+				mission_status.data=1;
+				pub_docking_status.publish(mission_status);
 				boost::mutex::scoped_lock l(state_mux);
 				/*** Set the flag to avoid disabling controllers on preemption ***/
 				processNewGoal = true;
@@ -219,6 +226,8 @@ namespace labust
 				{
 					//ROS_ERROR("New goal processing.");
 				}
+				mission_status.data=2;
+                                pub_docking_status.publish(mission_status);
 				aserver->setPreempted();
 			};
 
@@ -276,6 +285,8 @@ namespace labust
 						//result.distance = distVictory;
 						docking_arm_ref.data.at(slot)=0.0;
 						//pub_docking_arm.publish(docking_arm_ref);
+						mission_status.data=3;
+						pub_docking_status.publish(mission_status);
 						aserver->setSucceeded(result);
 						goal.reset();
 						new_meas=false;
@@ -319,6 +330,8 @@ namespace labust
 						ROS_ERROR("VERTICAL DOCKING THESHOLD REACHED");
 						//result.distance = distVictory;
 						aserver->setSucceeded(result);
+						mission_status.data=3;
+						pub_docking_status.publish(mission_status);
 						goal.reset();
 						ROS_INFO("docking: Goal completed. Stopping controllers.");
 						controllers.state.assign(numcnt, false);
@@ -496,9 +509,11 @@ namespace labust
 			std_msgs::Float32MultiArray docking_arm_ref;
 			float kinect_servo_pos[4];
 			std_msgs::Float32 servo_ref;
+			std_msgs::Int32 mission_status;
+
 
 			ros::Subscriber sub_vertical, sub_horizontal, sub_size, sub_manual;
-			ros::Publisher pub_docking_arm, pub_kinect_servo;
+			ros::Publisher pub_docking_arm, pub_kinect_servo, pub_docking_status;
 
 			double vertical_meas, horizontal_meas, size_meas;
 			bool new_meas, kinect_reached, pullback_done, manual_on;
