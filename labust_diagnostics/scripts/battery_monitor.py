@@ -34,7 +34,7 @@
 import rospy
 from diagnostic_msgs.msg import DiagnosticStatus
 from labust_diagnostics.StatusHandler import StatusHandler
-from std_msgs.msg import Int16MultiArray
+from std_msgs.msg import Int16MultiArray, Float32
 
 class BatteryMonitor:
     # pylint: disable=too-many-instance-attributes
@@ -60,6 +60,9 @@ class BatteryMonitor:
         self.sub_telemetry = rospy.Subscriber(
             "telemetry", Int16MultiArray, self.onTelemetry)
         self.last_measurement_timestamp = rospy.Time.now()
+        self.pub_current = rospy.Publisher("battery_current",Float32, queue_size=1)
+        self.pub_voltage = rospy.Publisher("battery_voltage",Float32, queue_size=1)
+        
 
         self.battery_status = 0
         self.battery_voltage = 0
@@ -79,7 +82,10 @@ class BatteryMonitor:
                                      self.battery_current_avg) / (self.battery_voltage_maximum - self.battery_voltage_minimum)
 
         self.battery_status = self.saturation(self.battery_status, 0, 100)
-
+        
+        self.pub_current.publish(self.battery_current)
+        self.pub_voltage.publish(self.battery_voltage)
+        
         self.status_handler_.updateKeyValue(
             "Percentage", '{:3.0f}'.format(self.battery_status))
         self.status_handler_.updateKeyValue(
