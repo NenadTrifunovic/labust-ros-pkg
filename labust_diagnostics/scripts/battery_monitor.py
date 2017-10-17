@@ -62,6 +62,8 @@ class BatteryMonitor:
         self.last_measurement_timestamp = rospy.Time.now()
         self.pub_current = rospy.Publisher("battery_current",Float32, queue_size=1)
         self.pub_voltage = rospy.Publisher("battery_voltage",Float32, queue_size=1)
+        self.pub_status = rospy.Publisher("battery_status",Float32, queue_size=1)
+        
         
 
         self.battery_status = 0
@@ -85,6 +87,8 @@ class BatteryMonitor:
         
         self.pub_current.publish(self.battery_current)
         self.pub_voltage.publish(self.battery_voltage)
+        self.pub_status.publish(self.battery_status)
+        
         
         self.status_handler_.updateKeyValue(
             "Percentage", '{:3.0f}'.format(self.battery_status))
