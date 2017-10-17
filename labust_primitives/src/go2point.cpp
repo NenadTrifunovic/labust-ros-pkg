@@ -54,6 +54,8 @@
 #include <geometry_msgs/Point.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <tf2_ros/static_transform_broadcaster.h>
+#include <std_msgs/Int32.h>
+
 
 namespace labust
 {
@@ -89,6 +91,11 @@ namespace labust
 				controllers.name[falf] = "FALF_enable";
 				controllers.name[hdg] = "HDG_enable";
 				controllers.name[depth] = "DEPTH_enable";
+
+				pub_goto_status = nh.advertise<std_msgs::Int32>("goto_status",1);
+				mission_status.data=0;
+				pub_goto_status.publish(mission_status);
+
 			}
 
 			void onGoal()
@@ -98,6 +105,9 @@ namespace labust
 				processNewGoal = true;
 				Goal::Ptr new_goal = boost::make_shared<Goal>(*(aserver->acceptNewGoal()));
 				processNewGoal = false;
+				mission_status.data=1;
+                                pub_goto_status.publish(mission_status);
+
 
 				/*** Display goal info ***/
 				ROS_INFO("go2point: Primitive action goal received.");
@@ -203,6 +213,8 @@ namespace labust
 				{
 					//ROS_ERROR("New goal processing.");
 				}
+				mission_status.data=2;
+                                pub_goto_status.publish(mission_status);
 				aserver->setPreempted();
 			};
 
@@ -263,6 +275,8 @@ namespace labust
 						aserver->setSucceeded(result);
 						goal.reset();
 						ROS_INFO("go2point: Goal completed. Stopping controllers.");
+						mission_status.data=3;
+		                                pub_goto_status.publish(mission_status);
 						controllers.state.assign(numcnt, false);
 						this->updateControllers();
 						return;
@@ -378,6 +392,8 @@ namespace labust
 			navcon_msgs::ControllerSelectRequest controllers;
 			double distVictory, lastDistance, Ddistance;
 			bool processNewGoal, underactuated;
+			ros::Publisher pub_goto_status;
+			std_msgs::Int32 mission_status;
 		};
 	}
 }
