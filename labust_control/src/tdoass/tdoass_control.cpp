@@ -56,7 +56,7 @@ TDOASSControl::TDOASSControl()
   , baseline(5.0)
   , m(100.0)
   , epsilon(0.5)
-  , es_controller(1, 0.1)
+  , es_controller(1, 2.0)
   , eta_filter_state_k0(2, 0)
   , eta_filter_state_k1(2, 0)
   , ts(1.0)
@@ -222,9 +222,10 @@ void TDOASSControl::reconfigureCallback(
            config.esc_low_pass_pole, config.esc_comp_zero, config.esc_comp_pole,
            config.esc_sampling_time);
 
+ 
   es_controller.initController(
       config.esc_sin_amp, config.esc_sin_demodulation_amp,
-      2 * M_PI / config.esc_sin_period, config.esc_corr_gain,
+      1 / config.esc_sin_period, config.esc_corr_gain,
       esc_high_pass_pole, config.esc_low_pass_pole, config.esc_comp_zero,
       config.esc_comp_pole, config.esc_sampling_time);
 }

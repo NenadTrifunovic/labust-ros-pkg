@@ -64,7 +64,7 @@ void Base::initController(double sin_amp, double sin_demodulation_amp,
 {
   sin_amp_.setConstant(sin_amp);
   sin_demodulation_amp_.setConstant(sin_demodulation_amp);
-  sin_freq_.setConstant(sin_freq);
+  sin_freq_.setConstant(M_PI*sin_freq); // Frequency f!!!!
   gain_.setConstant(corr_gain);
   high_pass_pole_ = high_pass_pole;
   low_pass_pole_.setConstant(low_pass_pole);
