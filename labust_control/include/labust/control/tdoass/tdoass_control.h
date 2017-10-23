@@ -195,6 +195,8 @@ private:
   ///
   ros::Subscriber sub_master_active;
   ///
+  ros::Publisher pub_center_state;  
+  ///
   ros::Publisher pub_veh1_ref;
   ///
   ros::Publisher pub_veh2_ref;

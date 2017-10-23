@@ -115,6 +115,7 @@ void TDOASSControl::init()
   {
     pub_veh1_ref = nh.advertise<auv_msgs::NavSts>("veh1/state_ref", 1);
     pub_veh2_ref = nh.advertise<auv_msgs::NavSts>("veh2/state_ref", 1);
+    pub_center_state = nh.advertise<auv_msgs::NavSts>("/center/state", 1);    
     pub_master_active = nh.advertise<std_msgs::Bool>("master/active", 1);
 
     pub_master_pos_ref =
@@ -509,6 +510,8 @@ void TDOASSControl::baselineStep(auv_msgs::BodyVelocityReq req)
   state[CENTER].position.north += Tstep * vx_ref;
   state[CENTER].position.east += Tstep * vy_ref;
   state[CENTER].orientation.yaw += Tstep * req.twist.angular.z;
+  
+  pub_center_state.publish(state[CENTER]);
 }
 
 auv_msgs::BodyVelocityReq
