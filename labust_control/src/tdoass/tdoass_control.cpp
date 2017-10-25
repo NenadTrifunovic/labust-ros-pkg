@@ -76,6 +76,7 @@ TDOASSControl::TDOASSControl()
   , update(false)
   , counter(0)
   , use_position_control(true)
+  , test_init_flag(false)
 {
 }
 
@@ -115,7 +116,7 @@ void TDOASSControl::init()
   {
     pub_veh1_ref = nh.advertise<auv_msgs::NavSts>("veh1/state_ref", 1);
     pub_veh2_ref = nh.advertise<auv_msgs::NavSts>("veh2/state_ref", 1);
-    pub_center_state = nh.advertise<auv_msgs::NavSts>("/center/state", 1);    
+    pub_center_state = nh.advertise<auv_msgs::NavSts>("/center/state", 1);
     pub_master_active = nh.advertise<std_msgs::Bool>("master/active", 1);
 
     pub_master_pos_ref =
@@ -132,6 +133,9 @@ void TDOASSControl::init()
     pub_surge_speed_ref = nh.advertise<std_msgs::Float64>("surge_speed_ref", 1);
     pub_yaw_rate_ref = nh.advertise<std_msgs::Float64>("yaw_rate_ref", 1);
     pub_delta_norm = nh.advertise<std_msgs::Float64>("delta_norm", 1);
+    
+    sub_test_init =
+      nh.subscribe("/master/test_init", 1, &TDOASSControl::onTestInit, this);    
 
     /*** Dynamic reconfigure server ***/
     f = boost::bind(&TDOASSControl::reconfigureCallback, this, _1, _2);
@@ -223,12 +227,11 @@ void TDOASSControl::reconfigureCallback(
            config.esc_low_pass_pole, config.esc_comp_zero, config.esc_comp_pole,
            config.esc_sampling_time);
 
- 
   es_controller.initController(
       config.esc_sin_amp, config.esc_sin_demodulation_amp,
-      1 / config.esc_sin_period, config.esc_corr_gain,
-      esc_high_pass_pole, config.esc_low_pass_pole, config.esc_comp_zero,
-      config.esc_comp_pole, config.esc_sampling_time);
+      1 / config.esc_sin_period, config.esc_corr_gain, esc_high_pass_pole,
+      config.esc_low_pass_pole, config.esc_comp_zero, config.esc_comp_pole,
+      config.esc_sampling_time);
 }
 
 void TDOASSControl::updateDynRecConfig()
@@ -274,6 +277,8 @@ void TDOASSControl::idle(const auv_msgs::NavSts& ref,
     ros::service::call("commander/stop_mission", srv);
     dp_controller_active = false;
   }
+  
+  if(controller_active) test_init_flag = false;
 
   controller_active = false;
   if (isMaster())
@@ -288,7 +293,9 @@ auv_msgs::BodyVelocityReqPtr TDOASSControl::step(
     const auv_msgs::NavSts& ref, const auv_msgs::NavSts& state_hat)
 {
   if (!controller_active)
-    initBaselinePos();
+  {
+    if(!test_init_flag) initBaselinePos();
+  }
   controller_active = true;
   if (isMaster())
   {
@@ -487,6 +494,15 @@ double TDOASSControl::getNormalizedDifferenceOfArrivalMeters()
   return tdoa * speed_of_sound / baseline;
 }
 
+void TDOASSControl::onTestInit(const auv_msgs::NavSts::ConstPtr& msg)
+{
+  state[CENTER].position.north = msg->position.north;
+  state[CENTER].position.east = msg->position.east;
+  state[CENTER].orientation.yaw = msg->orientation.yaw;  
+  test_init_flag = true;
+}
+
+
 void TDOASSControl::initBaselinePos()
 {
   // TODO add offset
@@ -510,7 +526,7 @@ void TDOASSControl::baselineStep(auv_msgs::BodyVelocityReq req)
   state[CENTER].position.north += Tstep * vx_ref;
   state[CENTER].position.east += Tstep * vy_ref;
   state[CENTER].orientation.yaw += Tstep * req.twist.angular.z;
-  
+
   pub_center_state.publish(state[CENTER]);
 }
 

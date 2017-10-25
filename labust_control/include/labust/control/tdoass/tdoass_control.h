@@ -165,7 +165,9 @@ private:
   ///
   void onSlaveRef(const auv_msgs::NavSts::ConstPtr& msg);
   ///
-  void onMasterActive(const std_msgs::Bool::ConstPtr& msg);
+  void onTestInit(const auv_msgs::NavSts::ConstPtr& msg);
+  ///
+  void onMasterActive(const std_msgs::Bool::ConstPtr& msg);  
   /// Dynamic reconfigure
   dynamic_reconfigure::Server<labust_control::TDOASSControlConfig> server;
   dynamic_reconfigure::Server<labust_control::TDOASSControlConfig>::CallbackType
@@ -195,7 +197,9 @@ private:
   ///
   ros::Subscriber sub_master_active;
   ///
-  ros::Publisher pub_center_state;  
+  ros::Publisher pub_center_state; 
+  ///
+  ros::Subscriber sub_test_init;   
   ///
   ros::Publisher pub_veh1_ref;
   ///
@@ -271,6 +275,8 @@ private:
   unsigned int counter;
   ///
   bool use_position_control;
+  ///
+  bool test_init_flag;
 
 };
 }
