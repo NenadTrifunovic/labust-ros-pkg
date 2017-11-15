@@ -297,6 +297,7 @@ auv_msgs::BodyVelocityReqPtr TDOASSControl::step(
 {
   if (!controller_active)
   {
+    center_ref = auv_msgs::BodyVelocityReq();
     if (!test_init_flag)
       initBaselinePos();
     else
