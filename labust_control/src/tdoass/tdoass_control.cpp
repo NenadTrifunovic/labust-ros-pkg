@@ -72,11 +72,13 @@ TDOASSControl::TDOASSControl()
   , dp_controller_active(false)
   , logging_flag(false)
   , last_meas_time(ros::Time::now())
+  , test_init_timeout(ros::Time::now())
   , control_timeout(5.0)
   , update(false)
   , counter(0)
   , use_position_control(true)
   , test_init_flag(false)
+  , wait_initial_formation(false)
 {
 }
 
@@ -133,9 +135,9 @@ void TDOASSControl::init()
     pub_surge_speed_ref = nh.advertise<std_msgs::Float64>("surge_speed_ref", 1);
     pub_yaw_rate_ref = nh.advertise<std_msgs::Float64>("yaw_rate_ref", 1);
     pub_delta_norm = nh.advertise<std_msgs::Float64>("delta_norm", 1);
-    
+
     sub_test_init =
-      nh.subscribe("/master/test_init", 1, &TDOASSControl::onTestInit, this);    
+        nh.subscribe("/master/test_init", 1, &TDOASSControl::onTestInit, this);
 
     /*** Dynamic reconfigure server ***/
     f = boost::bind(&TDOASSControl::reconfigureCallback, this, _1, _2);
@@ -277,8 +279,9 @@ void TDOASSControl::idle(const auv_msgs::NavSts& ref,
     ros::service::call("commander/stop_mission", srv);
     dp_controller_active = false;
   }
-  
-  if(controller_active) test_init_flag = false;
+
+  if (controller_active)
+    test_init_flag = false;
 
   controller_active = false;
   if (isMaster())
@@ -294,9 +297,16 @@ auv_msgs::BodyVelocityReqPtr TDOASSControl::step(
 {
   if (!controller_active)
   {
-    if(!test_init_flag) initBaselinePos();
+    if (!test_init_flag)
+      initBaselinePos();
+    else
+      test_init_timeout = ros::Time::now();
   }
   controller_active = true;
+
+  wait_initial_formation =
+      ((ros::Time::now() - test_init_timeout).toSec() < 60);
+
   if (isMaster())
   {
     std_msgs::Bool flag;
@@ -332,13 +342,20 @@ auv_msgs::BodyVelocityReqPtr TDOASSControl::step(
       }
     }
 
-    if (++counter % 21 == 0 || update)
+    if ((test_init_flag && !wait_initial_formation) || !test_init_flag)
     {
-      if (update)
-        surgeSpeedControl(center_ref, delta, cost,
-                          etaFilterStep(delta, yaw_rate));
+      if (++counter % 21 == 0 || update)
+      {
+        if (update)
+          surgeSpeedControl(center_ref, delta, cost,
+                            etaFilterStep(delta, yaw_rate));
 
-      yawRateControl(center_ref, delta, cost);
+        yawRateControl(center_ref, delta, cost);
+      }
+    }
+    else 
+    {
+      ROS_ERROR("Waiting for test initalization.");
     }
 
     auv_msgs::BodyVelocityReqPtr nu(new auv_msgs::BodyVelocityReq());
@@ -496,19 +513,19 @@ double TDOASSControl::getNormalizedDifferenceOfArrivalMeters()
 
 void TDOASSControl::onTestInit(const auv_msgs::NavSts::ConstPtr& msg)
 {
+  test_init_flag = true;
   state[CENTER].position.north = msg->position.north;
   state[CENTER].position.east = msg->position.east;
-  state[CENTER].orientation.yaw = msg->orientation.yaw;  
-  test_init_flag = true;
+  state[CENTER].orientation.yaw = msg->orientation.yaw;
+  ROS_ERROR("BASELINE INITED FROM TOPIC.");
 }
-
 
 void TDOASSControl::initBaselinePos()
 {
-  // TODO add offset
   state[CENTER].position.north = state[MASTER].position.north;
   state[CENTER].position.east = state[MASTER].position.east;
   state[CENTER].orientation.yaw = state[MASTER].orientation.yaw;
+  ROS_ERROR("BASELINE INITED FROM CURRENT POSITION.");
 }
 
 void TDOASSControl::baselineStep(auv_msgs::BodyVelocityReq req)

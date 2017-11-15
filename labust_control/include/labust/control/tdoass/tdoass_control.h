@@ -238,6 +238,8 @@ private:
   ///
   ros::Time last_meas_time;
   ///
+  ros::Time test_init_timeout;  
+  ///
   auv_msgs::BodyVelocityReq center_ref;
   ///
   std::vector<double> eta_filter_state_k0, eta_filter_state_k1;
@@ -277,6 +279,8 @@ private:
   bool use_position_control;
   ///
   bool test_init_flag;
+  ///
+  bool wait_initial_formation;
 
 };
 }
