@@ -60,7 +60,14 @@ namespace navigation
 {
 struct NewArrived
 {
-  NewArrived() : isNew(false){};
+  NewArrived() : isNew(false)
+               , timestamp(ros::Time::now()){};
+               
+  inline void setIsNew(bool flag)
+  {
+    if (flag) timestamp = ros::Time::now();
+    isNew = flag;
+  }             
 
   inline bool newArrived()
   {
@@ -71,9 +78,21 @@ struct NewArrived
     }
     return false;
   }
+  
+  inline bool newArrivedTimestamp()
+  {
+    if (isNew)
+    {
+      isNew = false;
+      return true;
+    }
+    return false;
+  }
 
-protected:
+private:
+  ros::Time timestamp;
   bool isNew;
+ 
 };
 /**
  * The local position handler.

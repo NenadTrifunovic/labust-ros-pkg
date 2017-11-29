@@ -74,7 +74,7 @@ void LocalPosHandler::onLocalPos(const geometry_msgs::PointStamped::ConstPtr& da
 		//Set the data
 		posxy.first = point_local(0);
 		posxy.second = point_local(1);
-		isNew = true;
+	  setIsNew(true);
 
 		status_handler_.setEntityStatus(diagnostic_msgs::DiagnosticStatus::OK);
 		status_handler_.setEntityMessage("Normal");
@@ -170,7 +170,8 @@ void GPSHandler::onGps(const sensor_msgs::NavSatFix::ConstPtr& data)
 		proj.Reverse(enu(0), enu(1), enu(2), lat, lon, originh);
 		posLL.second = lat;
 		posLL.first = lon;
-		isNew = true;
+		setIsNew(true);
+
 
 		status_handler_.setEntityStatus(diagnostic_msgs::DiagnosticStatus::OK);
 		status_handler_.setEntityMessage("Normal");
@@ -262,7 +263,7 @@ void ImuHandler::onImu(const sensor_msgs::Imu::ConstPtr& data)
 		axyz[ay] = angvel(1);
 		axyz[az] = angvel(2);
 
-		isNew = true;
+		setIsNew(true);
 		status_handler_.setEntityStatus(diagnostic_msgs::DiagnosticStatus::OK);
 		status_handler_.setEntityMessage("OK.");
 
@@ -347,7 +348,7 @@ void DvlHandler::onDvl(const geometry_msgs::TwistStamped::ConstPtr& data)
 		catch (std::exception& ex)
 		{
 			ROS_WARN("DVL measurement failure:%s",ex.what());
-			isNew = false;
+			setIsNew(false);
 			return;
 		}
 	}
@@ -404,17 +405,17 @@ void DvlHandler::onDvl(const geometry_msgs::TwistStamped::ConstPtr& data)
 		catch (std::exception& ex)
 		{
 			ROS_WARN("DVL measurement failure:%s",ex.what());
-			isNew = false;
+			setIsNew(false);
 			return;
 		}
 	}
 	else
 	{
-		isNew = false;
+		setIsNew(false);
 		return;
 	}
 
-	isNew = true;
+	setIsNew(true);
 	status_handler_.setEntityStatus(diagnostic_msgs::DiagnosticStatus::OK);
 	status_handler_.setEntityMessage("OK.");
 	status_handler_.publishStatus();
@@ -490,7 +491,7 @@ void iUSBLHandler::merge()
 
 			ROS_INFO("Received new position: %f %f", pos[x], pos[y]);
 
-			isNew = true;
+			setIsNew(true);
 			status_handler_.setEntityStatus(diagnostic_msgs::DiagnosticStatus::OK);
 		}
 		catch (std::exception& e)
@@ -509,5 +510,5 @@ void iUSBLHandler::merge()
 	pos[y] = remote_position.position.east - fix.range * sin(bearing);
 	ROS_INFO("Received new position: %f %f", pos[x], pos[y]);
 
-	isNew = true;
+  setIsNew(true);
 }
