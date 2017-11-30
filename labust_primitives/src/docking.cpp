@@ -123,16 +123,21 @@ namespace labust
 				servo_ref.data=0.0;
 				mission_status.data=0;
 				pub_docking_status.publish(mission_status);
+				kinect_servo_pos_vec.resize(4);
 				for (int i=0;i<10;i++)
                                                 {
                                                 pub_kinect_servo.publish(servo_ref);
                                                 nanosleep(&timeOut, &remains);
                                                 }
-				
-				kinect_servo_pos[0]=0.1;
-				kinect_servo_pos[1]=0.44;
-				kinect_servo_pos[2]=0.74;
-				kinect_servo_pos[3]=1.0;
+				nh.getParam("kinect_servo_pos", kinect_servo_pos_vec);
+				kinect_servo_pos[0]=kinect_servo_pos_vec[0];
+				kinect_servo_pos[1]=kinect_servo_pos_vec[1];
+				kinect_servo_pos[2]=kinect_servo_pos_vec[2];
+				kinect_servo_pos[3]=kinect_servo_pos_vec[3];
+				//kinect_servo_pos[0]=0.1;
+				//kinect_servo_pos[1]=0.41;
+				//kinect_servo_pos[2]=0.73;
+				//kinect_servo_pos[3]=1.0;
 				ROS_ERROR("DOCKING SERVO VALUES INITED %f, %f, %f, %f", kinect_servo_pos[0],kinect_servo_pos[1],kinect_servo_pos[2],kinect_servo_pos[3]);
 			}
 
@@ -510,6 +515,7 @@ namespace labust
 			float kinect_servo_pos[4];
 			std_msgs::Float32 servo_ref;
 			std_msgs::Int32 mission_status;
+			std::vector<double> kinect_servo_pos_vec;
 
 
 			ros::Subscriber sub_vertical, sub_horizontal, sub_size, sub_manual;
