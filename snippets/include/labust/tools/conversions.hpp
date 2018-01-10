@@ -1,7 +1,7 @@
 /*********************************************************************
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2010, LABUST, UNIZG-FER
+ *  Copyright (c) 2018, LABUST, UNIZG-FER
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -39,6 +39,13 @@
 #include <Eigen/Dense>
 
 #include <geometry_msgs/Quaternion.h>
+#include <sensor_msgs/Imu.h>
+#include <geometry_msgs/PoseWithCovarianceStamped.h>
+#include <geometry_msgs/TwistWithCovarianceStamped.h>
+#include <geometry_msgs/TransformStamped.h>
+#include <nav_msgs/Odometry.h>
+
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 namespace labust
 {
@@ -206,6 +213,94 @@ namespace labust
 			//pitch = -asin(2*(q.x*q.z + q.y*q.w));
 			//yaw = atan2(2*(q.x*q.y-q.w*q.z),1-2*(q.y*q.y+q.z*q.z));
 		}
+		
+    /// Apply a geometry_msgs TransformStamped to a sensor_msgs IMU type.		 		 		
+	  void doTransform(const sensor_msgs::Imu &in, sensor_msgs::Imu &out, const geometry_msgs::TransformStamped &transform)		
+	  {			
+      // Transform orientation.			
+			geometry_msgs::QuaternionStamped qs_in, qs_out;
+			qs_in.header = in.header;
+			qs_in.quaternion = in.orientation;
+			tf2::doTransform(qs_in, qs_out, transform);    
+			
+      // Transform angular velocity.
+			geometry_msgs::Vector3Stamped av_in, av_out;
+			av_in.header = in.header;
+			av_in.vector = in.angular_velocity;
+			tf2::doTransform(av_in, av_out, transform);  			
+	
+      // Transform linear acceleration.
+			geometry_msgs::Vector3Stamped la_in, la_out;
+			la_in.header = in.header;
+			la_in.vector = in.linear_acceleration;
+			tf2::doTransform(la_in, la_out, transform);
+			
+			// Fill the output.
+			out.orientation = qs_out.quaternion;
+			out.angular_velocity = av_out.vector; 
+			out.linear_acceleration = la_out.vector;   					  
+	  }
+		
+    /// Apply a geometry_msgs TransformStamped to a geometry_msgs PoseWithCovarianceStamped type.		 		 				
+		void doTransform(const geometry_msgs::PoseWithCovarianceStamped &in, geometry_msgs::PoseWithCovarianceStamped &out, const geometry_msgs::TransformStamped &transform)
+		{
+			// Transform pose.
+			geometry_msgs::PoseStamped p_in, p_out;
+			p_in.header = in.header;
+			p_in.pose = in.pose.pose;
+			tf2::doTransform(p_in, p_out, transform);			
+
+			// Fill the output.
+			out.pose.pose = p_out.pose;					
+		}	
+	
+    /// Apply a geometry_msgs TransformStamped to a geometry_msgs TwistWithCovarianceStamped type.		 		 				
+		void doTransform(const geometry_msgs::TwistWithCovarianceStamped &in, geometry_msgs::TwistWithCovarianceStamped &out, const geometry_msgs::TransformStamped &transform)
+		{
+			// Transform linear velocity.
+			geometry_msgs::Vector3Stamped l_in, l_out;
+			l_in.header = in.header;
+			l_in.vector = in.twist.twist.linear;
+			tf2::doTransform(l_in, l_out, transform);			
+			
+			// Transform angular velocity.
+			geometry_msgs::Vector3Stamped a_in, a_out;
+			a_in.header = in.header;
+			a_in.vector = in.twist.twist.angular;
+			tf2::doTransform(a_in, a_out, transform);			
+
+			// Fill the output.
+			out.twist.twist.linear = l_out.vector;		
+			out.twist.twist.angular = a_out.vector;										
+		}
+		
+    /// Apply a geometry_msgs TransformStamped to a nav_msgs Odometry type.		 		 				
+		void doTransform(const nav_msgs::Odometry &in, nav_msgs::Odometry &out, const geometry_msgs::TransformStamped &transform)
+		{
+			// Transform pose.
+			geometry_msgs::PoseStamped p_in, p_out;
+			p_in.header = in.header;
+			p_in.pose = in.pose.pose;
+			tf2::doTransform(p_in, p_out, transform);			
+			
+			// Transform twist.
+			// Transform linear velocity.
+			geometry_msgs::Vector3Stamped l_in, l_out;
+			l_in.header = in.header;
+			l_in.vector = in.twist.twist.linear;
+			tf2::doTransform(l_in, l_out, transform);	
+					
+			// Transform angular velocity.						
+			geometry_msgs::Vector3Stamped a_in, a_out;
+			a_in.header = in.header;
+			a_in.vector = in.twist.twist.angular;
+			tf2::doTransform(a_in, a_out, transform);			
+
+			// Fill the output.
+			out.pose.pose = p_out.pose;
+			out.twist.twist.linear = l_out.vector;		
+			out.twist.twist.angular = a_out.vector;										
+		}						
 	}
 }
 
