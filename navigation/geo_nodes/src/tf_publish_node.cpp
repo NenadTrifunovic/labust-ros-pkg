@@ -183,16 +183,16 @@ struct TFPublishNode
         broadcaster.sendTransform(transform);
       }
 
-      transform.transform.translation.x = 0;
-      transform.transform.translation.y = 0;
-      transform.transform.translation.z = 0;
-      //Eigen::Quaternion<double> q;
-      labust::tools::quaternionFromEulerZYX(M_PI, 0, M_PI / 2,
-                                            transform.transform.rotation);
-      transform.child_frame_id = tf_prefix + "map_ned";
-      transform.header.frame_id = tf_prefix + "map";
-      transform.header.stamp = ct;
-      broadcaster.sendTransform(transform);
+      // transform.transform.translation.x = 0;
+      // transform.transform.translation.y = 0;
+      // transform.transform.translation.z = 0;
+      // //Eigen::Quaternion<double> q;
+      // labust::tools::quaternionFromEulerZYX(M_PI, 0, M_PI / 2,
+      //                                       transform.transform.rotation);
+      // transform.child_frame_id = tf_prefix + "map_ned";
+      // transform.header.frame_id = tf_prefix + "map";
+      // transform.header.stamp = ct;
+      // broadcaster.sendTransform(transform);
            
       try
       {
@@ -217,7 +217,7 @@ struct TFPublishNode
         double roll, pitch, yaw;
         labust::tools::eulerZYXFromQuaternion(rot, roll, pitch, yaw);
         roll += M_PI;
-        yaw -= M_PI/2; 
+        //yaw -= M_PI/2; // East equals 0. No operation needed. Due to ROS convention.
         labust::tools::quaternionFromEulerZYX(roll, pitch, yaw, rot);        
              
         transform.transform.rotation = rot;
