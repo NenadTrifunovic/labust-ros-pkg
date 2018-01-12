@@ -197,7 +197,7 @@ struct TFPublishNode
       try
       {
         transform = tfBuffer.lookupTransform(tf_prefix + "map_ned", tf_prefix + "base_link",
-                                 ros::Time(0), ros::Duration(0.05));
+                                 ros::Time(0), ros::Duration(0));                                 
          
         geometry_msgs::Quaternion rot(transform.transform.rotation);                                                        
 
@@ -213,6 +213,13 @@ struct TFPublishNode
         transform.transform.translation.x = 0;
         transform.transform.translation.y = 0;
         transform.transform.translation.z = 0;
+        
+        double roll, pitch, yaw;
+        labust::tools::eulerZYXFromQuaternion(rot, roll, pitch, yaw);
+        roll += M_PI;
+        yaw -= M_PI/2; 
+        labust::tools::quaternionFromEulerZYX(roll, pitch, yaw, rot);        
+             
         transform.transform.rotation = rot;
         transform.child_frame_id = tf_prefix + "base_link_frd";
         transform.header.frame_id = tf_prefix + "base_pose_ned";
