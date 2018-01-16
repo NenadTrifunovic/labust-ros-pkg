@@ -14,7 +14,9 @@ find_package(catkin REQUIRED COMPONENTS
   snippets  
   tf2_ros
   geometry_msgs
-  sensor_msgs  
+  sensor_msgs
+  nav_msgs
+  auv_msgs  
 )
 
 ## System dependencies are found with CMake's conventions
@@ -144,6 +146,8 @@ include_directories(
 # add_executable(${PROJECT_NAME}_node src/geo_nodes_node.cpp)
 
 add_executable(tf_publish_node src/tf_publish_node.cpp)
+add_executable(odom_to_navsts_node src/odom_to_navsts_node.cpp)
+
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -161,6 +165,9 @@ add_executable(tf_publish_node src/tf_publish_node.cpp)
 # )
 target_link_libraries(tf_publish_node
   ${catkin_LIBRARIES} ${GeographicLib_LIBRARIES} ${Eigen_LIBRARIES}
+)
+target_link_libraries(odom_to_navsts_node
+  ${catkin_LIBRARIES} ${Eigen_LIBRARIES}
 )
 
 #############
