@@ -24,9 +24,12 @@ class TDOASSTest():
     self.target_position = NavSts()
     self.target_position.position.north = 0
     self.target_position.position.east = 0
-    self.approach_bearing = 0
-    self.initial_alpha = 0
-    self.initial_distance = 20
+    self.approach_bearing = -3*math.pi/4
+    #self.initial_alpha = 0
+    #self.initial_alpha = math.pi/4
+    #self.initial_alpha = math.pi/2
+    self.initial_alpha = 3*math.pi/4
+    self.initial_distance = 30
 
     self.pub_test_init = rospy.Publisher(
         "/master/test_init", NavSts, queue_size=1, latch=True)

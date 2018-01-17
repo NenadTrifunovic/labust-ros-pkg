@@ -36,7 +36,7 @@
 #include <labust/allocation/allocation_interface.h>
 #include <pluginlib/class_loader.h>
 
-#include <auv_msgs/BodyForceReq.h>
+#include <auv_msgs/BodyForceRequest.h>
 #include <std_msgs/Int32.h>
 #include <ros/ros.h>
 
@@ -75,7 +75,7 @@ namespace labust
                         void onAllocationMode(const std_msgs::Int32::ConstPtr mode);
 
 			///Handles the desired force and torque request.
-			void onTau(const auv_msgs::BodyForceReq::ConstPtr tau);
+			void onTau(const auv_msgs::BodyForceRequest::ConstPtr tau);
 
 			///The safety timer that stops the thrusters.
 			ros::Timer safety;

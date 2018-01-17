@@ -15,7 +15,7 @@
   <build_depend>actionlib</build_depend>
   <build_depend>actionlib_msgs</build_depend>
   <build_depend>auv_msgs</build_depend>
-  <build_depend>navcon_msgs</build_depend>
+  <build_depend>labust_msgs</build_depend>
   <build_depend>roscpp</build_depend>
   <build_depend>tf2_ros</build_depend>
   <build_depend>snippets</build_depend>
@@ -23,7 +23,7 @@
   <run_depend>actionlib</run_depend>
   <run_depend>actionlib_msgs</run_depend>
   <run_depend>auv_msgs</run_depend>
-  <run_depend>navcon_msgs</run_depend>
+  <run_depend>labust_msgs</run_depend>
   <run_depend>roscpp</run_depend>
   <run_depend>tf2_ros</run_depend>
   <run_depend>snippets</run_depend>

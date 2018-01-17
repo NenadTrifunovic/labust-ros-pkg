@@ -5,7 +5,7 @@ find_package(catkin REQUIRED COMPONENTS
   actionlib
   actionlib_msgs
   auv_msgs
-  navcon_msgs
+  labust_msgs
   roscpp
   tf2_ros
   snippets
@@ -17,7 +17,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
   INCLUDE_DIRS include
 # LIBRARIES labust_primitives
-  CATKIN_DEPENDS actionlib actionlib_msgs auv_msgs navcon_msgs roscpp tf2_ros snippets
+  CATKIN_DEPENDS actionlib actionlib_msgs auv_msgs labust_msgs roscpp tf2_ros snippets
 )
 
 ###########
@@ -29,23 +29,23 @@ include_directories(include
 
 ## Primitives
 add_executable(go2point src/go2point.cpp)
-add_dependencies(go2point auv_msgs_gencpp navcon_msgs_gencpp)
+add_dependencies(go2point auv_msgs_gencpp labust_msgs_gencpp)
 target_link_libraries(go2point ${catkin_LIBRARIES})
 
 add_executable(course_keeping src/course_keeping.cpp)
-add_dependencies(course_keeping auv_msgs_gencpp navcon_msgs_gencpp)
+add_dependencies(course_keeping auv_msgs_gencpp labust_msgs_gencpp)
 target_link_libraries(course_keeping ${catkin_LIBRARIES})
 
 add_executable(dynamic_positioning src/dynamic_positioning.cpp)
-add_dependencies(dynamic_positioning auv_msgs_gencpp navcon_msgs_gencpp)
+add_dependencies(dynamic_positioning auv_msgs_gencpp labust_msgs_gencpp)
 target_link_libraries(dynamic_positioning ${catkin_LIBRARIES})
 
 add_executable(track_diver src/track_diver.cpp)
-add_dependencies(track_diver auv_msgs_gencpp navcon_msgs_gencpp)
+add_dependencies(track_diver auv_msgs_gencpp labust_msgs_gencpp)
 target_link_libraries(track_diver ${catkin_LIBRARIES})
 
 add_executable(docking src/docking.cpp)
-add_dependencies(docking auv_msgs_gencpp navcon_msgs_gencpp)
+add_dependencies(docking auv_msgs_gencpp labust_msgs_gencpp)
 target_link_libraries(docking ${catkin_LIBRARIES})
 
 #############

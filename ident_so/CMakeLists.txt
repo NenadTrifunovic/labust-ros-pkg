@@ -6,7 +6,7 @@ find_package(catkin REQUIRED COMPONENTS
   actionlib
   snippets
   roscpp
-  navcon_msgs
+  labust_msgs
 )
 
 ###################################
@@ -35,11 +35,11 @@ add_library(I_SO
 ## Identification node
 add_executable(ident_so src/IdentificationNode.cpp
     include/labust/control/IdentificationNode.hpp)
-add_dependencies(ident_so auv_msgs_gencpp navcon_msgs_gencpp)
+add_dependencies(ident_so auv_msgs_gencpp labust_msgs_gencpp)
 target_link_libraries(ident_so I_SO ${catkin_LIBRARIES})
 ## Tests
 add_executable(test_ident src/test/test_ident.cpp)
-add_dependencies(test_ident auv_msgs_gencpp navcon_msgs_gencpp)
+add_dependencies(test_ident auv_msgs_gencpp labust_msgs_gencpp)
 target_link_libraries(test_ident ${catkin_LIBRARIES})
 
 ###################

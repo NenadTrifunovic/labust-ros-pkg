@@ -4,9 +4,8 @@ project(labust_control)
 find_package(catkin REQUIRED COMPONENTS
   cmake_modules
   auv_msgs
-  navcon_msgs
+  labust_msgs
   sensor_msgs
-  misc_msgs
   dynamic_reconfigure
   roscpp
   snippets
@@ -25,7 +24,7 @@ generate_dynamic_reconfigure_options(
 catkin_package(
    INCLUDE_DIRS include
    LIBRARIES pidtoolkit2
-   CATKIN_DEPENDS auv_msgs roscpp snippets navcon_msgs sensor_msgs
+   CATKIN_DEPENDS auv_msgs roscpp snippets labust_msgs sensor_msgs
 )
 
 ###########

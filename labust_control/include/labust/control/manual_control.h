@@ -34,10 +34,10 @@
 #ifndef LABUST_CONTROL_MANUAL_CONTROL_H
 #define LABUST_CONTROL_MANUAL_CONTROL_H
 
-#include <navcon_msgs/ManualConfigure.h>
-#include <navcon_msgs/ManualSelect.h>
-#include <navcon_msgs/ManualConfiguration.h>
-#include <auv_msgs/NavSts.h>
+#include <labust_msgs/ManualConfigure.h>
+#include <labust_msgs/ManualSelect.h>
+#include <labust_msgs/ManualConfiguration.h>
+#include <auv_msgs/NavigationStatus.h>
 #include <sensor_msgs/Joy.h>
 #include <ros/ros.h>
 
@@ -68,10 +68,10 @@ namespace labust
 
 			typedef boost::array<int,DOF> GenArray;
 			typedef std::vector<double> DataType;
-			typedef navcon_msgs::ManualConfigure::Request CRequest;
-			typedef navcon_msgs::ManualConfigure::Response CResponse;
-			typedef navcon_msgs::ManualSelect::Request SRequest;
-			typedef navcon_msgs::ManualSelect::Response SResponse;
+			typedef labust_msgs::ManualConfigure::Request CRequest;
+			typedef labust_msgs::ManualConfigure::Response CResponse;
+			typedef labust_msgs::ManualSelect::Request SRequest;
+			typedef labust_msgs::ManualSelect::Response SResponse;
 
 		public:
 			///Main constructor
@@ -84,7 +84,7 @@ namespace labust
 			///Handle the incoming joystick message.
 			void onJoystick(const sensor_msgs::Joy::ConstPtr& joy);
 			///Handle the current navigation state.
-			void onNavSts(const auv_msgs::NavSts::ConstPtr& nav);
+			void onNavigationStatus(const auv_msgs::NavigationStatus::ConstPtr& nav);
 			///On server configuration
 			bool onConfiguration(CRequest& req, CResponse& resp);
 			///On generator selection
@@ -112,14 +112,14 @@ namespace labust
 			///Joystick subscriber
 			ros::Subscriber joyin;
 			///Navigation state subscriber
-			ros::Subscriber navsts;
+			ros::Subscriber NavigationStatus;
 			///Configuration service server.
 			ros::ServiceServer config_server;
 			///Selection service
 			ros::ServiceServer select_server;
 
 			///The node configuration
-			navcon_msgs::ManualConfiguration config;
+			labust_msgs::ManualConfiguration config;
 			///The current generators
 			GenArray generators;
 			///The remapped joystick values

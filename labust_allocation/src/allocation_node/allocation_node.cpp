@@ -72,7 +72,7 @@ void AllocationNode::onInit()
 	//Initialize subscribers and publishers
 	tau_sub = nh.subscribe("tau_in", 1, &AllocationNode::onTau,this);
 	mode_sub = nh.subscribe("allocation_mode", 1, &AllocationNode::onAllocationMode,this);
-	tauach_pub = nh.advertise<auv_msgs::BodyForceReq>("tau_ach",1);
+	tauach_pub = nh.advertise<auv_msgs::BodyForceRequest>("tau_ach",1);
 	pwm_pub = nh.advertise<std_msgs::Float32MultiArray>("pwm_out",1);
 }
 
@@ -84,7 +84,7 @@ void AllocationNode::onAllocationMode(const std_msgs::Int32::ConstPtr mode)
     }
 }
 
-void AllocationNode::onTau(const auv_msgs::BodyForceReq::ConstPtr tau)
+void AllocationNode::onTau(const auv_msgs::BodyForceRequest::ConstPtr tau)
 {
 
     if(allocation_mode == STANDARD)
@@ -104,7 +104,7 @@ void AllocationNode::onTau(const auv_msgs::BodyForceReq::ConstPtr tau)
 	pwm_pub.publish(pwmd);
 
 	//Publish the achieved tau
-	auv_msgs::BodyForceReq::Ptr tau_ach(new auv_msgs::BodyForceReq());
+	auv_msgs::BodyForceRequest::Ptr tau_ach(new auv_msgs::BodyForceRequest());
 	const Eigen::VectorXd& tauA = alloc->tauA();
 	labust::tools::vectorToPoint(tauA, tau_ach->wrench.force);
 	labust::tools::vectorToPoint(tauA, tau_ach->wrench.torque, AllocationInterface::K);

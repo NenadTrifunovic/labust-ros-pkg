@@ -36,7 +36,7 @@
 #include <labust/control/SOIdentification.hpp>
 #include <labust/simulation/matrixfwd.hpp>
 
-#include <auv_msgs/NavSts.h>
+#include <auv_msgs/NavigationStatus.h>
 #include <actionlib/server/simple_action_server.h>
 #include <navcon_msgs/DOFIdentificationAction.h>
 #include <ros/ros.h>
@@ -82,7 +82,7 @@ namespace labust
 			/**
 			 * Handle incoming estimates message.
 			 */
-			void onMeasurement(const auv_msgs::NavSts::ConstPtr& meas);
+			void onMeasurement(const auv_msgs::NavigationStatus::ConstPtr& meas);
 			/**
 			 * Execute the identification loop.
 			 */
