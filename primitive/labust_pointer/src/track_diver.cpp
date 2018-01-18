@@ -1,7 +1,7 @@
 /*********************************************************************
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2015, LABUST, UNIZG-FER
+ *  Copyright (c) 2018, LABUST, UNIZG-FER
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -34,9 +34,9 @@
 #include <labust/primitive/track_diver.h>
 #include <labust/tools/conversions.hpp>
 
-#include <auv_msgs/FSPathInfo.h>
-#include <auv_msgs/NavStsReq.h>
-#include <navcon_msgs/EnableControl.h>
+#include <labust_msgs/FSPathInfo.h>
+#include <labust_msgs/NavStsReq.h>
+#include <labust_msgs/EnableControl.h>
 
 using namespace labust::primitive;
 
@@ -79,7 +79,7 @@ void TrackDiver::init()
   path.curvature = 1 / radius;
   path.torsion = 0;
   // init publishers
-  heading_pub = nh.advertise<auv_msgs::NavStsReq>("state_ref", 1);
+  heading_pub = nh.advertise<labust_msgs::NavStsReq>("state_ref", 1);
   // Init subscribers
   diver_state =
       nh.subscribe("diver_position", 1, &TrackDiver::onDiverState, this);
@@ -172,7 +172,7 @@ void TrackDiver::onPreempt()
   aserver->setPreempted();
 };
 
-void TrackDiver::onStateHat(const auv_msgs::NavSts::ConstPtr& estimate)
+void TrackDiver::onStateHat(const auv_msgs::NavigationStatus::ConstPtr& estimate)
 {
   // Update FS frame position internally
   this->updateFS();
@@ -213,13 +213,13 @@ void TrackDiver::onStateHat(const auv_msgs::NavSts::ConstPtr& estimate)
   }
 };
 
-void TrackDiver::setDesiredPathPosition(const auv_msgs::NavSts& estimate)
+void TrackDiver::setDesiredPathPosition(const auv_msgs::NavigationStatus& estimate)
 {
   double nr = sqrt(cgoal->radius * cgoal->radius -
                    cgoal->vertical_offset * cgoal->vertical_offset);
   finfo.operational_radius = nr;
   // Find monitoring position
-  finfo.mu_r = psi_d(diver_pos.orientation.yaw);
+  finfo.mu_r = psi_d(diver_pos.orientation.z);
   if (cgoal->wrapping_enable)
     finfo.mu_r = labust::math::wrapRad(finfo.mu_r);
   finfo.mu_r = nr * finfo.mu_r;
@@ -251,7 +251,7 @@ void TrackDiver::setDesiredPathPosition(const auv_msgs::NavSts& estimate)
         diff = nr * labust::math::wrapRad(diff / nr);
       path.xi_r = finfo.mu_r + sigma_fov * tanh(diff / kxi);
       // Set path position rate of change
-      double dmu_r = nr * diver_pos.orientation_rate.yaw;
+      double dmu_r = nr * diver_pos.orientation_rate.z;
       path.dxi_r = dmu_r +
                    dmu_r * sigma_fov / (2 * kxi) *
                        (tanh(diff / kxi) * tanh(diff / kxi) - 1);
@@ -270,7 +270,7 @@ void TrackDiver::setDesiredPathPosition(const auv_msgs::NavSts& estimate)
     ROS_DEBUG("Monitoring.");
     finfo.gamma_r = finfo.mu_r;
     path.xi_r = finfo.mu_r;
-    path.dxi_r = diver_pos.orientation_rate.yaw * nr;
+    path.dxi_r = diver_pos.orientation_rate.z * nr;
   }
 
   dx = diver_pos.position.north - vehicle_pos.position.north;
@@ -280,7 +280,7 @@ void TrackDiver::setDesiredPathPosition(const auv_msgs::NavSts& estimate)
     path.pi_tilda = nr * labust::math::wrapRad(path.pi_tilda / nr);
 }
 
-void TrackDiver::setDesiredOrientation(const auv_msgs::NavSts& estimate)
+void TrackDiver::setDesiredOrientation(const auv_msgs::NavigationStatus& estimate)
 {
   double dx = diver_pos.position.north - estimate.position.north;
   double dy = diver_pos.position.east - estimate.position.east;
@@ -290,7 +290,7 @@ void TrackDiver::setDesiredOrientation(const auv_msgs::NavSts& estimate)
   if (cgoal->streamline_orientation)
     path.k = 0.5 * (tanh((sqrt(dx * dx + dy * dy) - sigma_m) / kpsi) + 1);
   // Publish the heading here
-  auv_msgs::NavStsReq::Ptr heading_out(new auv_msgs::NavStsReq());
+  labust_msgs::NavStsReq::Ptr heading_out(new labust_msgs::NavStsReq());
   heading_out->orientation.yaw = path.delta_r;
   heading_pub.publish(heading_out);
 }
@@ -327,14 +327,14 @@ void TrackDiver::updateFS()
   labust::tools::quaternionFromEulerZYX(
       0,  // path.orientation.roll - diver_pos.orientation.roll,
       0,  // path.orientation.pitch - diver_pos.orientation.pitch,
-      diver_pos.orientation.yaw, qdn);
+      diver_pos.orientation.z, qdn);
   labust::tools::quaternionFromEulerZYX(
       0,  // path.orientation.roll - diver_pos.orientation.roll,
       0,  // path.orientation.pitch - diver_pos.orientation.pitch,
       labust::math::wrapRad(path.orientation.yaw), qpn);
   
   Eigen::Vector3d speed;
-  speed << diver_pos.gbody_velocity.x, diver_pos.gbody_velocity.y,
+  speed << diver_pos.seafloor_velocity.x, diver_pos.seafloor_velocity.y,
       0;  // diver_pos.gbody_velocity.z;
   speed = qpn.toRotationMatrix().transpose()*qdn.toRotationMatrix() * speed;
   path.dr_p.x = speed(0);
@@ -377,7 +377,7 @@ void TrackDiver::step()
   broadcaster.sendTransform(tfs);
 
   // Publish reference
-  auv_msgs::FSPathInfo::Ptr piout(new auv_msgs::FSPathInfo(path));
+  labust_msgs::FSPathInfo::Ptr piout(new labust_msgs::FSPathInfo(path));
   piout->header.stamp = tfs.header.stamp;
   piout->header.frame_id = "sf_frame";
   stateRef.publish(piout);
@@ -397,15 +397,15 @@ void TrackDiver::updateControllers(bool on)
   {
     ros::NodeHandle nh;
     this->control_manager =
-        nh.serviceClient<navcon_msgs::EnableControl>("VT_enable", true);
+        nh.serviceClient<labust_msgs::EnableControl>("VT_enable", true);
   }
-  navcon_msgs::EnableControl req;
+  labust_msgs::EnableControl req;
   req.request.enable = on;
   this->control_manager.call(req);
 }
 
 /// Diver position update handling
-void TrackDiver::onDiverState(const auv_msgs::NavSts::ConstPtr& diver_state)
+void TrackDiver::onDiverState(const auv_msgs::NavigationStatus::ConstPtr& diver_state)
 {
   boost::mutex::scoped_lock l(state_mux);
   diver_pos = *diver_state;
@@ -415,8 +415,8 @@ void TrackDiver::onDiverState(const auv_msgs::NavSts::ConstPtr& diver_state)
   tfs.transform.translation.y = diver_pos.position.east;
   tfs.transform.translation.z = diver_pos.position.depth;
   labust::tools::quaternionFromEulerZYX(
-      diver_pos.orientation.roll, diver_pos.orientation.pitch,
-      diver_pos.orientation.yaw, tfs.transform.rotation);
+      diver_pos.orientation.x, diver_pos.orientation.y,
+      diver_pos.orientation.z, tfs.transform.rotation);
   tfs.child_frame_id = tf_prefix + "diver_frame";
   tfs.header.frame_id = tf_prefix + "local";
   tfs.header.stamp = ros::Time::now();
@@ -428,7 +428,7 @@ int main(int argc, char* argv[])
 {
   ros::init(argc, argv, "track_diver");
   labust::primitive::PrimitiveBase<labust::primitive::TrackDiver,
-                                   auv_msgs::FSPathInfo>
+                                   labust_msgs::FSPathInfo>
       primitive;
   ros::spin();
   return 0;

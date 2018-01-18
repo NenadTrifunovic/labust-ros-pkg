@@ -1,15 +1,7 @@
 /*********************************************************************
- * course_keeping.cpp
- *
- *  Created on: Feb 01, 2013
- *      Author: Dula Nad
- *
- ********************************************************************/
-
-/*********************************************************************
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2010, LABUST, UNIZG-FER
+ *  Copyright (c) 2018, LABUST, UNIZG-FER
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -45,8 +37,8 @@
 #include <labust/tools/conversions.hpp>
 
 #include <Eigen/Dense>
-#include <navcon_msgs/CourseKeepingAction.h>
-#include <navcon_msgs/EnableControl.h>
+#include <labust_msgs/CourseKeepingAction.h>
+#include <labust_msgs/EnableControl.h>
 #include <geometry_msgs/Point.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <tf2_ros/static_transform_broadcaster.h>
@@ -63,10 +55,10 @@ namespace labust
 		///\todo Check what happens during the switch
 		///\todo Name remapping of controllers should be implemented similar to ROS remapping ?
 		///\todo Add the ability to update heading in fully actuated without full recalculation
-		struct CourseKeeping : protected ExecutorBase<navcon_msgs::CourseKeepingAction>
+		struct CourseKeeping : protected ExecutorBase<labust_msgs::CourseKeepingAction>
 		{
-			typedef navcon_msgs::CourseKeepingGoal Goal;
-			typedef navcon_msgs::CourseKeepingResult Result;
+			typedef labust_msgs::CourseKeepingGoal Goal;
+			typedef labust_msgs::CourseKeepingResult Result;
 
 			enum {ualf=0,falf,hdg, numcnt};
 			enum{xp=0,yp,zp};
@@ -159,7 +151,7 @@ namespace labust
 					}
 					else
 					{
-						double delta = labust::math::wrapRad(lastState.orientation.yaw - line.gamma());
+						double delta = labust::math::wrapRad(lastState.orientation.z - line.gamma());
 						ROS_DEBUG("Delta: %f",delta);
 						if (std::abs(delta) < M_PI_2)
 						{
@@ -197,21 +189,21 @@ namespace labust
 
 				/*** Enable or disable ualf/falf controller ***/
 				if(underactuated)
-					cl = nh.serviceClient<navcon_msgs::EnableControl>(std::string(controllers.name[ualf]));
+					cl = nh.serviceClient<labust_msgs::EnableControl>(std::string(controllers.name[ualf]));
 				else
-					cl = nh.serviceClient<navcon_msgs::EnableControl>(std::string(controllers.name[falf]));
+					cl = nh.serviceClient<labust_msgs::EnableControl>(std::string(controllers.name[falf]));
 
-				navcon_msgs::EnableControl a;
+				labust_msgs::EnableControl a;
 				a.request.enable = controllers.state[ualf] || controllers.state[falf];
 				cl.call(a);
 
 				/*** Enable or disable hdg controller ***/
-				cl = nh.serviceClient<navcon_msgs::EnableControl>(std::string(controllers.name[hdg]));
+				cl = nh.serviceClient<labust_msgs::EnableControl>(std::string(controllers.name[hdg]));
 				a.request.enable = controllers.state[hdg];
 				cl.call(a);
 			}
 
-			void onStateHat(const auv_msgs::NavSts::ConstPtr& estimate)
+			void onStateHat(const auv_msgs::NavigationStatus::ConstPtr& estimate)
 			{
 				boost::mutex::scoped_lock l(state_mux);
 				if (aserver->isActive())
@@ -229,20 +221,20 @@ namespace labust
 				lastState = *estimate;
 			}
 
-			auv_msgs::NavStsPtr step(const auv_msgs::NavSts& state)
+			auv_msgs::NavigationStatusPtr step(const auv_msgs::NavigationStatus& state)
 			{
-				auv_msgs::NavStsPtr ref(new auv_msgs::NavSts());
+				auv_msgs::NavigationStatusPtr ref(new auv_msgs::NavigationStatus());
 
 				ref->position.east = 0;
 				ref->body_velocity.x = goal->speed;
-				ref->orientation.yaw = goal->yaw;
+				ref->orientation.z = goal->yaw;
 				ref->header.frame_id = "course_frame";
 
 				//Check underactuated behaviour
 				if (underactuated)
 				{
-					ref->orientation.yaw = line.gamma();
-					double delta = labust::math::wrapRad(state.orientation.yaw - line.gamma());
+					ref->orientation.z = line.gamma();
+					double delta = labust::math::wrapRad(state.orientation.z - line.gamma());
 					ROS_DEBUG("Delta, gamma: %f, %f",delta, line.gamma());
 					if (controllers.state[hdg] && (std::abs(delta) < M_PI/3))
 					{
@@ -274,9 +266,9 @@ namespace labust
 			bool headingEnabled;
 			bool processNewGoal;
 			Goal::ConstPtr goal;
-			auv_msgs::NavSts lastState;
+			auv_msgs::NavigationStatus lastState;
 			boost::mutex state_mux;
-			navcon_msgs::ControllerSelectRequest controllers;
+			labust_msgs::ControllerSelectRequest controllers;
 		};
 	}
 }

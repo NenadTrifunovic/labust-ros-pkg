@@ -45,9 +45,9 @@ void onOdom(ros::Publisher& NavigationStatus, const Eigen::Matrix3d& rot,
   out->body_velocity.x = in->twist.twist.linear.x;
   out->body_velocity.y = in->twist.twist.linear.y;
   out->body_velocity.z = in->twist.twist.linear.z;
-  out->orientation_rate.roll = in->twist.twist.angular.x;
-  out->orientation_rate.pitch = in->twist.twist.angular.y;
-  out->orientation_rate.yaw = in->twist.twist.angular.z;
+  out->orientation_rate.x = in->twist.twist.angular.x;
+  out->orientation_rate.y = in->twist.twist.angular.y;
+  out->orientation_rate.z = in->twist.twist.angular.z;
 
   // Eigen::Vector3d ned;
   // ned<<in->position.north, in->position.east, in->position.depth;
@@ -60,9 +60,9 @@ void onOdom(ros::Publisher& NavigationStatus, const Eigen::Matrix3d& rot,
   double roll, pitch, yaw;
   labust::tools::eulerZYXFromQuaternion(in->pose.pose.orientation, roll, pitch,
                                         yaw);
-  out->orientation.roll = roll;
-  out->orientation.pitch = pitch;
-  out->orientation.yaw = yaw;
+  out->orientation.x = roll;
+  out->orientation.y = pitch;
+  out->orientation.z = yaw;
 
   NavigationStatus.publish(out);
 }

@@ -1,15 +1,7 @@
 /*********************************************************************
- * PrimitiveCallBase.hpp
- *
- *  Created on: May 27, 2015
- *      Author: Filip Mandic
- *
- ********************************************************************/
-
-/*********************************************************************
 * Software License Agreement (BSD License)
 *
-*  Copyright (c) 2015-2016, LABUST, UNIZG-FER
+*  Copyright (c) 2015-2018, LABUST, UNIZG-FER
 *  All rights reserved.
 *
 *  Redistribution and use in source and binary forms, with or without
@@ -43,127 +35,134 @@
 #ifndef PRIMITIVECALLBASE_HPP_
 #define PRIMITIVECALLBASE_HPP_
 
-#include <ros/ros.h>
 #include <actionlib/client/simple_action_client.h>
+#include <ros/ros.h>
 
 #include <std_msgs/String.h>
 
 namespace labust
 {
-	namespace primitive
-	{
-		/**
-		* The primitive call base class.
-		*/
-		template <class ActionType, class ActionGoal, class ActionResult, class ActionFeedback>
-		class PrimitiveCallBase
-		{
-		public:
+namespace primitive
+{
+/**
+* The primitive call base class.
+*/
+template <class ActionType, class ActionGoal, class ActionResult,
+          class ActionFeedback>
+class PrimitiveCallBase
+{
+public:
+  typedef ActionType Action;
+  typedef actionlib::SimpleActionClient<Action> ActionClient;
+  typedef ActionGoal Goal;
+  typedef ActionResult Result;
+  typedef ActionFeedback Feedback;
 
-			typedef ActionType Action;
-			typedef actionlib::SimpleActionClient<Action> ActionClient;
-			typedef ActionGoal Goal;
-			typedef ActionResult Result;
-			typedef ActionFeedback Feedback;
+protected:
+  /**
+   * Main constructor
+   */
+  PrimitiveCallBase(const std::string& name)
+    : primitiveName(name), ac(primitiveName.c_str())
+  {
+    ros::NodeHandle nh;
 
-		protected:
+    /*** Publishers */
+    pubEventString = nh.advertise<std_msgs::String>("eventString", 1);
 
-			/**
-			 * Main constructor
-			 */
-			PrimitiveCallBase(const std::string& name):primitiveName(name),
-														  ac(primitiveName.c_str())
-			{
-				ros::NodeHandle nh;
+    ROS_INFO("Mission execution: %s - Waiting for action server to start.",
+             primitiveName.c_str());
+    if (!ac.waitForServer(ros::Duration(1)))
+    {
+      ROS_FATAL("Mission execution: %s - Cannot establish connection to action "
+                "server.",
+                primitiveName.c_str());
+      return;
+    }
+    ROS_INFO("Mission execution: %s - Action server started",
+             primitiveName.c_str());
+  }
 
-				/*** Publishers */
-				pubEventString = nh.advertise<std_msgs::String>("eventString",1);
+  virtual ~PrimitiveCallBase()
+  {
+  }
 
-				ROS_INFO("Mission execution: %s - Waiting for action server to start.", primitiveName.c_str());
-				if(!ac.waitForServer(ros::Duration(1)))
-				{
-					ROS_FATAL("Mission execution: %s - Cannot establish connection to action server.", primitiveName.c_str());
-					return;
-				}
-				ROS_INFO("Mission execution: %s - Action server started", primitiveName.c_str());
-			}
+public:
+  virtual void start(Goal goal)
+  {
+    this->callPrimitiveAction(goal);
+  }
 
-			virtual ~PrimitiveCallBase(){}
+  virtual void stop()
+  {
+    ac.cancelGoalsAtAndBeforeTime(ros::Time::now());
+  }
 
-		public:
-			virtual void start(Goal goal)
-			{
-				this->callPrimitiveAction(goal);
-			}
+protected:
+  void callPrimitiveAction(Goal goal)
+  {
+    ac.sendGoal(goal, boost::bind(&PrimitiveCallBase::doneCb, this, _1, _2),
+                boost::bind(&PrimitiveCallBase::activeCb, this),
+                boost::bind(&PrimitiveCallBase::feedbackCb, this, _1));
+  }
 
-			virtual void stop()
-			{
-				ac.cancelGoalsAtAndBeforeTime(ros::Time::now());
-			}
+  // Called once when the goal completes
+  virtual void doneCb(const actionlib::SimpleClientGoalState& state,
+                      const typename Result::ConstPtr& result)
+  {
+    if (state == actionlib::SimpleClientGoalState::SUCCEEDED)
+    {
+      ROS_INFO("Mission execution: Primitive finished in state [%s]",
+               state.toString().c_str());
+      publishEventString("/PRIMITIVE_FINISHED");
+    }
+  }
 
-		protected:
-			void callPrimitiveAction(Goal goal)
-			{
-				ac.sendGoal(goal,
-							boost::bind(&PrimitiveCallBase::doneCb, this, _1, _2),
-							boost::bind(&PrimitiveCallBase::activeCb, this),
-							boost::bind(&PrimitiveCallBase::feedbackCb, this, _1));
-			}
+  // Called once when the goal becomes active
+  virtual void activeCb()
+  {
+    ROS_INFO("Mission execution: Action goal just went active.");
+  }
 
+  // Called every time feedback is received for the goal
+  virtual void feedbackCb(const typename Feedback::ConstPtr& feedback)
+  {
+  }
+  
+  virtual void onPrimitiveRequest(const std_msgs::Bool::ConstPtr &flag)
+  {
+    
+  }
 
-			// Called once when the goal completes
-			virtual void doneCb(const actionlib::SimpleClientGoalState& state, const typename Result::ConstPtr& result)
-			{
-				if (state == actionlib::SimpleClientGoalState::SUCCEEDED)
-				{
-					ROS_INFO("Mission execution: Primitive finished in state [%s]", state.toString().c_str());
-					publishEventString("/PRIMITIVE_FINISHED");
-				}
-			}
+  void publishEventString(std::string event)
+  {
+    std_msgs::String msg;
+    msg.data = event.c_str();
+    pubEventString.publish(msg);
+  }
 
-			// Called once when the goal becomes active
-			virtual void activeCb()
-			{
-				ROS_INFO("Mission execution: Action goal just went active.");
-			}
-
-			// Called every time feedback is received for the goal
-			virtual void feedbackCb(const typename Feedback::ConstPtr& feedback)
-			{
-
-			}
-
-			void publishEventString(std::string event)
-			{
-				std_msgs::String msg;
-				msg.data = event.c_str();
-				pubEventString.publish(msg);
-			}
-
-			/**
-			 * The name identifier.
-			 */
-			std::string primitiveName;
-			/**
-			 * The action client.
-			 */
-			ActionClient ac;
-			/**
-			 * The action var.
-			 */
-			Action action;
-			/**
-			* The service client for controller activation/deactivation
-			*/
-			ros::ServiceClient control_manager;
-			/**
-			 * Event string publisher
-			 */
-			ros::Publisher pubEventString;
-		};
-	}
+  /**
+   * The name identifier.
+   */
+  std::string primitiveName;
+  /**
+   * The action client.
+   */
+  ActionClient ac;
+  /**
+   * The action var.
+   */
+  Action action;
+  /**
+  * The service client for controller activation/deactivation
+  */
+  ros::ServiceClient control_manager;
+  /**
+   * Event string publisher
+   */
+  ros::Publisher pubEventString;
+};
 }
-
-
+}
 
 #endif /* PRIMITIVECALLBASE_HPP_ */

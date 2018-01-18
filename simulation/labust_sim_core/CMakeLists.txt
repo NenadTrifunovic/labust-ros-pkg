@@ -16,7 +16,7 @@ find_package(catkin REQUIRED COMPONENTS
   auv_msgs
   nav_msgs
   underwater_msgs
-  navcon_msgs
+  labust_msgs
   tf2_ros   
 )
 

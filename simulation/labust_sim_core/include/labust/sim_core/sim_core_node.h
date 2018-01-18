@@ -1,7 +1,7 @@
 /*********************************************************************
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2010, LABUST, UNIZG-FER
+ *  Copyright (c) 2018, LABUST, UNIZG-FER
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -39,11 +39,11 @@
 #include <labust/simulation/RBModel.hpp>
 #include <labust/tools/conversions.hpp>
 
-#include <auv_msgs/BodyForceReq.h>
+#include <labust_msgs/BodyForceReq.h>
 #include <geometry_msgs/WrenchStamped.h>
 #include <geometry_msgs/TwistStamped.h>
 #include <geometry_msgs/Vector3.h>
-#include <auv_msgs/NavSts.h>
+#include <auv_msgs/NavigationStatus.h>
 #include <nav_msgs/Odometry.h>
 #include <ros/ros.h>
 #include <tf2_ros/transform_broadcaster.h>
@@ -65,7 +65,7 @@ namespace labust
 		/**
 		 *  This class implements core functionality of the ROS uvsim node.
 		 *
-		 *  \todo Split into NavSts and Odom policy
+		 *  \todo Split into NavigationStatus and Odom policy
 		 *  \todo Keep noise in the model or fully leave it up to sensor simulations ?
 		 *  \todo Remove commented SimInterface code.
 		 *  \todo Deprecated world coordinate publishing in favor of the LLNode in labust_navigation.
@@ -134,7 +134,7 @@ namespace labust
 			 * The windup helper function.
 			 */
 			template <class WindupType>
-			inline void publish_windup(auv_msgs::BodyForceReq::Ptr& tau, const WindupType& windup)
+			inline void publish_windup(labust_msgs::BodyForceReq::Ptr& tau, const WindupType& windup)
 			{
 				labust::tools::vectorToPoint(windup,tau->disable_axis);
 				tau->disable_axis.roll = windup(3);
@@ -155,7 +155,7 @@ namespace labust
 			/**
 			 * The helper methods for publish dispatch.
 			 */
-			inline void publish_dispatch(auv_msgs::BodyForceReq::Ptr& tau)
+			inline void publish_dispatch(labust_msgs::BodyForceReq::Ptr& tau)
 			{
 				tau->header.stamp = ros::Time::now();
 				this->tauAch.publish(tau);
@@ -181,13 +181,13 @@ namespace labust
 			void onCurrents(const geometry_msgs::TwistStamped::ConstPtr& currents);
 
 			/**
-			 * The method calculates and publishes the needed NavSts.
+			 * The method calculates and publishes the needed NavigationStatus.
 			 */
-			void publishNavSts();
+			void publishNavigationStatus();
 			/**
-			 * The helper method to copy data from vector to NavSts.
+			 * The helper method to copy data from vector to NavigationStatus.
 			 */
-			void etaNuToNavSts(const vector& eta, const vector& nu, auv_msgs::NavSts& state);
+			void etaNuToNavigationStatus(const vector& eta, const vector& nu, auv_msgs::NavigationStatus& state);
 
 			/**
 			 * The method calculates and publishes the needed Odometry message.

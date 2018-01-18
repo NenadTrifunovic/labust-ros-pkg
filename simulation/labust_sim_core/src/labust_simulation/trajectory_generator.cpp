@@ -1,15 +1,7 @@
 /*********************************************************************
- *  trajectory_generator.cpp
- *
- *  Created on: Oct 5, 2015
- *      Author: Filip Mandic
- *
- ********************************************************************/
-
-/*********************************************************************
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2015, LABUST, UNIZG-FER
+ *  Copyright (c) 2018, LABUST, UNIZG-FER
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -42,13 +34,13 @@
  *********************************************************************/
 #include <Eigen/Dense>
 #include <ros/ros.h>
-#include <auv_msgs/NavSts.h>
+#include <auv_msgs/NavigationStatus.h>
 #include <std_msgs/Float32.h>
 #include <std_msgs/Bool.h>
 #include <underwater_msgs/USBLFix.h>
 #include <labust/math/NumberManipulation.hpp>
 
-#include <auv_msgs/BodyVelocityReq.h>
+#include <labust_msgs/BodyVelocityReq.h>
 
 namespace labust
 {
@@ -63,13 +55,13 @@ namespace labust
 
 				ros::NodeHandle nh;
 
-				//subVehiclePos = nh.subscribe<auv_msgs::NavSts>("pos_first",1,&USBLSim::onVehiclePos,this);
-				//subTargetPos = nh.subscribe<auv_msgs::NavSts>("pos_second",1,&USBLSim::onTargetPos,this);
+				//subVehiclePos = nh.subscribe<labust_msgs::NavigationStatus>("pos_first",1,&USBLSim::onVehiclePos,this);
+				//subTargetPos = nh.subscribe<auv_msgs::NavigationStatus>("pos_second",1,&USBLSim::onTargetPos,this);
 				subStartGenerator = nh.subscribe<std_msgs::Bool>("start_trajectory_generator",1,&TrajectoryGenerator::onStartGenerator,this);
 
-				pubNuRef = nh.advertise<auv_msgs::BodyVelocityReq>("diver/nuRef",1);
+				pubNuRef = nh.advertise<labust_msgs::BodyVelocityReq>("diver/nuRef",1);
 				//TODO Add position reference
-				pubStateRef = nh.advertise<auv_msgs::NavSts>("diver/stateRef",1);
+				pubStateRef = nh.advertise<auv_msgs::NavigationStatus>("diver/stateRef",1);
 			}
 
 			~TrajectoryGenerator(){}
@@ -96,7 +88,7 @@ namespace labust
 				while (ros::ok())
 				{
 					time = Ts*i++;
-					auv_msgs::BodyVelocityReq::Ptr nuRef(new auv_msgs::BodyVelocityReq);
+					labust_msgs::BodyVelocityReq::Ptr nuRef(new labust_msgs::BodyVelocityReq);
 					nuRef->twist.linear.x = surge_speed;
 					nuRef->twist.angular.z = 0;
 					if(time > surge_time &&  time < surge_time+yaw_time)
@@ -110,7 +102,7 @@ namespace labust
 				}
 			}
 
-			void onVehiclePos(const auv_msgs::NavSts::ConstPtr& data)
+			void onVehiclePos(const auv_msgs::NavigationStatus::ConstPtr& data)
 			{
 				//vehPos << data->position.north, data->position.east, data->position.depth;
 				//vehYaw = data->orientation.yaw;

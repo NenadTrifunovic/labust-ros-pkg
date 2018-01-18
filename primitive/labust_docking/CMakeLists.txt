@@ -16,7 +16,8 @@ find_package(catkin REQUIRED COMPONENTS
   auv_msgs
   labust_msgs
   tf2_ros
-  snippets  
+  snippets 
+  labust_primitive  
 )
 
 ## System dependencies are found with CMake's conventions
@@ -157,7 +158,7 @@ include_directories(
 # )
 
 add_executable(docking src/docking.cpp)
-add_dependencies(docking auv_msgs labust_msgs)
+#add_dependencies(docking auv_msgs labust_msgs)
 target_link_libraries(docking ${catkin_LIBRARIES})
 
 #############

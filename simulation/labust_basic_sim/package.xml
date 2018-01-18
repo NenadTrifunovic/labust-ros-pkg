@@ -58,6 +58,14 @@
   <exec_depend>roscpp</exec_depend>
   <exec_depend>rospy</exec_depend>
   <exec_depend>std_msgs</exec_depend>
+  
+  <build_depend>cmake_modules</build_depend>  
+  <depend>auv_msgs</depend>
+  <depend>labust_msgs</depend>
+  <depend>sensor_msgs</depend>
+  <depend>dynamic_reconfigure</depend>
+  <depend>snippets</depend>
+  <depend>tf2_ros</depend>  
 
 
   <!-- The export tag contains other, unspecified, tags -->

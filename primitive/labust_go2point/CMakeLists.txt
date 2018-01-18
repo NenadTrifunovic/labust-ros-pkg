@@ -17,6 +17,7 @@ find_package(catkin REQUIRED COMPONENTS
   labust_msgs
   tf2_ros
   snippets   
+  labust_primitive  
 )
 
 ## System dependencies are found with CMake's conventions
@@ -155,6 +156,10 @@ include_directories(
 # target_link_libraries(${PROJECT_NAME}_node
 #   ${catkin_LIBRARIES}
 # )
+
+add_executable(go2point src/go2point.cpp)
+#add_dependencies(dynamic_positioning auv_msgs labust_msgs)
+target_link_libraries(go2point ${catkin_LIBRARIES})
 
 #############
 ## Install ##

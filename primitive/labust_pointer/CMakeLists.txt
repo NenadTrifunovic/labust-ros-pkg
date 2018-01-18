@@ -17,6 +17,7 @@ find_package(catkin REQUIRED COMPONENTS
   labust_msgs
   tf2_ros
   snippets   
+  labust_primitive  
 )
 
 ## System dependencies are found with CMake's conventions
@@ -157,7 +158,7 @@ include_directories(
 # )
 
 add_executable(track_diver src/track_diver.cpp)
-add_dependencies(track_diver auv_msgs labust_msgs)
+#add_dependencies(track_diver auv_msgs labust_msgs)
 target_link_libraries(track_diver ${catkin_LIBRARIES})
 
 #############

@@ -1,15 +1,7 @@
 /*********************************************************************
- * PrimitiveCall.hpp
- *
- *  Created on: May 27, 2015
- *      Author: Filip Mandic
- *
- ********************************************************************/
-
-/*********************************************************************
 * Software License Agreement (BSD License)
 *
-*  Copyright (c) 2015-2016, LABUST, UNIZG-FER
+*  Copyright (c) 2015-2018, LABUST, UNIZG-FER
 *  All rights reserved.
 *
 *  Redistribution and use in source and binary forms, with or without
@@ -45,13 +37,13 @@
 
 #include <labust/primitive/PrimitiveCallBase.hpp>
 
-#include <navcon_msgs/GoToPointAction.h>
-#include <navcon_msgs/CourseKeepingAction.h>
-#include <navcon_msgs/DynamicPositioningAction.h>
-#include <navcon_msgs/DOFIdentificationAction.h>
-#include <navcon_msgs/TrackDiverAction.h>
+#include <labust_msgs/GoToPointAction.h>
+#include <labust_msgs/CourseKeepingAction.h>
+#include <labust_msgs/DynamicPositioningAction.h>
+#include <labust_msgs/DOFIdentificationAction.h>
+#include <labust_msgs/TrackDiverAction.h>
 
-#include <caddy_msgs/follow_sectionAction.h>
+//#include <caddy_msgs/follow_sectionAction.h>
 
 #include <ros/ros.h>
 
@@ -59,10 +51,10 @@ namespace labust
 {
 	namespace primitive
 	{
-		class PrimitiveCallGo2Point : public PrimitiveCallBase<navcon_msgs::GoToPointAction,
-																 navcon_msgs::GoToPointGoal,
-																 navcon_msgs::GoToPointResult,
-																 navcon_msgs::GoToPointFeedback>
+		class PrimitiveCallGo2Point : public PrimitiveCallBase<labust_msgs::GoToPointAction,
+																 labust_msgs::GoToPointGoal,
+																 labust_msgs::GoToPointResult,
+																 labust_msgs::GoToPointFeedback>
 		{
 		public:
 			PrimitiveCallGo2Point():PrimitiveCallBase("go2point"),
@@ -100,10 +92,10 @@ namespace labust
 			int display_counter;
 		};
 
-		class PrimitiveCallCourseKeeping : public PrimitiveCallBase<navcon_msgs::CourseKeepingAction,
-																	  navcon_msgs::CourseKeepingGoal,
-																	  navcon_msgs::CourseKeepingResult,
-																	  navcon_msgs::CourseKeepingFeedback>
+		class PrimitiveCallCourseKeeping : public PrimitiveCallBase<labust_msgs::CourseKeepingAction,
+																	  labust_msgs::CourseKeepingGoal,
+																	  labust_msgs::CourseKeepingResult,
+																	  labust_msgs::CourseKeepingFeedback>
 		{
 		public:
 			PrimitiveCallCourseKeeping():PrimitiveCallBase("course_keeping")
@@ -138,10 +130,10 @@ namespace labust
 			}
 		};
 
-		class PrimitiveCallDynamicPositioning : public PrimitiveCallBase<navcon_msgs::DynamicPositioningAction,
-																	  	  navcon_msgs::DynamicPositioningGoal,
-																	  	  navcon_msgs::DynamicPositioningResult,
-																	  	  navcon_msgs::DynamicPositioningFeedback>
+		class PrimitiveCallDynamicPositioning : public PrimitiveCallBase<labust_msgs::DynamicPositioningAction,
+																	  	  labust_msgs::DynamicPositioningGoal,
+																	  	  labust_msgs::DynamicPositioningResult,
+																	  	  labust_msgs::DynamicPositioningFeedback>
 		{
 		public:
 			PrimitiveCallDynamicPositioning():PrimitiveCallBase("dynamic_positioning"),
@@ -181,10 +173,10 @@ namespace labust
 
 		};
 
-		class PrimitiveCallDOFIdentification : public PrimitiveCallBase<navcon_msgs::DOFIdentificationAction,
-																	  	  navcon_msgs::DOFIdentificationGoal,
-																	  	  navcon_msgs::DOFIdentificationResult,
-																	  	  navcon_msgs::DOFIdentificationFeedback>
+		class PrimitiveCallDOFIdentification : public PrimitiveCallBase<labust_msgs::DOFIdentificationAction,
+																	  	  labust_msgs::DOFIdentificationGoal,
+																	  	  labust_msgs::DOFIdentificationResult,
+																	  	  labust_msgs::DOFIdentificationFeedback>
 		{
 		public:
 			PrimitiveCallDOFIdentification():PrimitiveCallBase("Identification")
@@ -219,10 +211,10 @@ namespace labust
 			}
 		};
 
-		class PrimitiveCallPointer : public PrimitiveCallBase<navcon_msgs::TrackDiverAction,
-																		 navcon_msgs::TrackDiverGoal,
-																		 navcon_msgs::TrackDiverResult,
-																		 navcon_msgs::TrackDiverFeedback>
+		class PrimitiveCallPointer : public PrimitiveCallBase<labust_msgs::TrackDiverAction,
+																		 labust_msgs::TrackDiverGoal,
+																		 labust_msgs::TrackDiverResult,
+																		 labust_msgs::TrackDiverFeedback>
 		{
 		public:
 			PrimitiveCallPointer():PrimitiveCallBase("track_diver")
@@ -256,47 +248,47 @@ namespace labust
 			}
 		};
 
-		class PrimitiveCallFollow : public PrimitiveCallBase<caddy_msgs::follow_sectionAction,
-																				 caddy_msgs::follow_sectionGoal,
-																				 caddy_msgs::follow_sectionResult,
-																				 caddy_msgs::follow_sectionFeedback>
-				{
-				public:
-					PrimitiveCallFollow():PrimitiveCallBase("/follow_section")
-					{
+		// class PrimitiveCallFollow : public PrimitiveCallBase<caddy_msgs::follow_sectionAction,
+		// 																		 caddy_msgs::follow_sectionGoal,
+		// 																		 caddy_msgs::follow_sectionResult,
+		// 																		 caddy_msgs::follow_sectionFeedback>
+		// 		{
+		// 		public:
+		// 			PrimitiveCallFollow():PrimitiveCallBase("/follow_section")
+		// 			{
+		// 
+		// 			}
+		// 
+		// 			~PrimitiveCallFollow(){};
+		// 
+		// 		protected:
+		// 			/***  Callback called once when the goal completes ***/
+		// 			void doneCb(const actionlib::SimpleClientGoalState& state, const Result::ConstPtr& result)
+		// 			{
+		// 				if (state == actionlib::SimpleClientGoalState::SUCCEEDED)
+		// 				{
+		// 					ROS_ERROR("Follow - Finished in state [%s]", state.toString().c_str());
+		// 					publishEventString("/PRIMITIVE_FINISHED");
+		// 				}
+		// 			}
+		// 
+		// 			/*** Callback called once when the goal becomes active ***/
+		// 			void activeCb()
+		// 			{
+		// 			ROS_ERROR("Goal just went active Follow");
+		// 			}
+		// 
+		// 			/*** Callback called every time feedback is received for the goal ***/
+		// 			void feedbackCb(const Feedback::ConstPtr& feedback)
+		// 			{
+		// 				   ROS_ERROR("Feedback - Follow");
+		// 			}
+		// 		};
 
-					}
-
-					~PrimitiveCallFollow(){};
-
-				protected:
-					/***  Callback called once when the goal completes ***/
-					void doneCb(const actionlib::SimpleClientGoalState& state, const Result::ConstPtr& result)
-					{
-						if (state == actionlib::SimpleClientGoalState::SUCCEEDED)
-						{
-							ROS_ERROR("Follow - Finished in state [%s]", state.toString().c_str());
-							publishEventString("/PRIMITIVE_FINISHED");
-						}
-					}
-
-					/*** Callback called once when the goal becomes active ***/
-					void activeCb()
-					{
-					ROS_ERROR("Goal just went active Follow");
-					}
-
-					/*** Callback called every time feedback is received for the goal ***/
-					void feedbackCb(const Feedback::ConstPtr& feedback)
-					{
-						   ROS_ERROR("Feedback - Follow");
-					}
-				};
-
-		class PrimitiveCallDocking : public PrimitiveCallBase<navcon_msgs::DockingAction,
-																		 navcon_msgs::DockingGoal,
-																		 navcon_msgs::DockingResult,
-																		 navcon_msgs::DockingFeedback>
+		class PrimitiveCallDocking : public PrimitiveCallBase<labust_msgs::DockingAction,
+																		 labust_msgs::DockingGoal,
+																		 labust_msgs::DockingResult,
+																		 labust_msgs::DockingFeedback>
 				{
 				public:
 					PrimitiveCallDocking():PrimitiveCallBase("docking"),

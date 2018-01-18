@@ -129,6 +129,17 @@ void vectorToRPY(const Iterator& vec, Point& point, int offset = 0)
 }
 
 /**
+ * The class offers mapping to a NED structure from a vector.
+ */
+template <class Point, class Iterator>
+void vectorToVector3(const Iterator& vec, Point& point, int offset = 0)
+{
+  point.x = vec[offset + 0];
+  point.y = vec[offset + 1];
+  point.z = vec[offset + 2];
+}
+
+/**
  * The class offers mapping from auv_msgs disable_axis structure to a vector.
  */
 template <class Point, class Iterator>

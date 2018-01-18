@@ -36,12 +36,12 @@
 #include <labust/math/NumberManipulation.hpp>
 #include <labust/primitive/PrimitiveBase.hpp>
 
-#include <auv_msgs/FSPathInfo.h>
-#include <auv_msgs/NavSts.h>
+#include <labust_msgs/FSPathInfo.h>
+#include <auv_msgs/NavigationStatus.h>
 #include <geometry_msgs/PointStamped.h>
 #include <geometry_msgs/TwistStamped.h>
 #include <geometry_msgs/TwistStamped.h>
-#include <navcon_msgs/TrackDiverAction.h>
+#include <labust_msgs/TrackDiverAction.h>
 #include <ros/ros.h>
 #include <std_msgs/Float32.h>
 #include <tf2_ros/transform_broadcaster.h>
@@ -58,13 +58,13 @@ namespace primitive
  * target
  * path following.
  */
-class TrackDiver : protected ExecutorBase<navcon_msgs::TrackDiverAction>
+class TrackDiver : protected ExecutorBase<labust_msgs::TrackDiverAction>
 {
   /// Convenience typedefs
-  typedef navcon_msgs::TrackDiverGoal Goal;
-  typedef navcon_msgs::TrackDiverResult Result;
-  typedef navcon_msgs::TrackDiverFeedback Feedback;
-  typedef ExecutorBase<navcon_msgs::TrackDiverAction> Base;
+  typedef labust_msgs::TrackDiverGoal Goal;
+  typedef labust_msgs::TrackDiverResult Result;
+  typedef labust_msgs::TrackDiverFeedback Feedback;
+  typedef ExecutorBase<labust_msgs::TrackDiverAction> Base;
 
   /// Controller enumerator
   enum
@@ -101,7 +101,7 @@ protected:
                     double* param, double bound, double def);
 
   /// Vehicle state handling method
-  void onStateHat(const auv_msgs::NavSts::ConstPtr& estimate);
+  void onStateHat(const auv_msgs::NavigationStatus::ConstPtr& estimate);
   /// Guidance point handling method
   void onGuidancePoint(const geometry_msgs::PointStamped::ConstPtr& point)
   {
@@ -125,7 +125,7 @@ protected:
         radius->data, min_radius, std::numeric_limits<double>::quiet_NaN());
   }
   /// Diver position update handling
-  void onDiverState(const auv_msgs::NavSts::ConstPtr& diver_state);
+  void onDiverState(const auv_msgs::NavigationStatus::ConstPtr& diver_state);
   /// Path speed update handling
   void onPathSpeed(const geometry_msgs::TwistStamped::ConstPtr& dpi_r)
   {
@@ -140,9 +140,9 @@ protected:
   /// Frame update method
   void updateFS();
   /// Monitoring and guidance position caclulation
-  void setDesiredPathPosition(const auv_msgs::NavSts& estimate);
+  void setDesiredPathPosition(const auv_msgs::NavigationStatus& estimate);
   /// Heading calculation
-  void setDesiredOrientation(const auv_msgs::NavSts& estimate);
+  void setDesiredOrientation(const auv_msgs::NavigationStatus& estimate);
 
   /// Subscriber for the point guidance
   ros::Subscriber guidance_sub;
@@ -168,13 +168,13 @@ protected:
   tf2_ros::TransformBroadcaster broadcaster;
 
   /// Current diver position
-  auv_msgs::NavSts diver_pos;
+  auv_msgs::NavigationStatus diver_pos;
   /// Current vehicle position
-  auv_msgs::NavSts vehicle_pos;
+  auv_msgs::NavigationStatus vehicle_pos;
   /// Current desired path speed
   double dpi_r;
   /// Current path state
-  auv_msgs::FSPathInfo path;
+  labust_msgs::FSPathInfo path;
   /// Current feedback
   Feedback finfo;
 

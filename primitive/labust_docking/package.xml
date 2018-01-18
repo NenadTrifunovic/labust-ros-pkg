@@ -59,6 +59,14 @@
   <exec_depend>rospy</exec_depend>
   <exec_depend>std_msgs</exec_depend>
 
+  <depend>actionlib</depend>
+  <depend>actionlib_msgs</depend>
+  <depend>auv_msgs</depend>
+  <depend>labust_msgs</depend>
+  <depend>tf2_ros</depend>
+  <depend>snippets</depend> 
+  <depend>labust_primitive</depend>      
+  
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>

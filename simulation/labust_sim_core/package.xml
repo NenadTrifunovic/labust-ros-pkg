@@ -61,9 +61,9 @@
   <exec_depend>std_msgs</exec_depend>
   
   <depend>snippets</depend>
+  <depend>labust_msgs</depend>
   <depend>auv_msgs</depend>
   <depend>underwater_msgs</depend>
-  <depend>navcon_msgs</depend>
   <depend>tf2_ros</depend>
  
   

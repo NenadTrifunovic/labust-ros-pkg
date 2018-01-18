@@ -1,15 +1,7 @@
 /*********************************************************************
- * go2point.cpp
- *
- *  Created on: May 26, 2015
- *      Author: Filip Mandic
- *
- ********************************************************************/
-
-/*********************************************************************
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2015-2016, LABUST, UNIZG-FER
+ *  Copyright (c) 2015-2018, LABUST, UNIZG-FER
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -49,8 +41,8 @@
 #include <labust/tools/conversions.hpp>
 
 #include <ros/ros.h>
-#include <navcon_msgs/GoToPointAction.h>
-#include <navcon_msgs/EnableControl.h>
+#include <labust_msgs/GoToPointAction.h>
+#include <labust_msgs/EnableControl.h>
 #include <geometry_msgs/Point.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <tf2_ros/static_transform_broadcaster.h>
@@ -64,14 +56,15 @@ namespace labust
 		/*************************************************************
 		 *** Go2Point primitive class
 		 ************************************************************/
-		struct GoToPoint : protected ExecutorBase<navcon_msgs::GoToPointAction>
+		struct GoToPoint : protected ExecutorBase<labust_msgs::GoToPointAction>
 		{
-			typedef navcon_msgs::GoToPointGoal Goal;
-			typedef navcon_msgs::GoToPointResult Result;
-			typedef navcon_msgs::GoToPointFeedback Feedback;
+			typedef labust_msgs::GoToPointGoal Goal;
+			typedef labust_msgs::GoToPointResult Result;
+			typedef labust_msgs::GoToPointFeedback Feedback;
 
 			enum {ualf = 0, falf, hdg, depth, numcnt};
 			enum {xp = 0, yp, zp};
+			enum {x=0,y,z,roll,pitc,yaw};
 
 			GoToPoint():ExecutorBase("go2point"),
 						 underactuated(false),
@@ -154,7 +147,7 @@ namespace labust
 
 			    goal = new_goal;
 
-				if(goal->axis_enable.x && goal->axis_enable.y)
+				if(goal->axis_enable[x] && goal->axis_enable[y])
 				{
 					/*** Calculate new course line ***/
 					Eigen::Vector3d T1,T2;
@@ -181,19 +174,19 @@ namespace labust
 					if (!underactuated)
 					{
 						/*** Fully actuated ***/
-						controllers.state[falf] = true && goal->axis_enable.x && goal->axis_enable.y;
-						controllers.state[hdg] = true && goal->axis_enable.x && goal->axis_enable.y;
-						controllers.state[depth] = goal->axis_enable.z;
+						controllers.state[falf] = true && goal->axis_enable[x] && goal->axis_enable[y];
+						controllers.state[hdg] = true && goal->axis_enable[x] && goal->axis_enable[y];
+						controllers.state[depth] = goal->axis_enable[z];
 					}
 					else
 					{
 						/*** Under actuated ***/
-						double delta = labust::math::wrapRad(lastState.orientation.yaw - line.gamma());
+						double delta = labust::math::wrapRad(lastState.orientation.z - line.gamma());
 						if (std::abs(delta) < M_PI_2)
 						{
-							controllers.state[ualf] = true && goal->axis_enable.x && goal->axis_enable.y;;
-							controllers.state[hdg] = false && goal->axis_enable.x && goal->axis_enable.y;;
-							controllers.state[depth] = goal->axis_enable.z;
+							controllers.state[ualf] = true && goal->axis_enable[x] && goal->axis_enable[y];
+							controllers.state[hdg] = false && goal->axis_enable[x] && goal->axis_enable[y];
+							controllers.state[depth] = goal->axis_enable[z];
 						}
 					}
 					this->updateControllers();
@@ -225,26 +218,26 @@ namespace labust
 
 				/*** Enable or disable ualf/falf controller ***/
 				if(underactuated)
-					cl = nh.serviceClient<navcon_msgs::EnableControl>(std::string(controllers.name[ualf]).c_str());
+					cl = nh.serviceClient<labust_msgs::EnableControl>(std::string(controllers.name[ualf]).c_str());
 				else
-					cl = nh.serviceClient<navcon_msgs::EnableControl>(std::string(controllers.name[falf]).c_str());
+					cl = nh.serviceClient<labust_msgs::EnableControl>(std::string(controllers.name[falf]).c_str());
 
-				navcon_msgs::EnableControl a;
+				labust_msgs::EnableControl a;
 				a.request.enable = controllers.state[ualf] || controllers.state[falf];
 				cl.call(a);
 
 				/*** Enable or disable hdg controller ***/
-				cl = nh.serviceClient<navcon_msgs::EnableControl>(std::string(controllers.name[hdg]).c_str());
+				cl = nh.serviceClient<labust_msgs::EnableControl>(std::string(controllers.name[hdg]).c_str());
 				a.request.enable = controllers.state[hdg];
 				cl.call(a);
 
 				/*** Enable or disable depth controller ***/
-				cl = nh.serviceClient<navcon_msgs::EnableControl>(std::string(controllers.name[depth]).c_str());
+				cl = nh.serviceClient<labust_msgs::EnableControl>(std::string(controllers.name[depth]).c_str());
 				a.request.enable = controllers.state[depth];
 				cl.call(a);
 			}
 
-			void onStateHat(const auv_msgs::NavSts::ConstPtr& estimate)
+			void onStateHat(const auv_msgs::NavigationStatus::ConstPtr& estimate)
 			{
 				/*** Enable mutex ***/
 				boost::mutex::scoped_lock l(state_mux);
@@ -257,9 +250,9 @@ namespace labust
 				    /*** Check if goal (victory radius) is achieved ***/
 					Eigen::Vector3d deltaVictory;
 					deltaVictory<<
-							(goal->axis_enable.x?goal->T2.point.x-estimate->position.north:0.0),
-							(goal->axis_enable.y?goal->T2.point.y-estimate->position.east:0.0),
-							(goal->axis_enable.z?goal->T2.point.z-estimate->position.depth:0.0);
+							(goal->axis_enable[x]?goal->T2.point.x-estimate->position.north:0.0),
+							(goal->axis_enable[y]?goal->T2.point.y-estimate->position.east:0.0),
+							(goal->axis_enable[z]?goal->T2.point.z-estimate->position.depth:0.0);
 
 					distVictory = deltaVictory.norm();
 					Ddistance = distVictory - lastDistance;
@@ -298,15 +291,15 @@ namespace labust
 				lastState = *estimate;
 			}
 
-			auv_msgs::NavStsPtr step(const auv_msgs::NavSts& state)
+			auv_msgs::NavigationStatusPtr step(const auv_msgs::NavigationStatus& state)
 			{
-				auv_msgs::NavStsPtr ref(new auv_msgs::NavSts());
-				auv_msgs::NavStsPtr ref_local(new auv_msgs::NavSts());
+				auv_msgs::NavigationStatusPtr ref(new auv_msgs::NavigationStatus());
+				auv_msgs::NavigationStatusPtr ref_local(new auv_msgs::NavigationStatus());
 
 				ref->header.frame_id = tf_prefix + "course_frame";
 
 				/*** Handle depth ***/
-				if(goal->axis_enable.z)
+				if(goal->axis_enable[z])
 				{
 					ref->position.depth = goal->T2.point.z;
 
@@ -318,11 +311,11 @@ namespace labust
 
 
 				/*** Set course frame references ***/
-				if(goal->axis_enable.x && goal->axis_enable.y)
+				if(goal->axis_enable[x] && goal->axis_enable[y])
 				{
 					ref->position.east = 0;
 					ref->body_velocity.x = goal->speed;
-					ref->orientation.yaw = goal->heading;
+					ref->orientation.z = goal->heading;
 
 
 					/*** Calculate bearing to endpoint ***/
@@ -353,8 +346,8 @@ namespace labust
 					/*** Check underactuated behaviour ***/
 					if (underactuated)
 					{
-						ref->orientation.yaw = line.gamma();
-						double delta = labust::math::wrapRad(state.orientation.yaw - line.gamma());
+						ref->orientation.z = line.gamma();
+						double delta = labust::math::wrapRad(state.orientation.z - line.gamma());
 						ROS_DEBUG("Delta, gamma: %f, %f",delta, line.gamma());
 
 						if (controllers.state[hdg] && (std::abs(delta) < M_PI/3))
@@ -387,9 +380,9 @@ namespace labust
 			labust::math::Line line, bearing_to_endpoint;
 			tf2_ros::StaticTransformBroadcaster broadcaster;
 			Goal::ConstPtr goal;
-			auv_msgs::NavSts lastState;
+			auv_msgs::NavigationStatus lastState;
 			boost::mutex state_mux;
-			navcon_msgs::ControllerSelectRequest controllers;
+			labust_msgs::ControllerSelectRequest controllers;
 			double distVictory, lastDistance, Ddistance;
 			bool processNewGoal, underactuated;
 			ros::Publisher pub_goto_status;

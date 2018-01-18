@@ -103,7 +103,7 @@ void SimCore::onInit()
 
 	//Subscribers
 	//auv_msgs
-	tauIn = nh.subscribe<auv_msgs::BodyForceReq>("tauIn", 1, &SimCore::onTau<auv_msgs::BodyForceReq>, this);
+	tauIn = nh.subscribe<labust_msgs::BodyForceReq>("tauIn", 1, &SimCore::onTau<labust_msgs::BodyForceReq>, this);
 	//odometry
 	tauInWrench = nh.subscribe<geometry_msgs::WrenchStamped>("tauInWrench", 1, &SimCore::onTau<geometry_msgs::WrenchStamped>, this);
 	//general
@@ -111,9 +111,9 @@ void SimCore::onInit()
 
 	//Publishers
 	//Auv_msgs
-	meas = nh.advertise<auv_msgs::NavSts>("meas_ideal",1);
-	measn = nh.advertise<auv_msgs::NavSts>("meas_noisy",1);
-	tauAch = nh.advertise<auv_msgs::BodyForceReq>("tauAch",1);
+	meas = nh.advertise<auv_msgs::NavigationStatus>("meas_ideal",1);
+	measn = nh.advertise<auv_msgs::NavigationStatus>("meas_noisy",1);
+	tauAch = nh.advertise<labust_msgs::BodyForceReq>("tauAch",1);
 	//odometry
 	odom = nh.advertise<nav_msgs::Odometry>("meas_odom",1);
 	odomn = nh.advertise<nav_msgs::Odometry>("meas_odom_noisy",1);
@@ -147,30 +147,30 @@ void SimCore::onCurrents(const geometry_msgs::TwistStamped::ConstPtr& currents)
 	labust::tools::pointToVector(currents->twist.linear, model.current);
 }
 
-void SimCore::etaNuToNavSts(const vector& eta, const vector& nu, auv_msgs::NavSts& state)
+void SimCore::etaNuToNavigationStatus(const vector& eta, const vector& nu, auv_msgs::NavigationStatus& state)
 {
 	state.position.north = eta(RBModel::x);
 	state.position.east = eta(RBModel::y);
 	state.position.depth = eta(RBModel::z);
-	state.orientation.roll = eta(RBModel::phi);
-	state.orientation.pitch = eta(RBModel::theta);
-	state.orientation.yaw = eta(RBModel::psi);
+	state.orientation.x = eta(RBModel::phi);
+	state.orientation.y = eta(RBModel::theta);
+	state.orientation.z = eta(RBModel::psi);
 
 	state.body_velocity.x = nu(RBModel::u);
 	state.body_velocity.y = nu(RBModel::v);
 	state.body_velocity.z = nu(RBModel::w);
-	state.orientation_rate.roll = nu(RBModel::p);
-	state.orientation_rate.pitch = nu(RBModel::q);
-	state.orientation_rate.yaw = nu(RBModel::r);
+	state.orientation_rate.x = nu(RBModel::p);
+	state.orientation_rate.y = nu(RBModel::q);
+	state.orientation_rate.z = nu(RBModel::r);
 }
 
-void SimCore::publishNavSts()
+void SimCore::publishNavigationStatus()
 {
-	auv_msgs::NavStsPtr state(new auv_msgs::NavSts()),
-			nstate(new auv_msgs::NavSts());
+	auv_msgs::NavigationStatusPtr state(new auv_msgs::NavigationStatus()),
+			nstate(new auv_msgs::NavigationStatus());
 
-	etaNuToNavSts(model.Eta(),model.Nu(),*state);
-	etaNuToNavSts(model.EtaNoisy(),model.NuNoisy(),*nstate);
+	etaNuToNavigationStatus(model.Eta(),model.Nu(),*state);
+	etaNuToNavigationStatus(model.EtaNoisy(),model.NuNoisy(),*nstate);
 
 	//Handle LAT-LON additions and frame publishing
 	//Or make them wholly external to the simulator
@@ -292,7 +292,7 @@ void SimCore::start()
 //		}
 
 		//Publish states
-		publishNavSts();
+		publishNavigationStatus();
 		publishOdom();
 		//Publish transforms
 		if (enablePublishWorld) publishWorld();

@@ -1,15 +1,7 @@
 /*********************************************************************
- * docking.cpp
- *
- *  Created on: Aug 23, 2016
- *      Author: Filip Mandic
- *
- ********************************************************************/
-
-/*********************************************************************
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2016, LABUST, UNIZG-FER
+ *  Copyright (c) 2018, LABUST, UNIZG-FER
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -50,8 +42,8 @@
 #include <labust/tools/conversions.hpp>
 
 #include <ros/ros.h>
-#include <navcon_msgs/DockingAction.h>
-#include <navcon_msgs/EnableControl.h>
+#include <labust_msgs/DockingAction.h>
+#include <labust_msgs/EnableControl.h>
 #include <geometry_msgs/Point.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <tf2_ros/static_transform_broadcaster.h>
@@ -60,7 +52,7 @@
 #include <std_msgs/Int32.h>
 #include <std_msgs/Bool.h>
 #include <std_msgs/Float32MultiArray.h>
-#include <auv_msgs/BodyVelocityReq.h>
+#include <labust_msgs/BodyVelocityReq.h>
 
 namespace labust
 {
@@ -69,11 +61,11 @@ namespace labust
 		/*************************************************************
 		 *** Docking primitive class
 		 ************************************************************/
-		struct Docking : protected ExecutorBase<navcon_msgs::DockingAction>
+		struct Docking : protected ExecutorBase<labust_msgs::DockingAction>
 		{
-			typedef navcon_msgs::DockingGoal Goal;
-			typedef navcon_msgs::DockingResult Result;
-			typedef navcon_msgs::DockingFeedback Feedback;
+			typedef labust_msgs::DockingGoal Goal;
+			typedef labust_msgs::DockingResult Result;
+			typedef labust_msgs::DockingFeedback Feedback;
 
 			enum { hdg, numcnt};
 			enum {xp = 0, yp, zp};
@@ -123,16 +115,18 @@ namespace labust
 				servo_ref.data=0.0;
 				mission_status.data=0;
 				pub_docking_status.publish(mission_status);
+        kinect_servo_pos_vec.resize(4);				
 				for (int i=0;i<10;i++)
                                                 {
                                                 pub_kinect_servo.publish(servo_ref);
                                                 nanosleep(&timeOut, &remains);
                                                 }
 				
-				kinect_servo_pos[0]=0.1;
-				kinect_servo_pos[1]=0.44;
-				kinect_servo_pos[2]=0.74;
-				kinect_servo_pos[3]=1.0;
+				nh.getParam("kinect_servo_pos", kinect_servo_pos_vec);
+				kinect_servo_pos[0]=kinect_servo_pos_vec[0];
+				kinect_servo_pos[1]=kinect_servo_pos_vec[1];
+				kinect_servo_pos[2]=kinect_servo_pos_vec[2];
+        kinect_servo_pos[3]=kinect_servo_pos_vec[3];
 				ROS_ERROR("DOCKING SERVO VALUES INITED %f, %f, %f, %f", kinect_servo_pos[0],kinect_servo_pos[1],kinect_servo_pos[2],kinect_servo_pos[3]);
 			}
 
@@ -235,15 +229,15 @@ namespace labust
 			{
 				ros::NodeHandle nh;
 				ros::ServiceClient cl;
-				navcon_msgs::EnableControl a;
+				labust_msgs::EnableControl a;
 
 				/*** Enable or disable hdg controller ***/
-				cl = nh.serviceClient<navcon_msgs::EnableControl>(std::string(controllers.name[hdg]).c_str());
+				cl = nh.serviceClient<labust_msgs::EnableControl>(std::string(controllers.name[hdg]).c_str());
 				a.request.enable = controllers.state[hdg];
 				cl.call(a);
 			}
 
-			void onStateHat(const auv_msgs::NavSts::ConstPtr& estimate)
+			void onStateHat(const auv_msgs::NavigationStatus::ConstPtr& estimate)
 			{
 				/*** Enable mutex ***/
 				boost::mutex::scoped_lock l(state_mux);
@@ -358,7 +352,7 @@ namespace labust
 				lastState = *estimate;
 			}
 
-			auv_msgs::BodyVelocityReqPtr step(const auv_msgs::NavSts& state)
+			labust_msgs::BodyVelocityReqPtr step(const auv_msgs::NavigationStatus& state)
 			{
 				if((ros::Time::now()-new_meas_time).toSec() < 1  && new_meas == true && kinect_reached == true )
 				{
@@ -375,10 +369,10 @@ namespace labust
 				}
 			}
 
-			auv_msgs::BodyVelocityReqPtr searchState()
+			labust_msgs::BodyVelocityReqPtr searchState()
 			{
 				double search_yaw_speed = goal->search_yaw_rate;
-				auv_msgs::BodyVelocityReqPtr ref(new auv_msgs::BodyVelocityReq());
+				labust_msgs::BodyVelocityReqPtr ref(new labust_msgs::BodyVelocityReq());
 				ref->twist.linear.x = 0;
 				ref->twist.linear.y = 0;
 				ref->twist.angular.z = (last_direction != 0)?last_direction*search_yaw_speed:search_yaw_speed;
@@ -387,11 +381,11 @@ namespace labust
 				return ref;
 			}
 			
-			auv_msgs::BodyVelocityReqPtr pullbackState()
+			labust_msgs::BodyVelocityReqPtr pullbackState()
 			{
 				
 				double surge_gain = goal->max_surge_speed;
-				auv_msgs::BodyVelocityReqPtr ref(new auv_msgs::BodyVelocityReq());
+				labust_msgs::BodyVelocityReqPtr ref(new labust_msgs::BodyVelocityReq());
 				double angle = goal->docking_slot*M_PI/2+M_PI;
 				double surge_val = 0.3;
 				ROS_ERROR("Pulling back from mussel");
@@ -426,12 +420,12 @@ namespace labust
 				return ref;
 			}
 
-			auv_msgs::BodyVelocityReqPtr approachState()
+			labust_msgs::BodyVelocityReqPtr approachState()
 			{
 				double gain = goal->max_yaw_rate;
 				double surge_gain = goal->max_surge_speed;
 				double stdev = goal->surge_stdev;;
-				auv_msgs::BodyVelocityReqPtr ref(new auv_msgs::BodyVelocityReq());
+				labust_msgs::BodyVelocityReqPtr ref(new labust_msgs::BodyVelocityReq());
 				double angle = goal->docking_slot*M_PI/2;
 				double surge_val = surge_gain*std::exp(-(std::pow(horizontal_meas,2))/(2*std::pow(stdev,2)));
 				ROS_ERROR("Moving towards mussel");			
@@ -502,15 +496,15 @@ namespace labust
 			labust::math::Line line, bearing_to_endpoint;
 			tf2_ros::StaticTransformBroadcaster broadcaster;
 			Goal::ConstPtr goal;
-			auv_msgs::NavSts lastState;
+			auv_msgs::NavigationStatus lastState;
 			boost::mutex state_mux;
-			navcon_msgs::ControllerSelectRequest controllers;
+			labust_msgs::ControllerSelectRequest controllers;
 			bool processNewGoal;
 			std_msgs::Float32MultiArray docking_arm_ref;
 			float kinect_servo_pos[4];
 			std_msgs::Float32 servo_ref;
 			std_msgs::Int32 mission_status;
-
+      std::vector<double> kinect_servo_pos_vec;			
 
 			ros::Subscriber sub_vertical, sub_horizontal, sub_size, sub_manual;
 			ros::Publisher pub_docking_arm, pub_kinect_servo, pub_docking_status;

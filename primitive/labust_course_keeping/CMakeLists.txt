@@ -11,6 +11,13 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
+  actionlib
+  actionlib_msgs
+  auv_msgs
+  labust_msgs
+  tf2_ros
+  snippets 
+  labust_primitive
 )
 
 ## System dependencies are found with CMake's conventions
@@ -151,7 +158,7 @@ include_directories(
 # )
 
 add_executable(course_keeping src/course_keeping.cpp)
-add_dependencies(course_keeping auv_msgs labust_msgs)
+#add_dependencies(course_keeping auv_msgs labust_msgs)
 target_link_libraries(course_keeping ${catkin_LIBRARIES})
 
 #############
