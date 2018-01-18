@@ -73,12 +73,12 @@ namespace labust
 
 		void StatusHandlerBase::addKeyValue(const std::string& key_value_name)
 		{
-			ROS_INFO("Adding key value %s...", key_value_name.c_str());
+			ROS_DEBUG("Adding key value %s...", key_value_name.c_str());
 			diagnostic_msgs::KeyValue new_value;
 			new_value.key = key_value_name;
 			new_value.value = "None";
 			entity_status_.values.push_back(new_value);
-			ROS_INFO("Key value %s added.", key_value_name.c_str());
+			ROS_DEBUG("Key value %s added.", key_value_name.c_str());
 		}
 
 		void StatusHandlerBase::updateKeyValue(const std::string& key_value_name, const std::string& value)
@@ -99,14 +99,14 @@ namespace labust
 
 		void StatusHandlerBase::deleteKeyValue(const std::string& key_value_name)
 		{
-			ROS_INFO("Deleting key value %s...", key_value_name.c_str());
+			ROS_DEBUG("Deleting key value %s...", key_value_name.c_str());
 			for(std::vector<diagnostic_msgs::KeyValue>::iterator it = entity_status_.values.begin();
 					it != entity_status_.values.end(); ++it)
 			{
 				if(key_value_name.compare(it->key.c_str()) == 0)
 				{
 					entity_status_.values.erase(it--); //TODO Check this
-					ROS_INFO("Key value %s deleted.", key_value_name.c_str());
+					ROS_DEBUG("Key value %s deleted.", key_value_name.c_str());
 					return;
 				}
 			}
