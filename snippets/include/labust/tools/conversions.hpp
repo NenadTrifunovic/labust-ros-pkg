@@ -107,6 +107,17 @@ void rpyToVector(const Point& point, Iterator& vec, int offset = 0)
 }
 
 /**
+ * The function offers mapping from RPY structure to a vector.
+ */
+template <class Point, class Iterator>
+void Vector3ToVector(const Point& point, Iterator& vec, int offset = 0)
+{
+  vec[offset + 0] = point.x;
+  vec[offset + 1] = point.y;
+  vec[offset + 2] = point.z;
+}
+
+/**
  * The class offers mapping to a NED structure from a vector.
  */
 template <class Point, class Iterator>
