@@ -39,7 +39,7 @@
 #include <string>
 
 #include <auv_msgs/NavigationStatus.h>
-#include <auv_msgs/BodyVelocityRequest.h>
+#include <labust_msgs/BodyVelocityReq.h>
 #include <labust_msgs/ControllerSelect.h>
 
 namespace labust
@@ -97,7 +97,7 @@ namespace labust
 		template <class Executor,
 				   class OutputType = auv_msgs::NavigationStatus,
 			       class StateType = auv_msgs::NavigationStatus,
-				   class NuRefType = auv_msgs::BodyVelocityRequest>
+				   class NuRefType = labust_msgs::BodyVelocityReq>
 		class PrimitiveBase : public Executor
 		{
 			typedef PrimitiveBase<Executor,OutputType,StateType,NuRefType> Base;
