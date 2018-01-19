@@ -116,7 +116,7 @@ struct GPSSim
 
       // Get the simulated vehicle position
       transformLocal = buffer.lookupTransform(
-          tf_prefix + "map", tf_prefix + "sim/base_link_ned", ros::Time(0));
+          tf_prefix + "map", tf_prefix + "sim/base_link_frd", ros::Time(0));
       // Add the sensor offset
       Eigen::Quaternion<double> qrot(transformLocal.transform.rotation.w,
                                      transformLocal.transform.rotation.x,

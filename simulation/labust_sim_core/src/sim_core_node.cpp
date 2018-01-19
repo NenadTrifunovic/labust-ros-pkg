@@ -196,7 +196,7 @@ void SimCore::publishOdom()
 	//Publish messages
 	state->header.stamp = nstate->header.stamp = ros::Time::now();
 	state->header.frame_id = nstate->header.frame_id = "map_ned";
-	state->child_frame_id = nstate->child_frame_id = "base_link_ned";
+	state->child_frame_id = nstate->child_frame_id = "base_link_frd";
 	odom.publish(state);
 	odomn.publish(nstate);
 }
@@ -265,7 +265,7 @@ void SimCore::publishSimBaseLink()
 			eta(RBModel::theta),
 			eta(RBModel::psi),
 			transform.transform.rotation);
-	transform.child_frame_id = tf_prefix + "sim/base_link_ned";
+	transform.child_frame_id = tf_prefix + "sim/base_link_frd";
 	transform.header.frame_id = tf_prefix + "sim/base_pose_ned";
 	broadcast.sendTransform(transform);
 }

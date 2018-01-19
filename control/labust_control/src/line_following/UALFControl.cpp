@@ -88,7 +88,7 @@ struct UALFControl : DisableAxis
       try
       {
         geometry_msgs::TransformStamped dH;
-        dH = buffer.lookupTransform(tf_prefix + "course_frame", tf_prefix + "base_link", ros::Time(0));
+        dH = buffer.lookupTransform(tf_prefix + "course_frame", tf_prefix + "base_link_frd", ros::Time(0));
         double roll, pitch, gamma;
         labust::tools::eulerZYXFromQuaternion(dH.transform.rotation, roll,
                                               pitch, gamma);
@@ -123,7 +123,7 @@ struct UALFControl : DisableAxis
     try
     {
       geometry_msgs::TransformStamped dH;
-      dH = buffer.lookupTransform(tf_prefix + "course_frame", tf_prefix + "base_link", ros::Time(0));
+      dH = buffer.lookupTransform(tf_prefix + "course_frame", tf_prefix + "base_link_frd", ros::Time(0));
       double roll, pitch, gamma;
       labust::tools::eulerZYXFromQuaternion(dH.transform.rotation, roll, pitch,
                                             gamma);

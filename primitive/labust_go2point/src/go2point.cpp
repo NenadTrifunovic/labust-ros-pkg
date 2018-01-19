@@ -162,7 +162,7 @@ namespace labust
 					labust::tools::quaternionFromEulerZYX(0, 0, line.gamma(),
 							transform.transform.rotation);
 					transform.child_frame_id = tf_prefix + "course_frame";
-					transform.header.frame_id = tf_prefix + "local";
+					transform.header.frame_id = tf_prefix + "map_ned";
 					transform.header.stamp = ros::Time::now();
 					broadcaster.sendTransform(transform);
 				}
@@ -338,7 +338,7 @@ namespace labust
 						labust::tools::quaternionFromEulerZYX(0, 0, line.gamma(),
 								transform.transform.rotation);
 						transform.child_frame_id = tf_prefix + "course_frame";
-						transform.header.frame_id = tf_prefix + "local";
+						transform.header.frame_id = tf_prefix + "map_ned";
 						transform.header.stamp = ros::Time::now();
 						broadcaster.sendTransform(transform);
 					}
@@ -364,7 +364,7 @@ namespace labust
 								controllers.state[hdg] = true;
 								controllers.state[ualf] = false;
 								this->updateControllers();
-								ref->header.frame_id = tf_prefix + "local";
+								ref->header.frame_id = tf_prefix + "map_ned";
 						}
 					}
 				}
