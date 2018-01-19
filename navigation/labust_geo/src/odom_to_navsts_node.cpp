@@ -35,61 +35,132 @@
 #include <auv_msgs/NavigationStatus.h>
 #include <nav_msgs/Odometry.h>
 #include <ros/ros.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <tf2_ros/transform_listener.h>
+#include <labust/math/NumberManipulation.hpp>
 #include <labust/tools/conversions.hpp>
 
-void onOdom(ros::Publisher& NavigationStatus, const Eigen::Matrix3d& rot,
-            const nav_msgs::Odometry::ConstPtr& in)
+class OdomToNavSts
 {
-  auv_msgs::NavigationStatus::Ptr out(new auv_msgs::NavigationStatus());
+public:
+  OdomToNavSts();
+  virtual ~OdomToNavSts();
 
-  out->body_velocity.x = in->twist.twist.linear.x;
-  out->body_velocity.y = in->twist.twist.linear.y;
-  out->body_velocity.z = in->twist.twist.linear.z;
-  out->orientation_rate.x = in->twist.twist.angular.x;
-  out->orientation_rate.y = in->twist.twist.angular.y;
-  out->orientation_rate.z = in->twist.twist.angular.z;
+private:
+  void onOdom(const nav_msgs::Odometry::ConstPtr& in);
 
-  // Eigen::Vector3d ned;
-  // ned<<in->position.north, in->position.east, in->position.depth;
-  // Eigen::Vector3d xyz = rot*ned;
+  ros::Publisher pub_navsts;
+  ros::Subscriber sub_odom;
+  tf2_ros::Buffer tfBuffer;
+  tf2_ros::TransformListener tfListener;
+  std::string tf_prefix;
+};
 
-  out->position.north = in->pose.pose.position.x;
-  out->position.east = in->pose.pose.position.y;
-  out->position.depth = in->pose.pose.position.z;
-
-  double roll, pitch, yaw;
-  labust::tools::eulerZYXFromQuaternion(in->pose.pose.orientation, roll, pitch,
-                                        yaw);
-  out->orientation.x = roll;
-  out->orientation.y = pitch;
-  out->orientation.z = yaw;
-
-  NavigationStatus.publish(out);
-}
-
-int main(int argc, char* argv[])
+OdomToNavSts::OdomToNavSts() : tfListener(tfBuffer), tf_prefix("")
 {
-  ros::init(argc, argv, "odom_to_NavigationStatus_node");
   ros::NodeHandle nh, ph("~");
 
-  // Get rotation between the two
-  std::vector<double> rpy(3, 0);
-  ph.param("rpy", rpy, rpy);
+  std::string key;
+  if (nh.searchParam("tf_prefix", key))
+    nh.getParam(key, tf_prefix);
 
-  // Setup the LTP to Odom frame
-  Eigen::Quaternion<double> q;
-  labust::tools::quaternionFromEulerZYX(rpy[0], rpy[1], rpy[2], q);
-  Eigen::Matrix3d rot = q.toRotationMatrix().transpose();
+  // // Get rotation between the two
+  // std::vector<double> rpy(3, 0);
+  // ph.param("rpy", rpy, rpy);
+  //
+  // // Setup the LTP to Odom frame
+  // Eigen::Quaternion<double> q;
+  // labust::tools::quaternionFromEulerZYX(rpy[0], rpy[1], rpy[2], q);
+  // Eigen::Matrix3d rot = q.toRotationMatrix().transpose();
 
   // TODO subscribe to altitude using message filter.
   // TODO get origin position.
   // TODO get lat/lon position.
-  
-  
-  
-  ros::Publisher NavigationStatus = nh.advertise<auv_msgs::NavigationStatus>("NavigationStatus", 1);
-  ros::Subscriber odom = nh.subscribe<nav_msgs::Odometry>(
-      "odom", 1, boost::bind(&onOdom, boost::ref(NavigationStatus), boost::ref(rot), _1));
+
+  pub_navsts = nh.advertise<auv_msgs::NavigationStatus>("navsts", 1);
+  sub_odom =
+      nh.subscribe<nav_msgs::Odometry>("odom", 1, &OdomToNavSts::onOdom, this);
+}
+
+OdomToNavSts::~OdomToNavSts()
+{
+}
+
+void OdomToNavSts::onOdom(const nav_msgs::Odometry::ConstPtr& in)
+{
+  try
+  {
+    auv_msgs::NavigationStatus::Ptr out(new auv_msgs::NavigationStatus());
+    geometry_msgs::TransformStamped transform;
+    transform = tfBuffer.lookupTransform(tf_prefix + "base_link_frd",
+                                         tf_prefix + "base_link", ros::Time(0),
+                                         ros::Duration(0));
+
+    // Transform twist.
+    // Transform linear velocity.
+    geometry_msgs::Vector3Stamped l_in, l_out;
+    l_in.header = in->header;
+    l_in.vector = in->twist.twist.linear;
+    tf2::doTransform(l_in, l_out, transform);
+
+    // Transform angular velocity.
+    geometry_msgs::Vector3Stamped a_in, a_out;
+    a_in.header = in->header;
+    a_in.vector = in->twist.twist.angular;
+    tf2::doTransform(a_in, a_out, transform);
+
+    double roll, pitch, yaw;
+    labust::tools::eulerZYXFromQuaternion(transform.transform.rotation, roll,
+                                          pitch, yaw);
+    yaw += M_PI / 2;  // Set North as zero. Due to ROS convention East equals 0.
+    labust::tools::quaternionFromEulerZYX(roll, pitch, yaw,
+                                          transform.transform.rotation);
+
+    // Transform pose.
+    geometry_msgs::PoseStamped p_in, p_out;
+    p_in.header = in->header;
+    p_in.pose = in->pose.pose;
+    tf2::doTransform(p_in, p_out, transform);
+
+    out->position.north = p_out.pose.position.x;
+    out->position.east = p_out.pose.position.y;
+    out->position.depth = p_out.pose.position.z;
+
+    labust::tools::eulerZYXFromQuaternion(p_out.pose.orientation, roll, pitch,
+                                          yaw);
+
+    out->orientation.x =
+        labust::math::wrapRad(roll + M_PI);  // Due to convention roll is zero
+                                             // when depth vector points towards
+                                             // the seafloor.
+    out->orientation.y = labust::math::wrapRad(pitch);
+    out->orientation.z = labust::math::wrapRad(yaw);
+
+    out->body_velocity.x = l_out.vector.x;
+    out->body_velocity.y = l_out.vector.y;
+    out->body_velocity.z = l_out.vector.z;
+
+    out->seafloor_velocity.x = l_out.vector.x;
+    out->seafloor_velocity.y = l_out.vector.y;
+    out->seafloor_velocity.z = l_out.vector.z;
+
+    out->orientation_rate = a_out.vector;
+
+    out->header = in->header;
+    out->header.frame_id = tf_prefix + "map_ned";
+
+    pub_navsts.publish(out);
+  }
+  catch (tf2::TransformException& ex)
+  {
+    ROS_WARN("%s", ex.what());
+  }
+}
+
+int main(int argc, char* argv[])
+{
+  ros::init(argc, argv, "odom_to_navsts_node");
+  OdomToNavSts odom2navsts;
   ros::spin();
   return 0;
 }
