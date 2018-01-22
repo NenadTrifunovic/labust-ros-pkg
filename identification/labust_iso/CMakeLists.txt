@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(labust_iso)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-# add_compile_options(-std=c++11)
+add_compile_options(-std=c++11)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -11,6 +11,10 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
+  auv_msgs
+  actionlib
+  snippets
+  labust_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -102,11 +106,17 @@ find_package(catkin REQUIRED COMPONENTS
 ## LIBRARIES: libraries you create in this project that dependent projects also need
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
-catkin_package(
+#catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES labust_iso
 #  CATKIN_DEPENDS roscpp rospy std_msgs
 #  DEPENDS system_lib
+#)
+
+catkin_package(
+   INCLUDE_DIRS include
+   LIBRARIES I_SO
+   CATKIN_DEPENDS auv_msgs roscpp actionlib snippets
 )
 
 ###########
@@ -116,7 +126,7 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-# include
+  include
   ${catkin_INCLUDE_DIRS}
 )
 
@@ -149,6 +159,23 @@ include_directories(
 # target_link_libraries(${PROJECT_NAME}_node
 #   ${catkin_LIBRARIES}
 # )
+
+## Main library
+add_library(I_SO
+   src/SOIdentification.cpp
+   include/labust/identification/SOIdentification.hpp
+   include/labust/identification/Relay.hpp
+)
+
+## Identification node
+add_executable(ident_so src/IdentificationNode.cpp
+    include/labust/identification/IdentificationNode.hpp)
+#add_dependencies(ident_so auv_msgs_gencpp labust_msgs_gencpp)
+target_link_libraries(ident_so I_SO ${catkin_LIBRARIES})
+## Tests
+#add_executable(test_ident src/test/test_ident.cpp)
+#add_dependencies(test_ident auv_msgs_gencpp labust_msgs_gencpp)
+#target_link_libraries(test_ident ${catkin_LIBRARIES})
 
 #############
 ## Install ##
