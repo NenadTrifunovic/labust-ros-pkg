@@ -112,8 +112,8 @@ find_package(Eigen REQUIRED)
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES labust_sim_core
+   INCLUDE_DIRS include
+   LIBRARIES labust_simulation
 #  CATKIN_DEPENDS roscpp rospy std_msgs
 #  DEPENDS system_lib
 )
@@ -140,7 +140,7 @@ include_directories(
 file(GLOB SRC src/labust_simulation/*.cpp)
 file(GLOB HPP include/labust/simulation/*.hpp include/labust/simulation/*.h)
 add_library(labust_simulation ${SRC} ${HPP})
-add_dependencies(labust_simulation auv_msgs underwater_msgs)
+#add_dependencies(labust_simulation auv_msgs underwater_msgs)
 target_link_libraries(labust_simulation ${Boost_RANDOM_LIBRARY} ${Eigen_LIBRARIES})
 
 ## Add cmake target dependencies of the library

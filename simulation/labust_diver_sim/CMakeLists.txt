@@ -11,6 +11,12 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
+  snippets
+  labust_msgs
+  auv_msgs
+  nav_msgs
+  sensor_msgs
+  labust_sim_core
 )
 
 ## System dependencies are found with CMake's conventions
@@ -116,7 +122,7 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-# include
+  include
   ${catkin_INCLUDE_DIRS}
 )
 
@@ -149,6 +155,19 @@ include_directories(
 # target_link_libraries(${PROJECT_NAME}_node
 #   ${catkin_LIBRARIES}
 # )
+
+## Diver simulator
+add_executable(diver_sim_node src/diver_sim_node.cpp)
+#add_dependencies(diver_sim auv_msgs_gencpp)
+target_link_libraries(diver_sim_node ${catkin_LIBRARIES})
+
+#add_executable(virtual_diver_node src/virtual_diver.cpp)
+##add_dependencies(virtual_diver auv_msgs_gencpp)
+#target_link_libraries(virtual_diver_node ${catkin_LIBRARIES})
+
+#add_executable(transect_experiment_node src/transect_experiment.cpp)
+##add_dependencies(transect_experiment auv_msgs_gencpp)
+#target_link_libraries(transect_experiment_node ${catkin_LIBRARIES})
 
 #############
 ## Install ##
