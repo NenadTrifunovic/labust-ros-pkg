@@ -17,7 +17,8 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   dynamic_reconfigure
   snippets
-  tf2_ros  
+  tf2_ros
+  labust_control  
 )
 
 ## System dependencies are found with CMake's conventions
@@ -176,9 +177,9 @@ add_library(esctoolkit
 #target_link_libraries(esc_bounded_uv  ${catkin_LIBRARIES})
 
 ## TDOASS node
-#add_executable(tdoass_control src/tdoass/tdoass_control.cpp)
-#add_dependencies(tdoass_control)
-#target_link_libraries(tdoass_control ${catkin_LIBRARIES} esctoolkit)
+add_executable(tdoass_control src/tdoass/tdoass_control.cpp)
+add_dependencies(tdoass_control labust_es_control_gencfg)
+target_link_libraries(tdoass_control ${catkin_LIBRARIES} esctoolkit)
 
 #############
 ## Install ##

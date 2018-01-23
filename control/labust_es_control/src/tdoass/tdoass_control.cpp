@@ -1,15 +1,7 @@
 /*********************************************************************
- * tdoass_control.cpp
- *
- *  Created on: Sep 6, 2017
- *      Author: Filip Mandic
- *
- ********************************************************************/
-
-/*********************************************************************
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2017, LABUST, UNIZG-FER
+ *  Copyright (c) 2017-2018, LABUST, UNIZG-FER
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -38,10 +30,11 @@
  *  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
+ *
  *********************************************************************/
 #include <labust/control/tdoass/tdoass_control.h>
-#include <misc_msgs/RosbagControl.h>
-#include <navcon_msgs/EnableControl.h>
+#include <labust_msgs/RosbagControl.h>
+#include <labust_msgs/EnableControl.h>
 
 using namespace labust::control;
 
@@ -64,7 +57,7 @@ TDOASSControl::TDOASSControl()
   , w2(0.4)
   , k1(1000)
   , u0(0.25)
-  , center_ref(auv_msgs::BodyVelocityReq())
+  , center_ref(labust_msgs::BodyVelocityReq())
   , tf_listener(tf_buffer)
   , master_active_flag(false)
   , slave_active_flag(false)
@@ -94,9 +87,9 @@ void TDOASSControl::init()
   ph.getParam("master", master_flag);
   setAsMaster(master_flag);
 
-  state[CENTER] = auv_msgs::NavSts();
-  state[MASTER] = auv_msgs::NavSts();
-  state[SLAVE] = auv_msgs::NavSts();
+  state[CENTER] = auv_msgs::NavigationStatus();
+  state[MASTER] = auv_msgs::NavigationStatus();
+  state[SLAVE] = auv_msgs::NavigationStatus();
 
   link_names[CENTER] = "center_frame";
   link_names[MASTER] = "master_frame";
@@ -111,19 +104,19 @@ void TDOASSControl::init()
   sub_veh1_toa = nh.subscribe("veh1/toa", 1, &TDOASSControl::onVeh1Toa, this);
   sub_veh2_toa = nh.subscribe("veh2/toa", 1, &TDOASSControl::onVeh2Toa, this);
 
-  dp_srv = nh.serviceClient<misc_msgs::DynamicPositioningPrimitiveService>(
+  dp_srv = nh.serviceClient<labust_msgs::DynamicPositioningPrimitiveService>(
       "commander/primitive/dynamic_positioning");
 
   if (isMaster())
   {
-    pub_veh1_ref = nh.advertise<auv_msgs::NavSts>("veh1/state_ref", 1);
-    pub_veh2_ref = nh.advertise<auv_msgs::NavSts>("veh2/state_ref", 1);
-    pub_center_state = nh.advertise<auv_msgs::NavSts>("/center/state", 1);
+    pub_veh1_ref = nh.advertise<auv_msgs::NavigationStatus>("veh1/state_ref", 1);
+    pub_veh2_ref = nh.advertise<auv_msgs::NavigationStatus>("veh2/state_ref", 1);
+    pub_center_state = nh.advertise<auv_msgs::NavigationStatus>("/center/state", 1);
     pub_master_active = nh.advertise<std_msgs::Bool>("master/active", 1);
 
     pub_master_pos_ref =
         nh.advertise<geometry_msgs::PointStamped>("master/pos_ref", 1);
-    pub_master_ff_ref = nh.advertise<auv_msgs::NavSts>("master/ff_ref", 1);
+    pub_master_ff_ref = nh.advertise<auv_msgs::NavigationStatus>("master/ff_ref", 1);
     pub_master_hdg_ref = nh.advertise<std_msgs::Float32>("master/hdg_ref", 1);
 
     pub_tdoa = nh.advertise<std_msgs::Float64>("tdoa", 1);
@@ -158,7 +151,7 @@ void TDOASSControl::init()
         nh.subscribe("master/active", 1, &TDOASSControl::onMasterActive, this);
     pub_slave_pos_ref =
         nh.advertise<geometry_msgs::PointStamped>("slave/pos_ref", 1);
-    pub_slave_ff_ref = nh.advertise<auv_msgs::NavSts>("slave/ff_ref", 1);
+    pub_slave_ff_ref = nh.advertise<auv_msgs::NavigationStatus>("slave/ff_ref", 1);
     pub_slave_hdg_ref = nh.advertise<std_msgs::Float32>("slave/hdg_ref", 1);
     sub_veh2_ref =
         nh.subscribe("veh2/state_ref", 1, &TDOASSControl::onSlaveRef, this);
@@ -166,7 +159,7 @@ void TDOASSControl::init()
 }
 
 void TDOASSControl::reconfigureCallback(
-    labust_control::TDOASSControlConfig& config, uint32_t level)
+    labust_msgs::TDOASSControlConfig& config, uint32_t level)
 {
   this->config = config;
   // config.__toServer__(ph);
@@ -175,7 +168,7 @@ void TDOASSControl::reconfigureCallback(
     if (logging_flag != config.logging)
     {
       logging_flag = config.logging;
-      misc_msgs::RosbagControl srv;
+      labust_msgs::RosbagControl srv;
       srv.request.action = logging_flag ? "start" : "stop";
       srv.request.bag_name = "master_" + config.log_name;
       ros::service::call("/master/rosbag_record", srv);
@@ -187,7 +180,7 @@ void TDOASSControl::reconfigureCallback(
     if (master_active_flag != config.master_enable)
     {
       // master_active_flag = config.master_enable;
-      // navcon_msgs::EnableControl srv;
+      // labust_msgs::EnableControl srv;
       // srv.request.enable = master_active_flag;
       // ros::service::call("/usv/TDOASS_master_enable", srv);
       // ROS_INFO("Master %s.", master_active_flag ? "enabled" : "disabled");
@@ -196,7 +189,7 @@ void TDOASSControl::reconfigureCallback(
     if (slave_active_flag != config.slave_enable)
     {
       slave_active_flag = config.slave_enable;
-      navcon_msgs::EnableControl srv;
+      labust_msgs::EnableControl srv;
       srv.request.enable = slave_active_flag;
       ros::service::call("/usv/TDOASS_slave_enable", srv);
       ROS_INFO("Slave %s.", slave_active_flag ? "enabled" : "disabled");
@@ -263,9 +256,9 @@ void TDOASSControl::initializeController()
   ROS_ERROR("Extremum seeking controller initialized.");
 }
 
-void TDOASSControl::idle(const auv_msgs::NavSts& ref,
-                         const auv_msgs::NavSts& state,
-                         const auv_msgs::BodyVelocityReq& track)
+void TDOASSControl::idle(const auv_msgs::NavigationStatus& ref,
+                         const auv_msgs::NavigationStatus& state,
+                         const labust_msgs::BodyVelocityReq& track)
 {
   if (controller_active && !isMaster())
   {
@@ -292,12 +285,12 @@ void TDOASSControl::idle(const auv_msgs::NavSts& ref,
   }
 }
 
-auv_msgs::BodyVelocityReqPtr TDOASSControl::step(
-    const auv_msgs::NavSts& ref, const auv_msgs::NavSts& state_hat)
+labust_msgs::BodyVelocityReqPtr TDOASSControl::step(
+    const auv_msgs::NavigationStatus& ref, const auv_msgs::NavigationStatus& state_hat)
 {
   if (!controller_active)
   {
-    center_ref = auv_msgs::BodyVelocityReq();
+    center_ref = labust_msgs::BodyVelocityReq();
     if (!test_init_flag)
       initBaselinePos();
     else
@@ -326,7 +319,7 @@ auv_msgs::BodyVelocityReqPtr TDOASSControl::step(
       delta = getNormalizedDifferenceOfArrivalMeters();
       cost = std::pow(delta, 2);
       yaw_rate = (use_position_control) ? center_ref.twist.angular.z :
-                                          state[MASTER].orientation_rate.yaw;
+                                          state[MASTER].orientation_rate.z;
 
       bool publish_flag(true);
       if (publish_flag)
@@ -359,7 +352,7 @@ auv_msgs::BodyVelocityReqPtr TDOASSControl::step(
       ROS_ERROR("Waiting for test initalization.");
     }
 
-    auv_msgs::BodyVelocityReqPtr nu(new auv_msgs::BodyVelocityReq());
+    labust_msgs::BodyVelocityReqPtr nu(new labust_msgs::BodyVelocityReq());
 
     if (use_position_control)
     {
@@ -368,23 +361,23 @@ auv_msgs::BodyVelocityReqPtr TDOASSControl::step(
 
       broadcastTransform(state[CENTER], link_names[NED], link_names[CENTER]);
 
-      auv_msgs::NavSts offset;
+      auv_msgs::NavigationStatus offset;
       offset.position.east = baseline / 2;
 
       broadcastTransform(offset, link_names[CENTER], link_names[MASTER]);
       offset.position.east = -baseline / 2;
       broadcastTransform(offset, link_names[CENTER], link_names[SLAVE]);
 
-      auv_msgs::NavSts master_ref;
+      auv_msgs::NavigationStatus master_ref;
       if (calculateMasterReference(master_ref, center_ref))
       {
         master_ref.header.stamp = ros::Time::now();
         geometry_msgs::PointStamped pos_ref;
         std_msgs::Float32 hdg_ref;
-        auv_msgs::NavSts ff_ref;
+        auv_msgs::NavigationStatus ff_ref;
         pos_ref.point.x = master_ref.position.north;
         pos_ref.point.y = master_ref.position.east;
-        hdg_ref.data = master_ref.orientation.yaw;
+        hdg_ref.data = master_ref.orientation.z;
         ff_ref.body_velocity.x = master_ref.body_velocity.x;
         ff_ref.body_velocity.y = master_ref.body_velocity.y;
         pub_master_pos_ref.publish(pos_ref);
@@ -394,7 +387,7 @@ auv_msgs::BodyVelocityReqPtr TDOASSControl::step(
 
       if (!dp_controller_active && isMaster())
       {
-        misc_msgs::DynamicPositioningPrimitiveService srv;
+        labust_msgs::DynamicPositioningPrimitiveService srv;
         srv.request.north_enable = true;
         srv.request.east_enable = true;
         srv.request.heading_enable = true;
@@ -406,7 +399,7 @@ auv_msgs::BodyVelocityReqPtr TDOASSControl::step(
         dp_controller_active = true;
       }
 
-      auv_msgs::NavSts slave_ref;
+      auv_msgs::NavigationStatus slave_ref;
       if (calculateSlaveReference(slave_ref, center_ref))
       {
         slave_ref.header.stamp = ros::Time::now();
@@ -423,11 +416,11 @@ auv_msgs::BodyVelocityReqPtr TDOASSControl::step(
     else
     {
       // Publish transforms.
-      auv_msgs::NavSts offset;
+      auv_msgs::NavigationStatus offset;
       offset.position.east = -baseline / 2;
       broadcastTransform(offset, link_names[MASTER], link_names[CENTER]);
       broadcastTransform(offset, link_names[CENTER], link_names[SLAVE]);
-      auv_msgs::NavSts slave_ref;
+      auv_msgs::NavigationStatus slave_ref;
       if (calculateSlaveReference(slave_ref, center_ref))
       {
         slave_ref.header.stamp = ros::Time::now();
@@ -453,7 +446,7 @@ auv_msgs::BodyVelocityReqPtr TDOASSControl::step(
     disable_axis[x] = 1;
     disable_axis[y] = 1;
     disable_axis[yaw] = 1;
-    auv_msgs::BodyVelocityReqPtr nu(new auv_msgs::BodyVelocityReq());
+    labust_msgs::BodyVelocityReqPtr nu(new labust_msgs::BodyVelocityReq());
     nu->header.stamp = ros::Time::now();
     nu->goal.requester = "tdoass_controller";
     labust::tools::vectorToDisableAxis(disable_axis, nu->disable_axis);
@@ -512,12 +505,12 @@ double TDOASSControl::getNormalizedDifferenceOfArrivalMeters()
   return tdoa * speed_of_sound / baseline;
 }
 
-void TDOASSControl::onTestInit(const auv_msgs::NavSts::ConstPtr& msg)
+void TDOASSControl::onTestInit(const auv_msgs::NavigationStatus::ConstPtr& msg)
 {
   test_init_flag = true;
   state[CENTER].position.north = msg->position.north;
   state[CENTER].position.east = msg->position.east;
-  state[CENTER].orientation.yaw = msg->orientation.yaw;
+  state[CENTER].orientation.z = msg->orientation.z;
   ROS_ERROR("BASELINE INITED FROM TOPIC.");
 }
 
@@ -525,11 +518,11 @@ void TDOASSControl::initBaselinePos()
 {
   state[CENTER].position.north = state[MASTER].position.north;
   state[CENTER].position.east = state[MASTER].position.east;
-  state[CENTER].orientation.yaw = state[MASTER].orientation.yaw;
+  state[CENTER].orientation.z = state[MASTER].orientation.z;
   ROS_ERROR("BASELINE INITED FROM CURRENT POSITION.");
 }
 
-void TDOASSControl::baselineStep(auv_msgs::BodyVelocityReq req)
+void TDOASSControl::baselineStep(labust_msgs::BodyVelocityReq req)
 {
   std_msgs::Float64 data;
   data.data = req.twist.linear.x;
@@ -537,27 +530,27 @@ void TDOASSControl::baselineStep(auv_msgs::BodyVelocityReq req)
   data.data = req.twist.angular.z;
   pub_yaw_rate_ref.publish(data);
 
-  double yaw = state[CENTER].orientation.yaw;
+  double yaw = state[CENTER].orientation.z;
   double vx_ref = req.twist.linear.x * std::cos(yaw);
   double vy_ref = req.twist.linear.x * std::sin(yaw);
   double Tstep = 0.1;
   state[CENTER].position.north += Tstep * vx_ref;
   state[CENTER].position.east += Tstep * vy_ref;
-  state[CENTER].orientation.yaw += Tstep * req.twist.angular.z;
+  state[CENTER].orientation.z += Tstep * req.twist.angular.z;
 
   pub_center_state.publish(state[CENTER]);
 }
 
-auv_msgs::BodyVelocityReq
-TDOASSControl::allocateSpeed(auv_msgs::BodyVelocityReq req)
+labust_msgs::BodyVelocityReq
+TDOASSControl::allocateSpeed(labust_msgs::BodyVelocityReq req)
 {
-  auv_msgs::BodyVelocityReq master_ref;
-  double yaw = state[MASTER].orientation.yaw;
+  labust_msgs::BodyVelocityReq master_ref;
+  double yaw = state[MASTER].orientation.z;
   double u_ref = req.twist.linear.x;
   bool use_meas(false);
   double yaw_rate_ref = req.twist.angular.z;
   double yaw_rate =
-      use_meas ? state[MASTER].orientation_rate.yaw : yaw_rate_ref;
+      use_meas ? state[MASTER].orientation_rate.z : yaw_rate_ref;
 
   master_ref.twist.linear.x = u_ref - baseline / 2 * yaw_rate;
   master_ref.twist.linear.y = 0;
@@ -573,7 +566,7 @@ TDOASSControl::allocateSpeed(auv_msgs::BodyVelocityReq req)
 }
 
 bool TDOASSControl::calculateMasterReference(
-    auv_msgs::NavSts& master_ref, const auv_msgs::BodyVelocityReq& center_ref)
+    auv_msgs::NavigationStatus& master_ref, const labust_msgs::BodyVelocityReq& center_ref)
 {
   geometry_msgs::TransformStamped transformStamped;
   try
@@ -581,7 +574,7 @@ bool TDOASSControl::calculateMasterReference(
     transformStamped = tf_buffer.lookupTransform(
         link_names[CENTER], link_names[MASTER], ros::Time(0));
 
-    double yaw = state[CENTER].orientation.yaw;
+    double yaw = state[CENTER].orientation.z;
 
     Eigen::Vector2d out, in;
     Eigen::Matrix2d R;
@@ -596,9 +589,9 @@ bool TDOASSControl::calculateMasterReference(
     master_ref.position.north = state[CENTER].position.north + out[0];
     master_ref.position.east = state[CENTER].position.east + out[1];
     master_ref.position.depth = state[CENTER].position.depth;
-    master_ref.orientation.roll = 0;
-    master_ref.orientation.pitch = 0;
-    master_ref.orientation.yaw = state[CENTER].orientation.yaw;
+    master_ref.orientation.x = 0;
+    master_ref.orientation.y = 0;
+    master_ref.orientation.z = state[CENTER].orientation.z;
     // TODO account for yaw rate influence.
     // master_ref.body_velocity.x = center_ref.twist.linear.x;
     // TODO can be done with http://wiki.ros.org/tf2_geometry_msgs.
@@ -614,7 +607,7 @@ bool TDOASSControl::calculateMasterReference(
 }
 
 bool TDOASSControl::calculateSlaveReference(
-    auv_msgs::NavSts& slave_ref, const auv_msgs::BodyVelocityReq& center_ref)
+    auv_msgs::NavigationStatus& slave_ref, const labust_msgs::BodyVelocityReq& center_ref)
 {
   if (use_position_control)
   {
@@ -624,7 +617,7 @@ bool TDOASSControl::calculateSlaveReference(
       transformStamped = tf_buffer.lookupTransform(
           link_names[CENTER], link_names[SLAVE], ros::Time(0));
 
-      double yaw = state[CENTER].orientation.yaw;
+      double yaw = state[CENTER].orientation.z;
 
       Eigen::Vector2d out, in;
       Eigen::Matrix2d R;
@@ -639,9 +632,9 @@ bool TDOASSControl::calculateSlaveReference(
       slave_ref.position.north = state[CENTER].position.north + out[0];
       slave_ref.position.east = state[CENTER].position.east + out[1];
       slave_ref.position.depth = state[CENTER].position.depth;
-      slave_ref.orientation.roll = 0;
-      slave_ref.orientation.pitch = 0;
-      slave_ref.orientation.yaw = state[CENTER].orientation.yaw;
+      slave_ref.orientation.x = 0;
+      slave_ref.orientation.y = 0;
+      slave_ref.orientation.z = state[CENTER].orientation.z;
       // TODO account for yaw rate influence.
       // slave_ref.body_velocity.x = center_ref.twist.linear.x;
       // TODO can be done with http://wiki.ros.org/tf2_geometry_msgs.
@@ -663,7 +656,7 @@ bool TDOASSControl::calculateSlaveReference(
       transformStamped = tf_buffer.lookupTransform(
           link_names[MASTER], link_names[SLAVE], ros::Time(0));
 
-      double yaw = state[MASTER].orientation.yaw;
+      double yaw = state[MASTER].orientation.z;
 
       Eigen::Vector2d out, in;
       Eigen::Matrix2d R;
@@ -678,9 +671,9 @@ bool TDOASSControl::calculateSlaveReference(
       slave_ref.position.north = state[MASTER].position.north + out[0];
       slave_ref.position.east = state[MASTER].position.east + out[1];
       slave_ref.position.depth = state[MASTER].position.depth;
-      slave_ref.orientation.roll = 0;
-      slave_ref.orientation.pitch = 0;
-      slave_ref.orientation.yaw = state[MASTER].orientation.yaw;
+      slave_ref.orientation.x = 0;
+      slave_ref.orientation.y = 0;
+      slave_ref.orientation.z = state[MASTER].orientation.z;
       // TODO account for yaw rate influence.
       // slave_ref.body_velocity.x = center_ref.twist.linear.x;
       // TODO can be done with http://wiki.ros.org/tf2_geometry_msgs.
@@ -700,7 +693,7 @@ bool TDOASSControl::calculateSlaveReference(
     transformStamped = tf_buffer.lookupTransform(
         link_names[MASTER], link_names[SLAVE], ros::Time(0));
 
-    double yaw = state[MASTER].orientation.yaw;
+    double yaw = state[MASTER].orientation.z;
 
     Eigen::Vector2d out, in;
     Eigen::Matrix2d R;
@@ -715,9 +708,9 @@ bool TDOASSControl::calculateSlaveReference(
     slave_ref.position.north = state[MASTER].position.north + out[0];
     slave_ref.position.east = state[MASTER].position.east + out[1];
     slave_ref.position.depth = state[MASTER].position.depth;
-    slave_ref.orientation.roll = 0;
-    slave_ref.orientation.pitch = 0;
-    slave_ref.orientation.yaw = state[MASTER].orientation.yaw;
+    slave_ref.orientation.x = 0;
+    slave_ref.orientation.y = 0;
+    slave_ref.orientation.z = state[MASTER].orientation.z;
     // TODO account for yaw rate influence.
     // slave_ref.body_velocity.x = center_ref.twist.linear.x;
     // TODO can be done with http://wiki.ros.org/tf2_geometry_msgs.
@@ -732,7 +725,7 @@ bool TDOASSControl::calculateSlaveReference(
   }
 }
 
-void TDOASSControl::surgeSpeedControl(auv_msgs::BodyVelocityReq& req,
+void TDOASSControl::surgeSpeedControl(labust_msgs::BodyVelocityReq& req,
                                       double delta, double cost, double eta)
 {
   const int n = 3;
@@ -752,7 +745,7 @@ void TDOASSControl::surgeSpeedControl(auv_msgs::BodyVelocityReq& req,
   req.twist.linear.x = u0 * u_amp * u_zeta * u_dir;
 }
 
-void TDOASSControl::yawRateControl(auv_msgs::BodyVelocityReq& req, double delta,
+void TDOASSControl::yawRateControl(labust_msgs::BodyVelocityReq& req, double delta,
                                    double cost)
 {
   req.twist.angular.z = (es_controller.step(cost, update))[0];
@@ -775,14 +768,14 @@ double TDOASSControl::etaFilterStep(double delta, double yaw_rate)
   return eta_filter_state_k1[1];
 }
 
-void TDOASSControl::onVeh1State(const auv_msgs::NavSts::ConstPtr& msg)
+void TDOASSControl::onVeh1State(const auv_msgs::NavigationStatus::ConstPtr& msg)
 {
   state[MASTER] = *msg;
   // if (isMaster()){}
   // step();
 }
 
-void TDOASSControl::onVeh2State(const auv_msgs::NavSts::ConstPtr& msg)
+void TDOASSControl::onVeh2State(const auv_msgs::NavigationStatus::ConstPtr& msg)
 {
   state[SLAVE] = *msg;
   // if (!isMaster()){}
@@ -799,16 +792,16 @@ void TDOASSControl::onVeh2Toa(const std_msgs::Time::ConstPtr& msg)
   toa2 = msg->data;
 }
 
-void TDOASSControl::onSlaveRef(const auv_msgs::NavSts::ConstPtr& msg)
+void TDOASSControl::onSlaveRef(const auv_msgs::NavigationStatus::ConstPtr& msg)
 {
   if (!isMaster())
   {
     geometry_msgs::PointStamped pos_ref;
     std_msgs::Float32 hdg_ref;
-    auv_msgs::NavSts ff_ref;
+    auv_msgs::NavigationStatus ff_ref;
     pos_ref.point.x = msg->position.north;
     pos_ref.point.y = msg->position.east;
-    hdg_ref.data = msg->orientation.yaw;
+    hdg_ref.data = msg->orientation.z;
     ff_ref.body_velocity.x = msg->body_velocity.x;
     ff_ref.body_velocity.y = msg->body_velocity.y;
     pub_slave_pos_ref.publish(pos_ref);
@@ -828,7 +821,7 @@ void TDOASSControl::onMasterActive(const std_msgs::Bool::ConstPtr& msg)
         master_active_flag = msg->data;
         if (master_active_flag)
         {
-          misc_msgs::DynamicPositioningPrimitiveService srv;
+          labust_msgs::DynamicPositioningPrimitiveService srv;
           srv.request.north_enable = true;
           srv.request.east_enable = true;
           srv.request.heading_enable = true;
@@ -848,7 +841,7 @@ void TDOASSControl::onMasterActive(const std_msgs::Bool::ConstPtr& msg)
   }
 }
 
-void TDOASSControl::broadcastTransform(auv_msgs::NavSts& state,
+void TDOASSControl::broadcastTransform(auv_msgs::NavigationStatus& state,
                                        std::string& frame_id,
                                        std::string& child_frame_id)
 {
@@ -861,7 +854,7 @@ void TDOASSControl::broadcastTransform(auv_msgs::NavSts& state,
   transformStamped.transform.translation.y = state.position.east;
   transformStamped.transform.translation.z = state.position.depth;
   tf2::Quaternion q;
-  q.setRPY(0, 0, state.orientation.yaw);
+  q.setRPY(0, 0, state.orientation.z);
   transformStamped.transform.rotation.x = q.x();
   transformStamped.transform.rotation.y = q.y();
   transformStamped.transform.rotation.z = q.z();
@@ -878,15 +871,15 @@ int main(int argc, char* argv[])
       class Controller,
       class Enable = NoEnable,
       class Windup = NoWindup,
-      class OutputType = auv_msgs::BodyVelocityReq,
-      class InputType = auv_msgs::NavSts,
-      class ReferenceType = auv_msgs::NavSts
+      class OutputType = labust_msgs::BodyVelocityReq,
+      class InputType = auv_msgs::NavigationStatus,
+      class ReferenceType = auv_msgs::NavigationStatus
       >
   ***/
 
   labust::control::HLControl<
       labust::control::TDOASSControl, labust::control::EnableServicePolicy,
-      labust::control::WindupPolicy<auv_msgs::BodyForceReq> >
+      labust::control::WindupPolicy<labust_msgs::BodyForceReq> >
       controller;
   ros::spin();
 

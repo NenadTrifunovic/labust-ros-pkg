@@ -1,11 +1,3 @@
-/*****************+***************************************************
- * tdoass_control.h
- *
- *  Created on: Aug 28, 2017
- *      Author: Filip Mandic
- *
- ********************************************************************/
-
 /*********************************************************************
 * Software License Agreement (BSD License)
 *
@@ -38,19 +30,20 @@
 *  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
 *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 *  POSSIBILITY OF SUCH DAMAGE.
+*
 *********************************************************************/
 
 #ifndef TDOASS_CONTROL_H_
 #define TDOASS_CONTROL_H_
 
-#include <auv_msgs/BodyForceReq.h>
-#include <auv_msgs/BodyVelocityReq.h>
-#include <auv_msgs/NavSts.h>
+#include <labust_msgs/BodyForceReq.h>
+#include <labust_msgs/BodyVelocityReq.h>
+#include <auv_msgs/NavigationStatus.h>
 #include <dynamic_reconfigure/server.h>
 #include <geometry_msgs/PointStamped.h>
 #include <geometry_msgs/TransformStamped.h>
-#include <labust_control/TDOASSControlConfig.h>
-#include <misc_msgs/DynamicPositioningPrimitiveService.h>
+#include <labust_es_control/TDOASSControlConfig.h>
+#include <labust_msgs/DynamicPositioningPrimitiveService.h>
 #include <ros/ros.h>
 #include <std_msgs/Bool.h>
 #include <std_msgs/Float32.h>
@@ -87,19 +80,19 @@ public:
   ///
   void initializeController();
   ///
-  auv_msgs::BodyVelocityReqPtr step(const auv_msgs::NavSts& ref,
-                                    const auv_msgs::NavSts& state_hat);
+  labust_msgs::BodyVelocityReqPtr step(const auv_msgs::NavigationStatus& ref,
+                                    const auv_msgs::NavigationStatus& state_hat);
   ///
   bool setAsMaster(bool flag);
   ///
   bool isMaster();
   ///
-  void windup(const auv_msgs::BodyForceReq& tauAch){};
+  void windup(const labust_msgs::BodyForceReq& tauAch){};
   ///
-  void idle(const auv_msgs::NavSts& ref, const auv_msgs::NavSts& state,
-            const auv_msgs::BodyVelocityReq& track);
+  void idle(const auv_msgs::NavigationStatus& ref, const auv_msgs::NavigationStatus& state,
+            const labust_msgs::BodyVelocityReq& track);
   ///
-  void reset(const auv_msgs::NavSts& ref, const auv_msgs::NavSts& state){};
+  void reset(const auv_msgs::NavigationStatus& ref, const auv_msgs::NavigationStatus& state){};
 
 private:
   ///
@@ -119,7 +112,7 @@ private:
     NED
   };
   ///
-  void reconfigureCallback(labust_control::TDOASSControlConfig& config,
+  void reconfigureCallback(labust_msgs::TDOASSControlConfig& config,
                            uint32_t level);
   ///
   void updateDynRecConfig();
@@ -134,46 +127,46 @@ private:
   ///
   void initBaselinePos();
   ///
-  void baselineStep(auv_msgs::BodyVelocityReq req);
+  void baselineStep(labust_msgs::BodyVelocityReq req);
   ///
-  auv_msgs::BodyVelocityReq allocateSpeed(auv_msgs::BodyVelocityReq req);
+  labust_msgs::BodyVelocityReq allocateSpeed(labust_msgs::BodyVelocityReq req);
   ///
-  bool calculateMasterReference(auv_msgs::NavSts& master_ref,
-                               const auv_msgs::BodyVelocityReq& center_ref);  
+  bool calculateMasterReference(auv_msgs::NavigationStatus& master_ref,
+                               const labust_msgs::BodyVelocityReq& center_ref);  
   ///
-  bool calculateSlaveReference(auv_msgs::NavSts& slave_ref,
-                               const auv_msgs::BodyVelocityReq& center_ref);
+  bool calculateSlaveReference(auv_msgs::NavigationStatus& slave_ref,
+                               const labust_msgs::BodyVelocityReq& center_ref);
   /// Calculate and broadcast trasform.
-  void broadcastTransform(auv_msgs::NavSts& state, std::string& frame_id,
+  void broadcastTransform(auv_msgs::NavigationStatus& state, std::string& frame_id,
                           std::string& child_frame_id);
   ///
-  void surgeSpeedControl(auv_msgs::BodyVelocityReq& req, double delta,
+  void surgeSpeedControl(labust_msgs::BodyVelocityReq& req, double delta,
                          double cost, double eta);
   ///
-  void yawRateControl(auv_msgs::BodyVelocityReq& req, double delta,
+  void yawRateControl(labust_msgs::BodyVelocityReq& req, double delta,
                       double cost);
   ///
   double etaFilterStep(double delta, double yaw_rate);
   /// Vehicle 1 state callback.
-  void onVeh1State(const auv_msgs::NavSts::ConstPtr& msg);
+  void onVeh1State(const auv_msgs::NavigationStatus::ConstPtr& msg);
   /// Vehicle 2 state callback.
-  void onVeh2State(const auv_msgs::NavSts::ConstPtr& msg);
+  void onVeh2State(const auv_msgs::NavigationStatus::ConstPtr& msg);
   ///
   void onVeh1Toa(const std_msgs::Time::ConstPtr& msg);
   ///
   void onVeh2Toa(const std_msgs::Time::ConstPtr& msg);
   ///
-  void onSlaveRef(const auv_msgs::NavSts::ConstPtr& msg);
+  void onSlaveRef(const auv_msgs::NavigationStatus::ConstPtr& msg);
   ///
-  void onTestInit(const auv_msgs::NavSts::ConstPtr& msg);
+  void onTestInit(const auv_msgs::NavigationStatus::ConstPtr& msg);
   ///
   void onMasterActive(const std_msgs::Bool::ConstPtr& msg);  
   /// Dynamic reconfigure
-  dynamic_reconfigure::Server<labust_control::TDOASSControlConfig> server;
-  dynamic_reconfigure::Server<labust_control::TDOASSControlConfig>::CallbackType
+  dynamic_reconfigure::Server<labust_msgs::TDOASSControlConfig> server;
+  dynamic_reconfigure::Server<labust_msgs::TDOASSControlConfig>::CallbackType
       f;
   /// The dynamic reconfigure parameters.
-  labust_control::TDOASSControlConfig config;
+  labust_msgs::TDOASSControlConfig config;
   /// Transform broadcaster.
   tf2_ros::TransformBroadcaster transform_broadcaster;
   ///
@@ -228,7 +221,7 @@ private:
   ros::Publisher pub_eta, pub_baseline, pub_surge_speed_ref, pub_yaw_rate_ref,
       pub_delta_norm;
   ///
-  std::map<int, auv_msgs::NavSts> state;
+  std::map<int, auv_msgs::NavigationStatus> state;
   ///
   std::map<int, std::string> link_names;
   ///
@@ -240,7 +233,7 @@ private:
   ///
   ros::Time test_init_timeout;  
   ///
-  auv_msgs::BodyVelocityReq center_ref;
+  labust_msgs::BodyVelocityReq center_ref;
   ///
   std::vector<double> eta_filter_state_k0, eta_filter_state_k1;
   ///

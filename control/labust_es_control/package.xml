@@ -73,6 +73,8 @@
   <exec_depend>sensor_msgs</exec_depend>
   <exec_depend>tf2_ros</exec_depend>
   <exec_depend>dynamic_reconfigure</exec_depend>  
+  
+  <depend>labust_control</depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->
