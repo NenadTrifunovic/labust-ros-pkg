@@ -160,7 +160,7 @@ struct TFPublishNode
   
   void publishFrame()
   {
-    ros::Rate rate(10);
+    ros::Rate rate(20);
     while (ros::ok())
     {
       ros::Time ct = ros::Time::now();
