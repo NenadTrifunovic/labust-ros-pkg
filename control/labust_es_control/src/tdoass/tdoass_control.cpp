@@ -95,7 +95,7 @@ void TDOASSControl::init()
   link_names[MASTER] = "master_frame";
   link_names[SLAVE] = "slave_frame";
   link_names[SLAVE_REF] = "slave_ref_frame";
-  link_names[NED] = "master/local";
+  link_names[NED] = "master/map_ned";
 
   sub_veh1_state =
       nh.subscribe("veh1/state", 1, &TDOASSControl::onVeh1State, this);
