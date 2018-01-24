@@ -33,10 +33,12 @@
  *
  *********************************************************************/
 #include <auv_msgs/NavigationStatus.h>
+#include <geographic_msgs/GeoPointStamped.h>
 #include <nav_msgs/Odometry.h>
 #include <ros/ros.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <tf2_ros/transform_listener.h>
+#include <GeographicLib/LocalCartesian.hpp>
 #include <labust/math/NumberManipulation.hpp>
 #include <labust/tools/conversions.hpp>
 
@@ -49,11 +51,17 @@ public:
 private:
   void onOdom(const nav_msgs::Odometry::ConstPtr& in);
 
+  void onOrigin(const geographic_msgs::GeoPointStamped::ConstPtr& in);
+
   ros::Publisher pub_navsts;
   ros::Subscriber sub_odom;
+  ros::Subscriber sub_origin;
   tf2_ros::Buffer tfBuffer;
   tf2_ros::TransformListener tfListener;
   std::string tf_prefix;
+  geographic_msgs::GeoPointStamped origin;
+  // ENU projection
+  GeographicLib::LocalCartesian proj;
 };
 
 OdomToNavSts::OdomToNavSts() : tfListener(tfBuffer), tf_prefix("")
@@ -74,12 +82,12 @@ OdomToNavSts::OdomToNavSts() : tfListener(tfBuffer), tf_prefix("")
   // Eigen::Matrix3d rot = q.toRotationMatrix().transpose();
 
   // TODO subscribe to altitude using message filter.
-  // TODO get origin position.
-  // TODO get lat/lon position.
 
   pub_navsts = nh.advertise<auv_msgs::NavigationStatus>("navsts", 1);
   sub_odom =
       nh.subscribe<nav_msgs::Odometry>("odom", 1, &OdomToNavSts::onOdom, this);
+  sub_origin = nh.subscribe<geographic_msgs::GeoPointStamped>(
+      "map_origin", 1, &OdomToNavSts::onOrigin, this);
 }
 
 OdomToNavSts::~OdomToNavSts()
@@ -95,6 +103,11 @@ void OdomToNavSts::onOdom(const nav_msgs::Odometry::ConstPtr& in)
     transform = tfBuffer.lookupTransform(tf_prefix + "base_link_frd",
                                          tf_prefix + "base_link", ros::Time(0),
                                          ros::Duration(0));
+
+    proj.Reverse(in->pose.pose.position.x, in->pose.pose.position.y, 0,
+                 out->global_position.latitude, out->global_position.longitude,
+                 out->global_position.altitude);
+    out->origin = origin.position;
 
     // Transform twist.
     // Transform linear velocity.
@@ -155,6 +168,14 @@ void OdomToNavSts::onOdom(const nav_msgs::Odometry::ConstPtr& in)
   {
     ROS_WARN("%s", ex.what());
   }
+}
+
+void OdomToNavSts::onOrigin(
+    const geographic_msgs::GeoPointStamped::ConstPtr& in)
+{
+  origin = *in;
+  proj.Reset(origin.position.latitude, origin.position.longitude,
+             origin.position.altitude);
 }
 
 int main(int argc, char* argv[])

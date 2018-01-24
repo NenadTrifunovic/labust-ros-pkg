@@ -171,7 +171,7 @@ target_link_libraries(tf_publish_node
   ${catkin_LIBRARIES} ${GeographicLib_LIBRARIES} ${Eigen_LIBRARIES}
 )
 target_link_libraries(odom_to_navsts_node
-  ${catkin_LIBRARIES} ${Eigen_LIBRARIES}
+  ${catkin_LIBRARIES} ${GeographicLib_LIBRARIES} ${Eigen_LIBRARIES}
 )
 
 #############

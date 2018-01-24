@@ -38,9 +38,10 @@
 #include <tf2_ros/transform_broadcaster.h>
 #include <tf2_ros/transform_listener.h>
 
+#include <geographic_msgs/GeoPointStamped.h>
+#include <geometry_msgs/Quaternion.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <geometry_msgs/Vector3Stamped.h>
-#include <geometry_msgs/Quaternion.h>
 #include <sensor_msgs/NavSatFix.h>
 #include <std_msgs/Float64.h>
 
@@ -68,8 +69,8 @@ struct TFPublishNode
     ros::NodeHandle nh, ph("~");
     nh.param("LocalOriginLat", originLat, originLat);
     nh.param("LocalOriginLon", originLon, originLon);
-    //TODO Check if this is correct.
-		nh.param("LocalOriginH", originH, originH);		
+    // TODO Check if this is correct.
+    // nh.param("LocalOriginH", originH, originH);
     ph.param("LocalFixSim", fixValidated, fixValidated);
 
     // Get magnetic data
@@ -93,14 +94,24 @@ struct TFPublishNode
       ROS_ERROR("%s", e.what());
     }
 
+    gps_raw = nh.subscribe<sensor_msgs::NavSatFix>("gps", 1,
+                                                   &TFPublishNode::onGps, this);
+    gps_ned = nh.advertise<geometry_msgs::Vector3Stamped>("gps_ned", 1);
+    gps_origin = nh.advertise<geographic_msgs::GeoPointStamped>("map_origin", 1, true);
+    mag_dec = nh.advertise<std_msgs::Float64>("magnetic_declination", 1, true);
+
     // Setup the local projection
     if (fixValidated)
+    {
       proj.Reset(originLat, originLon, originH);
-
-    gps_raw =
-        nh.subscribe<sensor_msgs::NavSatFix>("gps", 1, &TFPublishNode::onGps, this);
-    gps_ned = nh.advertise<geometry_msgs::Vector3Stamped>("gps_raw", 1);
-    mag_dec = nh.advertise<std_msgs::Float64>("magnetic_declination", 1, true);
+      geographic_msgs::GeoPointStamped origin_out;
+      origin_out.header.frame_id = "geodetic";
+      origin_out.header.stamp = ros::Time::now();
+      origin_out.position.latitude = originLat;
+      origin_out.position.longitude = originLon;
+      origin_out.position.altitude = originH;
+      gps_origin.publish(origin_out);
+    }
 
     runner = boost::thread(boost::bind(&TFPublishNode::publishFrame, this));
   }
@@ -120,6 +131,13 @@ struct TFPublishNode
       originLon = fix->longitude;
       proj.Reset(originLat, originLon, originH);
       fixValidated = true;
+      geographic_msgs::GeoPointStamped origin_out;
+      origin_out.header.frame_id = tf_prefix + "geodetic";
+      origin_out.header.stamp = ros::Time::now();
+      origin_out.position.latitude = originLat;
+      origin_out.position.longitude = originLon;
+      origin_out.position.altitude = originH;
+      gps_origin.publish(origin_out);      
     }
     else
     {
@@ -157,7 +175,7 @@ struct TFPublishNode
       }
     }
   };
-  
+
   void publishFrame()
   {
     ros::Rate rate(20);
@@ -182,53 +200,56 @@ struct TFPublishNode
         transform.header.stamp = ct;
         broadcaster.sendTransform(transform);
       }
-          
+
       try
       {
-        transform = tfBuffer.lookupTransform(tf_prefix + "map_ned", tf_prefix + "base_link",
-                                 ros::Time(0), ros::Duration(0));                                 
-         
-        geometry_msgs::Quaternion rot(transform.transform.rotation);                                                        
+        transform = tfBuffer.lookupTransform(tf_prefix + "map_ned",
+                                             tf_prefix + "base_link",
+                                             ros::Time(0), ros::Duration(0));
 
-        // Broadcast map_ned->base_pose_ned frame.                           
+        geometry_msgs::Quaternion rot(transform.transform.rotation);
+
+        // Broadcast map_ned->base_pose_ned frame.
         labust::tools::quaternionFromEulerZYX(0, 0, 0,
                                               transform.transform.rotation);
         transform.child_frame_id = tf_prefix + "base_pose_ned";
         transform.header.frame_id = tf_prefix + "map_ned";
         transform.header.stamp = ct;
-        broadcaster.sendTransform(transform);      
+        broadcaster.sendTransform(transform);
 
         // Boradcast base_pose_ned -> base_link_frd frame.
         transform.transform.translation.x = 0;
         transform.transform.translation.y = 0;
         transform.transform.translation.z = 0;
-        
+
         double roll, pitch, yaw;
         labust::tools::eulerZYXFromQuaternion(rot, roll, pitch, yaw);
         roll += M_PI;
-        //yaw -= M_PI/2; // East equals 0. No operation needed. Due to ROS convention.
-        labust::tools::quaternionFromEulerZYX(roll, pitch, yaw, rot);        
-             
+        // yaw -= M_PI/2; // East equals 0. No operation needed. Due to ROS
+        // convention.
+        labust::tools::quaternionFromEulerZYX(roll, pitch, yaw, rot);
+
         transform.transform.rotation = rot;
         transform.child_frame_id = tf_prefix + "base_link_frd";
         transform.header.frame_id = tf_prefix + "base_pose_ned";
         transform.header.stamp = ct;
-        broadcaster.sendTransform(transform);                                   
+        broadcaster.sendTransform(transform);
       }
-      catch (tf2::TransformException &ex) {
-        ROS_WARN("%s",ex.what());
-      } 
-      
+      catch (tf2::TransformException& ex)
+      {
+        ROS_WARN("%s", ex.what());
+      }
+
       rate.sleep();
     }
   }
 
 private:
   ros::Subscriber gps_raw;
-  ros::Publisher gps_ned, mag_dec;
+  ros::Publisher gps_ned, gps_origin, mag_dec;
   tf2_ros::TransformBroadcaster broadcaster;
   tf2_ros::Buffer tfBuffer;
-  tf2_ros::TransformListener tfListener;    
+  tf2_ros::TransformListener tfListener;
   double originLat, originLon, originH;
   bool fixValidated;
   int fixCount;
