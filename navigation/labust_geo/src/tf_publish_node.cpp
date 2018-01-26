@@ -42,6 +42,7 @@
 #include <geometry_msgs/Quaternion.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <geometry_msgs/Vector3Stamped.h>
+#include <nav_msgs/Odometry.h>
 #include <sensor_msgs/NavSatFix.h>
 #include <std_msgs/Float64.h>
 
@@ -49,8 +50,11 @@
 #include <GeographicLib/LocalCartesian.hpp>
 #include <GeographicLib/MagneticModel.hpp>
 
+#include <boost/array.hpp>
 #include <boost/date_time.hpp>
 #include <boost/thread.hpp>
+
+#include <Eigen/Dense>
 
 struct TFPublishNode
 {
@@ -97,7 +101,9 @@ struct TFPublishNode
     gps_raw = nh.subscribe<sensor_msgs::NavSatFix>("gps", 1,
                                                    &TFPublishNode::onGps, this);
     gps_ned = nh.advertise<geometry_msgs::Vector3Stamped>("gps_ned", 1);
-    gps_origin = nh.advertise<geographic_msgs::GeoPointStamped>("map_origin", 1, true);
+    gps_odom = nh.advertise<nav_msgs::Odometry>("gps_odom", 1);
+    gps_origin =
+        nh.advertise<geographic_msgs::GeoPointStamped>("map_origin", 1, true);
     mag_dec = nh.advertise<std_msgs::Float64>("magnetic_declination", 1, true);
 
     // Setup the local projection
@@ -137,11 +143,26 @@ struct TFPublishNode
       origin_out.position.latitude = originLat;
       origin_out.position.longitude = originLon;
       origin_out.position.altitude = originH;
-      gps_origin.publish(origin_out);      
+      gps_origin.publish(origin_out);
     }
     else
     {
       // Publish projection
+      nav_msgs::Odometry odom_out;
+      odom_out.header.frame_id = "map";
+      odom_out.header.stamp = fix->header.stamp;
+      proj.Forward(fix->latitude, fix->longitude, fix->altitude,
+                   odom_out.pose.pose.position.x, odom_out.pose.pose.position.y,
+                   odom_out.pose.pose.position.z);
+
+      boost::array<double, 9> pos_cov_array = fix->position_covariance;
+      Eigen::Map<Eigen::MatrixXd> pos_cov(pos_cov_array.begin(), 3, 3);
+      Eigen::Map<Eigen::MatrixXd> cov(odom_out.pose.covariance.begin(), 6, 6);
+      cov.topLeftCorner(3, 3) = pos_cov;
+
+      gps_odom.publish(odom_out);
+
+      // Publish projection NED
       geometry_msgs::Vector3Stamped gpsout;
       gpsout.header.frame_id = "map_ned";
       gpsout.header.stamp = fix->header.stamp;
@@ -247,6 +268,7 @@ struct TFPublishNode
 private:
   ros::Subscriber gps_raw;
   ros::Publisher gps_ned, gps_origin, mag_dec;
+  ros::Publisher gps_odom;
   tf2_ros::TransformBroadcaster broadcaster;
   tf2_ros::Buffer tfBuffer;
   tf2_ros::TransformListener tfListener;

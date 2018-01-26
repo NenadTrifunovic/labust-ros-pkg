@@ -1,7 +1,7 @@
 /*********************************************************************
  * Software License Agreement (BSD License)
  *
- *  Copyright (c) 2010, LABUST, UNIZG-FER
+ *  Copyright (c) 2010-2018, LABUST, UNIZG-FER
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -98,7 +98,7 @@ struct GPSSim
     odom = nh.subscribe<nav_msgs::Odometry>("meas_odom", 1, &GPSSim::onOdom,
                                             this);
     gps_pub = nh.advertise<sensor_msgs::NavSatFix>("fix", 1);
-    gps_odom_pub = nh.advertise<nav_msgs::Odometry>("odometry/gps", 1);
+    //gps_odom_pub = nh.advertise<nav_msgs::Odometry>("odometry/gps", 1);
     
   }
 
@@ -157,27 +157,28 @@ struct GPSSim
                    transformLocal.transform.translation.y,
                    transformLocal.transform.translation.z, fix->latitude,
                    fix->longitude, fix->altitude);
-
+                   
+      // Set covariance
+      fix->position_covariance[0] = 16;
+      fix->position_covariance[4] = 16;
+      fix->position_covariance_type = sensor_msgs::NavSatFix::COVARIANCE_TYPE_DIAGONAL_KNOWN;                 
+                      
       double dT = (ros::Time::now() - last_gps).toSec();
       if ((fix->altitude >= -0.1) && (dT >= 1 / rate))
       {
         last_gps = ros::Time::now();
         gps_pub.publish(fix);
-        nav_msgs::Odometry gps_odom;
-        gps_odom.header = fix->header;
-        gps_odom.header.frame_id = tf_prefix + "map";        
-        gps_odom.child_frame_id = "";
-        gps_odom.pose.pose.position.x = enu(0);
-        gps_odom.pose.pose.position.y = enu(1);
-        gps_odom.pose.pose.position.z = enu(2);
-        gps_odom.pose.covariance[0] = 16.0;
-        gps_odom.pose.covariance[7] = 16.0;   
-        
-        //  for(int i=0; i<36; ++i)
-        //  {
-        //    gps_odom.pose.covariance[i] = 1.0;          
-        //  }      
-        gps_odom_pub.publish(gps_odom);
+        // nav_msgs::Odometry gps_odom;
+        // gps_odom.header = fix->header;
+        // gps_odom.header.frame_id = tf_prefix + "map";        
+        // gps_odom.child_frame_id = "";
+        // gps_odom.pose.pose.position.x = enu(0);
+        // gps_odom.pose.pose.position.y = enu(1);
+        // gps_odom.pose.pose.position.z = enu(2);
+        // gps_odom.pose.covariance[0] = 16.0;
+        // gps_odom.pose.covariance[7] = 16.0;   
+        //     
+        // gps_odom_pub.publish(gps_odom);
    
       }
     }
