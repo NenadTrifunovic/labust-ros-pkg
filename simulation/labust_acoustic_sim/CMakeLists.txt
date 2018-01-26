@@ -159,15 +159,15 @@ include_directories(
 # )
 
 add_executable(usbl_sim_node src/usbl_sim_node.cpp)
-add_dependencies(usbl_sim_node auv_msgs underwater_msgs)
+#add_dependencies(usbl_sim_node auv_msgs underwater_msgs)
 target_link_libraries(usbl_sim_node ${catkin_LIBRARIES})
 
 add_executable(range_sim_node src/range_sim_node.cpp)
-add_dependencies(range_sim_node navcon_msgs)
+#add_dependencies(range_sim_node navcon_msgs)
 target_link_libraries(range_sim_node ${catkin_LIBRARIES} ${Boost_RANDOM_LIBRARY})
 
 add_executable(tdoa_sim_node src/tdoa_sim_node.cpp)
-add_dependencies(tdoa_sim_node auv_msgs)
+#add_dependencies(tdoa_sim_node auv_msgs)
 target_link_libraries(tdoa_sim_node ${catkin_LIBRARIES})
 
 #############

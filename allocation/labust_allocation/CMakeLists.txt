@@ -49,7 +49,7 @@ target_link_libraries(labust_allocation ${catkin_LIBRARIES})
 
 ## Allocation nodes
 add_executable(allocation_node src/allocation_node/allocation_node.cpp)
-add_dependencies(allocation_node auv_msgs_gencpp)
+#add_dependencies(allocation_node auv_msgs_gencpp)
 target_link_libraries(allocation_node ${catkin_LIBRARIES})
 
 ## Test

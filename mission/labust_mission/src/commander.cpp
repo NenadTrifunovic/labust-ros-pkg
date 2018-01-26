@@ -1,15 +1,7 @@
 /*********************************************************************
- * commander.cpp
- *
- *  Created on: Apr 21, 2016
- *      Author: Filip Mandic
- *
- ********************************************************************/
-
-/*********************************************************************
 * Software License Agreement (BSD License)
 *
-*  Copyright (c) 2016, LABUST, UNIZG-FER
+*  Copyright (c) 2016-2018, LABUST, UNIZG-FER
 *  All rights reserved.
 *
 *  Redistribution and use in source and binary forms, with or without
@@ -38,6 +30,7 @@
 *  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
 *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 *  POSSIBILITY OF SUCH DAMAGE.
+*
 *********************************************************************/
 
 #include <labust/mission/commander.h>
