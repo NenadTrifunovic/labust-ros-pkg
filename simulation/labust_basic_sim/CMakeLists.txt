@@ -14,6 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   snippets
   tf2_ros
+  labust_sim_core
 )
 
 ## System dependencies are found with CMake's conventions

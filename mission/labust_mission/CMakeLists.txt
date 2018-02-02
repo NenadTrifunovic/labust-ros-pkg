@@ -19,7 +19,6 @@ find_package(catkin REQUIRED COMPONENTS
   actionlib
   actionlib_msgs
   message_generation
-  caddy_msgs
   geographic_msgs
   labust_msgs
 )

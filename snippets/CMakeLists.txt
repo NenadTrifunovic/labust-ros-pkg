@@ -12,7 +12,8 @@ find_package(catkin REQUIRED
     roscpp
     rospy
     rosbag
-    geometry_msgs)
+    geometry_msgs
+    tf2_geometry_msgs)
 
 ## System dependencies are found with CMake's conventions
 find_package(Boost REQUIRED)

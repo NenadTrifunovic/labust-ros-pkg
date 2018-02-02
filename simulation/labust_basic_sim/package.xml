@@ -67,6 +67,9 @@
   <depend>snippets</depend>
   <depend>tf2_ros</depend>  
 
+  <depend>labust_sim_core</depend>
+  <depend>geographiclib</depend>
+
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>

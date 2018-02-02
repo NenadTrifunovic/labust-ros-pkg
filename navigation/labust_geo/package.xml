@@ -66,6 +66,7 @@
   <depend>sensor_msgs</depend>  
   <depend>nav_msgs</depend>  
   <depend>auv_msgs</depend>    
+  <depend>geographiclib</depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>
