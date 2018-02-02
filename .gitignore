@@ -6,8 +6,8 @@
 .pydevproject
 #ignore CMake install
 cmake_install.cmake
-*/cmake
-*.cmake
+#*/cmake
+#*.cmake
 #ignore build dirs.
 build/
 lib/
