@@ -1,0 +1,26 @@
+<launch>
+	<arg name="bag" />
+	<!-- Load parameters -->
+
+	  <param name="use_sim_time" value="true" />
+    <node pkg="rosbag" type="play" name="replay" 
+          args="--start 700 --clock --topics /buddy/measurement /buddy/position /tf /buddy/tauAch /buddy/dvl /buddy/imu /buddy/altitude /buddy/depth /buddy/dvl_bottom /buddy/stateRef /buddy/nuRef /tf_static --bags=$(arg bag)" />
+    
+    <!-- EKF navigation filter -->
+    <group ns="buddy">
+	<rosparam command="load" file="$(find buddy)/data/navigation/params/nav_standard.yaml" />
+	<rosparam command="load" file="$(find buddy)/data/dynamics/buddy.yaml" />
+    <node pkg="labust_navigation" type="ekf3d_node" name="ekf_nav">
+		<param name="imu_with_yaw_rate" value="false" />
+		<param name="dvl_model" value="1" />
+		<param name="dvl_fp" value="0.12" />
+		<param name="Ts" value="0.1" />
+		<param name="sway_corr" value="0.00" />
+		<remap from="stateHat" to="new_position" />
+		<remap from="meas" to="new_measurement" />
+    </node>
+    </group>
+    
+    <include file="$(find buddy)/data/devices/static_frames.xml" />   	
+    <!-- <include file="$(find rovsee)/launch/simulation/uwsim.launch" /> -->
+</launch>
