@@ -225,7 +225,7 @@ void IdentificationNode::doIdentification(const Goal::ConstPtr& goal)
     result.delta = params[SOIdentification::delta];
     result.wn = params[SOIdentification::wn];
 
-    ROS_INFO("Identified parameters: %f %f %f %f",
+    ROS_INFO("Identified parameters: %f %f %f %f %f",
              params[SOIdentification::alpha], params[SOIdentification::kx],
              params[SOIdentification::kxx], params[SOIdentification::delta],
              params[SOIdentification::wn]);
