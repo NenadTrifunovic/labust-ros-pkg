@@ -6,7 +6,6 @@
 #  GeographicLib_LIBRARIES = /usr/local/lib/libGeographic.so
 #  GeographicLib_LIBRARY_DIRS = /usr/local/lib
 
-MESSAGE("DEBUG: ${CMAKE_INSTALL_PREFIX}")
 find_library (GeographicLib_LIBRARIES Geographic
   PATHS "/usr/lib/x86_64-linux-gnu/")
 # PATHS "${CMAKE_INSTALL_PREFIX}/../GeographicLib/lib")
@@ -19,9 +18,7 @@ if (GeographicLib_LIBRARIES)
   set (GeographicLib_INCLUDE_DIRS "${_ROOT_DIR}/include")
   set (GeographicLib_BINARY_DIRS "${_ROOT_DIR}/bin")
   unset (_ROOT_DIR)
-  MESSAGE("DEBUG2 ${GeographicLib_INCLUDE_DIRS}")
   if (NOT EXISTS "${GeographicLib_INCLUDE_DIRS}/GeographicLib/Config.h")
-    MESSAGE("DEBUG3")
     unset (GeographicLib_INCLUDE_DIRS)
     unset (GeographicLib_LIBRARIES)
     unset (GeographicLib_LIBRARY_DIRS)
