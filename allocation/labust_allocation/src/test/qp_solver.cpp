@@ -151,9 +151,9 @@ struct XConfiguration
 
 		// Check if something fishy is going on
 		if ((icp13.cols() > 2) || (icp13.cols() < 1))
-			ROS_ERROR("Intersection error: F13 for N=%f, %d", N, icp13.cols());
+			ROS_ERROR("Intersection error: F13 for N=%f, %ld", N, icp13.cols());
 		if ((icp24.cols() > 2) || (icp24.cols() < 1))
-			ROS_ERROR("Intersection error: F24 for N=%f, %d", N, icp24.cols());
+			ROS_ERROR("Intersection error: F24 for N=%f, %ld", N, icp24.cols());
 
 		for(int i=0; i < icp13.cols(); ++i)
 		{
@@ -200,9 +200,9 @@ struct XConfiguration
 		// Check if something fishy is going on
 
 		if ((icp13.cols() > 2) || (icp13.cols() < 1))
-			ROS_ERROR("Intersection error: F13 for N=%f, %d", N, icp13.cols());
+			ROS_ERROR("Intersection error: F13 for N=%f, %ld", N, icp13.cols());
 		if ((icp24.cols() > 2) || (icp24.cols() < 1))
-			ROS_ERROR("Intersection error: F24 for N=%f, %d", N, icp24.cols());
+			ROS_ERROR("Intersection error: F24 for N=%f, %ld", N, icp24.cols());
 
 		for(int i=0; i < icp13.cols(); ++i)
 		{
@@ -247,9 +247,9 @@ struct XConfiguration
 		// Check if something fishy is going on
 
 		if ((icp12.cols() > 2) || (icp12.cols() < 1))
-			ROS_ERROR("Intersection error: F12 for N=%f, %d", N, icp12.cols());
+			ROS_ERROR("Intersection error: F12 for N=%f, %ld", N, icp12.cols());
 		if ((icp34.cols() > 2) || (icp34.cols() < 1))
-			ROS_ERROR("Intersection error: F34 for N=%f, %d", N, icp34.cols());
+			ROS_ERROR("Intersection error: F34 for N=%f, %ld", N, icp34.cols());
 
 		for(int i=0; i < icp12.cols(); ++i)
 		{
@@ -294,9 +294,9 @@ struct XConfiguration
 		// Check if something fishy is going on
 
 		if ((icp12.cols() > 2) || (icp12.cols() < 1))
-			ROS_ERROR("Intersection error: F12 for N=%f, got: %d", N, icp12.cols());
+			ROS_ERROR("Intersection error: F12 for N=%f, got: %ld", N, icp12.cols());
 		if ((icp34.cols() > 2) || (icp34.cols() < 1))
-			ROS_ERROR("Intersection error: F34 for N=%f, got: %d", N, icp34.cols());
+			ROS_ERROR("Intersection error: F34 for N=%f, got: %ld", N, icp34.cols());
 
 		for(int i=0; i < icp12.cols(); ++i)
 		{
