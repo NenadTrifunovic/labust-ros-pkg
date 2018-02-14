@@ -36,7 +36,7 @@
  *********************************************************************/
 #include <geometry_msgs/TransformStamped.h>
 #include <nav_msgs/Odometry.h>
-#include <navcon_msgs/RelativePosition.h>
+#include <labust_msgs/RelativePosition.h>
 #include <ros/ros.h>
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_broadcaster.h>
@@ -100,13 +100,13 @@ struct SonarSim
 
     odom = nh.subscribe<nav_msgs::Odometry>("target_odom", 1,
                                             &SonarSim::onOdom, this);
-    sonar_pub = nh.advertise<navcon_msgs::RelativePosition>("sonar_fix", 1);
+    sonar_pub = nh.advertise<labust_msgs::RelativePosition>("sonar_fix", 1);
   }
 
   void onOdom(const typename nav_msgs::Odometry::ConstPtr& msg)
   {
-    navcon_msgs::RelativePosition::Ptr fix(
-        new navcon_msgs::RelativePosition());
+    labust_msgs::RelativePosition::Ptr fix(
+        new labust_msgs::RelativePosition());
     fix->header.stamp = msg->header.stamp;
     fix->header.frame_id = tf_prefix + "sonar_frame";
 
@@ -160,8 +160,8 @@ struct SonarSim
       if (target_in_fov && (dT >= 1 / rate))
       {
         last_pub = ros::Time::now();
-        navcon_msgs::RelativePosition::Ptr fixout(
-            new navcon_msgs::RelativePosition());
+        labust_msgs::RelativePosition::Ptr fixout(
+            new labust_msgs::RelativePosition());
         fixout->header.stamp = last_pub;
         fixout->header.frame_id = frame_id;
         fixout->range = range + gen(0);
