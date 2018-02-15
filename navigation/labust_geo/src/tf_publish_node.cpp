@@ -78,8 +78,8 @@ struct TFPublishNode
     ph.param("LocalFixSim", fixValidated, fixValidated);
 
     // Get magnetic data
-    std::string magnetic_model("wmm2015");
-    std::string magnetic_path("/usr/share/geographiclib/magnetic");
+    std::string magnetic_model("emm2015");
+    std::string magnetic_path("/usr/share/GeographicLib/magnetic");
     ph.param("magnetic_data_path", magnetic_path, magnetic_path);
     ph.param("magnetic_model", magnetic_model, magnetic_model);
 
