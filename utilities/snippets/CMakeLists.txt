@@ -45,7 +45,7 @@ install(
 # Mark other files for installation (e.g. launch and bag files, etc.)
 install(
    DIRECTORY data/locations
-   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/data
    FILES_MATCHING PATTERN "*.yaml"
 )
 

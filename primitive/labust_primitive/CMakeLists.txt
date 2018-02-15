@@ -23,8 +23,11 @@ include_directories(
 )
 
 ## Install
-
 install(DIRECTORY include/labust
   DESTINATION ${CATKIN_GLOBAL_INCLUDE_DESTINATION}
   FILES_MATCHING PATTERN "*.h" PATTERN "*.hpp"
+)
+
+install(DIRECTORY data
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
