@@ -55,7 +55,7 @@ add_custom_target(docs_${PROJECT_NAME}
 )
 
 ## Install
-install(TARGETS labust_allocation
+install(TARGETS labust_allocation allocation_node
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
@@ -64,4 +64,8 @@ install(TARGETS labust_allocation
 install(DIRECTORY include/labust
    DESTINATION ${CATKIN_GLOBAL_INCLUDE_DESTINATION}
    FILES_MATCHING PATTERN "*.h" PATTERN "*.hpp"
+)
+
+install(FILES allocation_plugin.xml
+   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )

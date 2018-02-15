@@ -101,7 +101,7 @@ if (TinyXML2_LIBRARY)
 endif()
 
 ## Mark cpp header files for installation
-install(DIRECTORY include/labust
+install(DIRECTORY include/labust include/labust_mission
   DESTINATION ${CATKIN_GLOBAL_INCLUDE_DESTINATION}
   FILES_MATCHING PATTERN "*.h" PATTERN "*.hpp"
 )
