@@ -5,6 +5,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
+  snippets
   labust_msgs
   labust_sim_core
   tf2_ros

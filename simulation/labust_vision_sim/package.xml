@@ -59,6 +59,7 @@
   <exec_depend>rospy</exec_depend>
   <exec_depend>std_msgs</exec_depend>
 
+  <depend>snippets</depend>
   <depend>labust_msgs</depend>
   <depend>labust_sim_core</depend>
   <depend>tf2_ros</depend>
